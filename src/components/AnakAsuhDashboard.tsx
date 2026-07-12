@@ -1,6 +1,6 @@
-import React, { useState, useRef } from 'react';
-import { User, Report, ReportType } from '../types';
-import { Send, Upload, Lock, ShieldCheck, Heart, Clipboard, HelpCircle, FileText, AlertCircle, Trash2, CheckCircle, Clock, ShieldAlert, ImageIcon, MessageCircle } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { User, Report, ReportType, Broadcast } from '../types';
+import { Send, Upload, Lock, ShieldCheck, Heart, Clipboard, HelpCircle, FileText, AlertCircle, Trash2, CheckCircle, Clock, ShieldAlert, ImageIcon, MessageCircle, ZoomIn, ZoomOut, RotateCw, X, Download, Maximize2, Package, Megaphone, ExternalLink, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { decryptMessage, encryptMessage, formatDate, getStatusBadge, getTypeBadge } from '../utils/crypto';
 
@@ -8,6 +8,7 @@ interface AnakAsuhDashboardProps {
   currentUser: User;
   users: User[];
   reports: Report[];
+  broadcasts: Broadcast[];
   onSubmitReport: (reportData: {
     title: string;
     content: string;
@@ -45,10 +46,24 @@ const PRESET_PHOTOS = [
   }
 ];
 
+export const LOGISTIC_ITEMS = [
+  { id: 'sabun', label: '🧼 Sabun Mandi', category: 'Mandi' },
+  { id: 'shampoo', label: '🧴 Shampo', category: 'Mandi' },
+  { id: 'pasta_gigi', label: '🪥 Pasta Gigi', category: 'Mandi' },
+  { id: 'sikat_gigi', label: '🪥 Sikat Gigi', category: 'Mandi' },
+  { id: 'detergen', label: '🧺 Detergen Cuci', category: 'Mandi' },
+  { id: 'buku_tulis', label: '📖 Buku Tulis', category: 'Tulis / Sekolah' },
+  { id: 'pulpen', label: '✍️ Pulpen / Pena', category: 'Tulis / Sekolah' },
+  { id: 'pensil', label: '✏️ Pensil & Penghapus', category: 'Tulis / Sekolah' },
+  { id: 'obat_pribadi', label: '💊 Obat / Vitamin', category: 'Lain-lain' },
+  { id: 'pembalut', label: '🚺 Pembalut', category: 'Lain-lain' }
+];
+
 export default function AnakAsuhDashboard({
   currentUser,
   users,
   reports,
+  broadcasts,
   onSubmitReport,
   onAddReply
 }: AnakAsuhDashboardProps) {
@@ -62,35 +77,118 @@ export default function AnakAsuhDashboard({
   const [replyText, setReplyText] = useState('');
   const [dragActive, setDragActive] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
+  const [selectedItems, setSelectedItems] = useState<{ [key: string]: 'habis' | 'hampir_habis' | '' }>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [showPhotoModal, setShowPhotoModal] = useState<string | null>(null);
+  const [zoomScale, setZoomScale] = useState(1);
+  const [rotation, setRotation] = useState(0);
+
+  const [dismissedBroadcasts, setDismissedBroadcasts] = useState<string[]>(() => {
+    try {
+      const stored = localStorage.getItem(`dismissed_broadcasts_${currentUser.id}`);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const handleDismissBroadcast = (id: string) => {
+    const updated = [...dismissedBroadcasts, id];
+    setDismissedBroadcasts(updated);
+    try {
+      localStorage.setItem(`dismissed_broadcasts_${currentUser.id}`, JSON.stringify(updated));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleOpenPhoto = (url: string) => {
+    setShowPhotoModal(url);
+    setZoomScale(1);
+    setRotation(0);
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowPhotoModal(null);
+      }
+    };
+    if (showPhotoModal) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showPhotoModal]);
 
   const isPesanOrtu = reportType === 'pesan_ortu';
 
   // Get current child's assigned Wali Asuh
   const myGuardian = users.find(u => u.id === currentUser.waliAsuhId && u.role === 'wali_asuh');
 
+  // Get active broadcasts from this child's Wali Asuh
+  const guardianBroadcasts = broadcasts.filter(b => b.senderId === currentUser.waliAsuhId);
+  const activePopups = guardianBroadcasts.filter(b => !dismissedBroadcasts.includes(b.id));
+
   // Get current child's own reports
   const myReports = reports.filter(r => r.senderId === currentUser.id);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !content.trim()) return;
+    
+    let finalTitle = title.trim();
+    let finalContent = content.trim();
+
+    if (reportType === 'kebutuhan_logistik') {
+      const activeItems = Object.entries(selectedItems)
+        .filter(([_, status]) => status !== '')
+        .map(([id, status]) => {
+          const item = LOGISTIC_ITEMS.find(li => li.id === id);
+          return `- ${item?.label || id} (${status === 'habis' ? '❌ Habis Total' : '⚠️ Hampir Habis'})`;
+        });
+
+      if (activeItems.length === 0 && !finalContent) {
+        alert('Silakan pilih minimal satu barang yang habis atau tulis catatan kebutuhan!');
+        return;
+      }
+
+      if (!finalTitle) {
+        finalTitle = 'Laporan Kebutuhan Logistik/Properti';
+      }
+
+      const itemsSummary = activeItems.length > 0 
+        ? `### DAFTAR BARANG YANG HABIS:\n${activeItems.join('\n')}` 
+        : '';
+      
+      const notesSummary = finalContent 
+        ? `### CATATAN TAMBAHAN:\n${finalContent}` 
+        : '';
+
+      finalContent = [itemsSummary, notesSummary].filter(Boolean).join('\n\n');
+    } else {
+      if (!finalTitle || !finalContent) return;
+    }
 
     onSubmitReport({
-      title: title.trim(),
-      content: content.trim(),
+      title: finalTitle,
+      content: finalContent,
       type: reportType,
       attachmentUrl: photoUrl || undefined
     });
 
     const msg = reportType === 'pesan_ortu'
       ? 'Yey! Pesan untuk Orang Tua berhasil dikirim ke Wali Asuh kamu.'
-      : 'Yey! Laporan kamu berhasil dikirim dengan Enkripsi Aman.';
+      : reportType === 'kebutuhan_logistik'
+        ? 'Yey! Laporan Kebutuhan Logistik berhasil dikirim ke Wali Asuh kamu.'
+        : 'Yey! Laporan kamu berhasil dikirim dengan Enkripsi Aman.';
     setSuccessMsg(msg);
     setTitle('');
     setContent('');
     setPhotoUrl('');
     setCustomPhotoName('');
+    setSelectedItems({});
 
     setTimeout(() => {
       setSuccessMsg('');
@@ -234,7 +332,7 @@ export default function AnakAsuhDashboard({
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
                   Tipe Laporan / Suasana Hati
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                   <button
                     type="button"
                     onClick={() => setReportType('pengaduan')}
@@ -258,7 +356,7 @@ export default function AnakAsuhDashboard({
                     }`}
                   >
                     <Heart className={`w-5 h-5 ${reportType === 'curhatan' ? 'text-violet-600' : 'text-slate-400'}`} />
-                    <span className="text-[11px] font-bold">💖 Curhat Rahasia</span>
+                    <span className="text-[11px] font-bold">💖 Curhat</span>
                   </button>
 
                   <button
@@ -271,7 +369,7 @@ export default function AnakAsuhDashboard({
                     }`}
                   >
                     <Clipboard className={`w-5 h-5 ${reportType === 'pelaporan' ? 'text-indigo-600' : 'text-slate-400'}`} />
-                    <span className="text-[11px] font-bold">📋 Laporan Rutin</span>
+                    <span className="text-[11px] font-bold">📋 Lap. Rutin</span>
                   </button>
 
                   <button
@@ -286,36 +384,142 @@ export default function AnakAsuhDashboard({
                     <MessageCircle className={`w-5 h-5 ${reportType === 'pesan_ortu' ? 'text-emerald-600' : 'text-slate-400'}`} />
                     <span className="text-[11px] font-bold">💌 Pesan Ortu</span>
                   </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setReportType('kebutuhan_logistik');
+                      if (!title) {
+                        setTitle('Pendataan Properti Siswa Habis');
+                      }
+                    }}
+                    className={`p-3 rounded-2xl border text-left cursor-pointer transition-all flex flex-col justify-between h-20 ${
+                      reportType === 'kebutuhan_logistik'
+                        ? 'border-amber-500 bg-amber-50/50 text-amber-950 ring-2 ring-amber-500/15'
+                        : 'border-slate-100 bg-slate-50/50 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <Package className={`w-5 h-5 ${reportType === 'kebutuhan_logistik' ? 'text-amber-600' : 'text-slate-400'}`} />
+                    <span className="text-[11px] font-bold">📦 Logistik Habis</span>
+                  </button>
                 </div>
               </div>
+
+              {/* Interactive Logistics Checklist */}
+              {reportType === 'kebutuhan_logistik' && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-4 bg-amber-50/40 border border-amber-100 rounded-2xl space-y-3"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-amber-950 block">📋 Pilih Properti Siswa yang Habis / Sedikit</span>
+                  </div>
+                  <p className="text-[10px] text-amber-700/80">Silakan pilih status ketersediaan properti kamu di bawah ini sebelum mengirim laporan.</p>
+                  
+                  {/* Categorized grid */}
+                  <div className="space-y-3">
+                    {['Mandi', 'Tulis / Sekolah', 'Lain-lain'].map(cat => {
+                      const catItems = LOGISTIC_ITEMS.filter(item => item.category === cat);
+                      return (
+                        <div key={cat} className="space-y-1.5">
+                          <h4 className="text-[10px] font-extrabold text-amber-900/60 uppercase tracking-wider">{cat}</h4>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {catItems.map(item => {
+                              const currentStatus = selectedItems[item.id] || '';
+                              return (
+                                <div key={item.id} className="flex items-center justify-between p-2 bg-white rounded-xl border border-slate-100 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+                                  <span className="text-xs font-semibold text-slate-700">{item.label}</span>
+                                  <div className="flex gap-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => setSelectedItems(prev => ({
+                                        ...prev,
+                                        [item.id]: currentStatus === 'habis' ? '' : 'habis'
+                                      }))}
+                                      className={`px-2 py-1 text-[9px] font-bold rounded-lg transition-all cursor-pointer border ${
+                                        currentStatus === 'habis'
+                                          ? 'bg-rose-500 border-rose-500 text-white'
+                                          : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100'
+                                      }`}
+                                    >
+                                      ❌ Habis
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setSelectedItems(prev => ({
+                                        ...prev,
+                                        [item.id]: currentStatus === 'hampir_habis' ? '' : 'hampir_habis'
+                                      }))}
+                                      className={`px-2 py-1 text-[9px] font-bold rounded-lg transition-all cursor-pointer border ${
+                                        currentStatus === 'hampir_habis'
+                                          ? 'bg-amber-500 border-amber-500 text-white'
+                                          : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100'
+                                      }`}
+                                    >
+                                      ⚠️ Sedikit
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              )}
 
               {/* Title */}
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 ml-1">
-                  {isPesanOrtu ? "Topik / Nama Penerima Pesan" : "Judul Ringkas"}
+                  {isPesanOrtu 
+                    ? "Topik / Nama Penerima Pesan" 
+                    : reportType === 'kebutuhan_logistik'
+                      ? "Judul Laporan Ketersediaan (Opsional)"
+                      : "Judul Ringkas"
+                  }
                 </label>
                 <input
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder={isPesanOrtu ? "Contoh: Kabar Fajar Untuk Ibu / Salam Untuk Ayah" : "Contoh: Lampu Kamar Mandi Redup / Curhat Kangen Ibu"}
+                  placeholder={
+                    isPesanOrtu 
+                      ? "Contoh: Kabar Fajar Untuk Ibu / Salam Untuk Ayah" 
+                      : reportType === 'kebutuhan_logistik'
+                        ? "Contoh: Pendataan Properti Fajar Habis / Kebutuhan Sabun Mandi"
+                        : "Contoh: Lampu Kamar Mandi Redup / Curhat Kangen Ibu"
+                  }
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-pink-500 focus:bg-white transition-all text-slate-800"
-                  required
+                  required={reportType !== 'kebutuhan_logistik'}
                 />
               </div>
 
               {/* Content Description */}
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 ml-1">
-                  {isPesanOrtu ? "Pesan Lengkap untuk Orang Tua" : "Cerita Lengkap Kamu (Erat Rahasia)"}
+                  {isPesanOrtu 
+                    ? "Pesan Lengkap untuk Orang Tua" 
+                    : reportType === 'kebutuhan_logistik'
+                      ? "Catatan / Keterangan Tambahan (Opsional)"
+                      : "Cerita Lengkap Kamu (Erat Rahasia)"
+                  }
                 </label>
                 <textarea
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
-                  placeholder={isPesanOrtu ? "Tuliskan pesan utuh yang ingin disampaikan. Wali asuh kamu akan membaca pesan ini lalu menyalinnya untuk diteruskan ke orang tua/keluarga kamu..." : "Tuliskan secara lengkap di sini. Wali Asuh kamu akan membaca ini secara aman..."}
+                  placeholder={
+                    isPesanOrtu 
+                      ? "Tuliskan pesan utuh yang ingin disampaikan. Wali asuh kamu akan membaca pesan ini lalu menyalinnya untuk diteruskan ke orang tua/keluarga kamu..." 
+                      : reportType === 'kebutuhan_logistik'
+                        ? "Tuliskan jika ada request khusus (misal: butuh sabun cair karena kulit sensitif)..."
+                        : "Tuliskan secara lengkap di sini. Wali Asuh kamu akan membaca ini secara aman..."
+                  }
                   rows={4}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-pink-500 focus:bg-white transition-all text-slate-800 leading-relaxed"
-                  required
+                  required={reportType !== 'kebutuhan_logistik'}
                 />
               </div>
 
@@ -366,7 +570,12 @@ export default function AnakAsuhDashboard({
                 type="submit"
                 className="w-full bg-pink-600 hover:bg-pink-700 text-white font-semibold rounded-xl py-3 text-xs tracking-wider uppercase transition-all shadow-md shadow-pink-600/10 active:scale-[0.98] cursor-pointer"
               >
-                {isPesanOrtu ? "Kirim Pesan untuk Orang Tua" : "Kirim Pengaduan Rahasia"}
+                {isPesanOrtu 
+                  ? "Kirim Pesan untuk Orang Tua" 
+                  : reportType === 'kebutuhan_logistik'
+                    ? "Kirim Laporan Kebutuhan Logistik"
+                    : "Kirim Pengaduan/Curhat"
+                }
               </button>
             </form>
 
@@ -446,6 +655,48 @@ export default function AnakAsuhDashboard({
                     );
                   })}
                 </div>
+              </div>
+
+              {/* PAPAN PENGUMUMAN WALI ASUH */}
+              <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm text-left">
+                <div className="flex items-center gap-2 border-b border-slate-50 pb-3 mb-3">
+                  <div className="p-1.5 bg-amber-50 text-amber-600 rounded-lg">
+                    <Megaphone className="w-5 h-5 animate-soft-pulse" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                      Pengumuman Wali Asuh
+                    </h3>
+                    <p className="text-[9px] text-slate-400">Pesan dan instruksi penting dari {myGuardian?.name || 'Wali Asuh'}</p>
+                  </div>
+                </div>
+
+                {guardianBroadcasts.length === 0 ? (
+                  <p className="text-[11px] text-slate-400 italic py-2">Belum ada pengumuman atau instruksi dari Wali Asuh saat ini.</p>
+                ) : (
+                  <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+                    {guardianBroadcasts.map(b => (
+                      <div key={b.id} className="p-3 bg-amber-50/20 border border-amber-100/30 rounded-2xl space-y-2 relative">
+                        <div className="flex items-center justify-between text-[9px] text-slate-400">
+                          <span className="font-bold text-amber-700">📢 Pengumuman</span>
+                          <span>{formatDate(b.createdAt)}</span>
+                        </div>
+                        <p className="text-xs font-medium text-slate-700 whitespace-pre-wrap leading-relaxed">{b.message}</p>
+                        {b.linkUrl && (
+                          <a
+                            href={b.linkUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold rounded-xl shadow-xs transition-all cursor-pointer mt-1"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                            {b.linkText || 'Buka Link Pendukung'}
+                          </a>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
             </div>
@@ -584,11 +835,17 @@ export default function AnakAsuhDashboard({
                             <span className="text-[9px] font-bold text-slate-400 block mb-1.5 flex items-center gap-1">
                               <ImageIcon className="w-3.5 h-3.5 text-pink-500" /> Lampiran Bukti Foto:
                             </span>
-                            <img 
-                              src={selectedReport.attachmentUrl} 
-                              alt="Bukti Pengaduan" 
-                              className="max-h-44 rounded-xl object-cover border border-slate-200" 
-                            />
+                            <div className="relative rounded-xl overflow-hidden border border-slate-200 max-h-44 group cursor-zoom-in">
+                              <img 
+                                src={selectedReport.attachmentUrl} 
+                                alt="Bukti Pengaduan" 
+                                className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300" 
+                                onClick={() => handleOpenPhoto(selectedReport.attachmentUrl!)}
+                              />
+                              <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px] font-semibold">
+                                Klik untuk memperbesar
+                              </div>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -653,6 +910,193 @@ export default function AnakAsuhDashboard({
         )}
 
       </div>
+
+      {/* Image zoom modal */}
+      <AnimatePresence>
+        {showPhotoModal && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex flex-col items-center justify-between p-4"
+          >
+            {/* Top Bar with metadata and close */}
+            <div className="w-full max-w-5xl flex items-center justify-between z-10 pt-2 pb-4 border-b border-white/10">
+              <div className="text-left">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">LAMPIRAN BUKTI SAYA</span>
+                <h4 className="text-sm font-bold text-white truncate max-w-xs sm:max-w-md">
+                  {selectedReport?.title || "Foto Bukti"}
+                </h4>
+                {selectedReport && (
+                  <p className="text-xs text-slate-400">
+                    Oleh: <span className="font-semibold text-pink-400">{currentUser.name}</span> • {formatDate(selectedReport.createdAt)}
+                  </p>
+                )}
+              </div>
+              
+              {/* Close Button */}
+              <button 
+                type="button"
+                className="p-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-all cursor-pointer border border-white/10"
+                onClick={() => setShowPhotoModal(null)}
+                title="Tutup (Esc)"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Middle Container with Image */}
+            <div className="relative flex-1 w-full max-w-5xl flex items-center justify-center overflow-hidden my-4">
+              <motion.div
+                className="relative flex items-center justify-center"
+                style={{
+                  scale: zoomScale,
+                  rotate: `${rotation}deg`
+                }}
+                transition={{ type: "spring", stiffness: 300, damping: 25 }}
+              >
+                <img 
+                  src={showPhotoModal} 
+                  alt="Lampiran Bukti Pengaduan Zoom" 
+                  className="max-w-full max-h-[70vh] object-contain rounded-xl shadow-2xl select-none"
+                  draggable={false}
+                />
+              </motion.div>
+            </div>
+
+            {/* Bottom Bar: Action Toolbar & Zoom Display */}
+            <div className="w-full max-w-5xl flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-white/10 pt-4 pb-2 z-10">
+              {/* Scale / Info display */}
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-bold text-slate-300 font-mono bg-white/10 px-3 py-1.5 rounded-xl border border-white/5">
+                  Zoom: {Math.round(zoomScale * 100)}%
+                </span>
+                <span className="text-xs font-bold text-slate-300 font-mono bg-white/10 px-3 py-1.5 rounded-xl border border-white/5">
+                  Rotasi: {rotation}°
+                </span>
+              </div>
+
+              {/* Toolbar Buttons */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setZoomScale(prev => Math.max(0.5, prev - 0.25))}
+                  className="p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-all cursor-pointer border border-white/5"
+                  title="Perkecil"
+                >
+                  <ZoomOut className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setZoomScale(prev => Math.min(4, prev + 0.25))}
+                  className="p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-all cursor-pointer border border-white/5"
+                  title="Perbesar"
+                >
+                  <ZoomIn className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRotation(prev => (prev + 90) % 360)}
+                  className="p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-all cursor-pointer border border-white/5"
+                  title="Putar Kanan"
+                >
+                  <RotateCw className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setZoomScale(1); setRotation(0); }}
+                  className="p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-all cursor-pointer border border-white/5"
+                  title="Reset Tampilan"
+                >
+                  <Maximize2 className="w-4 h-4" />
+                </button>
+                
+                {/* Download Button */}
+                <a
+                  href={showPhotoModal}
+                  download={`bukti_${selectedReport?.id || "foto"}.jpg`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2.5 bg-pink-600 hover:bg-pink-500 text-white rounded-xl transition-all cursor-pointer border border-pink-500/10 flex items-center gap-1.5 px-4 font-bold text-xs"
+                  title="Download / Simpan Foto"
+                >
+                  <Download className="w-4 h-4" />
+                  <span className="hidden sm:inline">Simpan Foto</span>
+                </a>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Broadcast Message Popup Modal */}
+      <AnimatePresence>
+        {activePopups.length > 0 && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Backdrop with elegant blur */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => handleDismissBroadcast(activePopups[0].id)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+            />
+
+            {/* Modal Body Card */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: "spring", duration: 0.5 }}
+              className="bg-white rounded-3xl p-6 shadow-2xl max-w-md w-full relative z-10 border border-slate-100 text-left overflow-hidden"
+            >
+              {/* Decorative top strip */}
+              <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600"></div>
+
+              <div className="flex items-start gap-4 mt-2">
+                <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl shrink-0">
+                  <Megaphone className="w-6 h-6 animate-bounce" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="text-[10px] font-bold text-amber-600 uppercase tracking-widest block">Pengumuman Wali Asuh</span>
+                  <h3 className="text-sm font-extrabold text-slate-800 mt-1">Pesan dari {activePopups[0].senderName}</h3>
+                  <span className="text-[9px] text-slate-400 font-mono block mt-0.5">{formatDate(activePopups[0].createdAt)}</span>
+                </div>
+              </div>
+
+              <div className="mt-4 bg-slate-50 p-4 rounded-2xl border border-slate-100/60">
+                <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-wrap font-medium">
+                  {activePopups[0].message}
+                </p>
+              </div>
+
+              {/* Action buttons */}
+              <div className="mt-5 space-y-2">
+                {activePopups[0].linkUrl && (
+                  <a
+                    href={activePopups[0].linkUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full bg-amber-500 hover:bg-amber-600 text-white font-extrabold rounded-xl py-3 text-xs tracking-wider transition-all shadow-md shadow-amber-500/10 active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2 text-center"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    {activePopups[0].linkText || 'Buka Link Pendukung'}
+                  </a>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => handleDismissBroadcast(activePopups[0].id)}
+                  className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl py-2.5 text-xs transition-all active:scale-[0.98] cursor-pointer"
+                >
+                  Selesai & Tutup
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }

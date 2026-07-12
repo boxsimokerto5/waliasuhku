@@ -14,7 +14,7 @@ export interface User {
   createdAt: string;
 }
 
-export type ReportType = 'pengaduan' | 'pelaporan' | 'curhatan' | 'pesan_ortu';
+export type ReportType = 'pengaduan' | 'pelaporan' | 'curhatan' | 'pesan_ortu' | 'kebutuhan_logistik';
 
 export type ReportStatus = 'pending' | 'processed' | 'resolved';
 
@@ -51,3 +51,14 @@ export interface AppNotification {
   isRead: boolean;
   createdAt: string;
 }
+
+export interface Broadcast {
+  id: string;
+  senderId: string;
+  senderName: string;
+  message: string;
+  linkUrl?: string;
+  linkText?: string;
+  createdAt: string;
+}
+

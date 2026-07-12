@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Report, AppNotification, Reply, ReportType } from './types';
+import { User, Report, AppNotification, Reply, ReportType, Broadcast } from './types';
 import { initialUsers, getInitialReports, getInitialNotifications } from './data/mockData';
 import LoginScreen from './components/LoginScreen';
 import Header from './components/Header';
@@ -19,6 +19,7 @@ export default function App() {
   const [users, setUsers] = useState<User[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
 
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [viewportMode, setViewportMode] = useState<'mobile' | 'desktop'>('desktop');
@@ -84,6 +85,22 @@ export default function App() {
       setNotifications(fetchedNotifications);
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, 'notifications');
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Synchronize Broadcasts from Firestore in Real-Time
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, 'broadcasts'), (snapshot) => {
+      const fetchedBroadcasts: Broadcast[] = [];
+      snapshot.forEach((doc) => {
+        fetchedBroadcasts.push(doc.data() as Broadcast);
+      });
+      // Sort descending by creation date
+      fetchedBroadcasts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setBroadcasts(fetchedBroadcasts);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'broadcasts');
     });
     return () => unsubscribe();
   }, []);
@@ -208,10 +225,16 @@ export default function App() {
               ? '💖 Curhatan' 
               : reportData.type === 'pesan_ortu'
                 ? '💌 Pesan Orang Tua'
-                : '📋 Laporan'
+                : reportData.type === 'kebutuhan_logistik'
+                  ? '📦 Kebutuhan Logistik'
+                  : '📋 Laporan'
         } Baru`,
         message: `${currentUser.name} mengirim ${
-          reportData.type === 'pesan_ortu' ? 'pesan untuk orang tua' : reportData.type
+          reportData.type === 'pesan_ortu' 
+            ? 'pesan untuk orang tua' 
+            : reportData.type === 'kebutuhan_logistik'
+              ? 'laporan kebutuhan logistik'
+              : reportData.type
         } tentang "${reportData.title}"`,
         isRead: false,
         createdAt: new Date().toISOString()
@@ -219,7 +242,11 @@ export default function App() {
       await setDoc(doc(db, 'notifications', notif.id), notif);
 
       showToast("Berhasil Dikirim", `${
-        reportData.type === 'pesan_ortu' ? 'Pesan orang tua' : 'Laporan terenkripsi'
+        reportData.type === 'pesan_ortu' 
+          ? 'Pesan orang tua' 
+          : reportData.type === 'kebutuhan_logistik'
+            ? 'Laporan kebutuhan logistik'
+            : 'Laporan terenkripsi'
       } tentang "${reportData.title}" berhasil dikirim ke ${waliAsuh.name}`);
     } catch (err) {
       handleFirestoreError(err, OperationType.WRITE, `reports/${newReport.id}`);
@@ -326,6 +353,38 @@ export default function App() {
     }
   };
 
+  // Action: Create Broadcast (Wali Asuh action)
+  const handleCreateBroadcast = async (message: string, linkUrl?: string, linkText?: string) => {
+    if (!currentUser || currentUser.role !== 'wali_asuh') return;
+
+    const newBroadcast: Broadcast = {
+      id: generateId('broad'),
+      senderId: currentUser.id,
+      senderName: currentUser.name,
+      message,
+      linkUrl: linkUrl?.trim() || undefined,
+      linkText: linkText?.trim() || undefined,
+      createdAt: new Date().toISOString()
+    };
+
+    try {
+      await setDoc(doc(db, 'broadcasts', newBroadcast.id), newBroadcast);
+      showToast('Siaran Dikirim', 'Pesan siaran berhasil dikirim ke semua anak asuh Anda.');
+    } catch (err) {
+      handleFirestoreError(err, OperationType.WRITE, `broadcasts/${newBroadcast.id}`);
+    }
+  };
+
+  // Action: Delete Broadcast (Wali Asuh action)
+  const handleDeleteBroadcast = async (broadcastId: string) => {
+    try {
+      await deleteDoc(doc(db, 'broadcasts', broadcastId));
+      showToast('Siaran Dihapus', 'Pesan siaran berhasil dihapus.');
+    } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, `broadcasts/${broadcastId}`);
+    }
+  };
+
 
   // Render appropriate dashboard depending on role
   const renderDashboard = () => {
@@ -346,9 +405,12 @@ export default function App() {
             currentUser={currentUser}
             users={users}
             reports={reports}
+            broadcasts={broadcasts}
             onCreateAnakAsuh={handleCreateAnakAsuh}
             onUpdateReportStatus={handleUpdateReportStatus}
             onAddReply={handleAddReply}
+            onCreateBroadcast={handleCreateBroadcast}
+            onDeleteBroadcast={handleDeleteBroadcast}
           />
         );
       case 'anak_asuh':
@@ -357,6 +419,7 @@ export default function App() {
             currentUser={currentUser}
             users={users}
             reports={reports}
+            broadcasts={broadcasts}
             onSubmitReport={handleSubmitReport}
             onAddReply={handleAddReply}
           />

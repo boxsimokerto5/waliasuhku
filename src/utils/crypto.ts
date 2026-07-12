@@ -125,6 +125,12 @@ export function getTypeBadge(type: string) {
         label: 'Pesan Orang Tua',
         icon: 'MessageCircle'
       };
+    case 'kebutuhan_logistik':
+      return {
+        bg: 'bg-amber-100 text-amber-800 border-amber-200',
+        label: 'Kebutuhan Logistik',
+        icon: 'Package'
+      };
     default:
       return {
         bg: 'bg-slate-100 text-slate-800 border-slate-200',
