@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Report, AppNotification, Reply } from './types';
+import { User, Report, AppNotification, Reply, ReportType } from './types';
 import { initialUsers, getInitialReports, getInitialNotifications } from './data/mockData';
 import LoginScreen from './components/LoginScreen';
 import Header from './components/Header';
@@ -11,7 +11,7 @@ import { encryptMessage } from './utils/crypto';
 import { Bell, Lock, ShieldAlert, Monitor, Phone, HeartHandshake } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { collection, onSnapshot, setDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { db } from './lib/firebase';
+import { db, handleFirestoreError, OperationType } from './lib/firebase';
 
 export default function App() {
   // Persistence state
@@ -45,13 +45,13 @@ export default function App() {
           createdAt: '2026-06-01T08:00:00Z'
         };
         setDoc(doc(db, 'users', defaultAdmin.id), defaultAdmin).catch(err => {
-          console.error("Error writing default superadmin:", err);
+          handleFirestoreError(err, OperationType.WRITE, `users/${defaultAdmin.id}`);
         });
       } else {
         setUsers(fetchedUsers);
       }
     }, (error) => {
-      console.error("Error listening to users collection:", error);
+      handleFirestoreError(error, OperationType.GET, 'users');
     });
     return () => unsubscribe();
   }, []);
@@ -67,7 +67,7 @@ export default function App() {
       fetchedReports.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       setReports(fetchedReports);
     }, (error) => {
-      console.error("Error listening to reports collection:", error);
+      handleFirestoreError(error, OperationType.GET, 'reports');
     });
     return () => unsubscribe();
   }, []);
@@ -83,7 +83,7 @@ export default function App() {
       fetchedNotifications.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       setNotifications(fetchedNotifications);
     }, (error) => {
-      console.error("Error listening to notifications collection:", error);
+      handleFirestoreError(error, OperationType.GET, 'notifications');
     });
     return () => unsubscribe();
   }, []);
@@ -128,8 +128,7 @@ export default function App() {
       await setDoc(doc(db, 'notifications', notif.id), notif);
       showToast(notif.title, notif.message);
     } catch (err) {
-      console.error("Error creating Wali Asuh in Firestore:", err);
-      showToast("Gagal Membuat Akun", "Terjadi kesalahan saat menyimpan ke database.");
+      handleFirestoreError(err, OperationType.WRITE, `users/${newWali.id}`);
     }
   };
 
@@ -160,8 +159,7 @@ export default function App() {
       await setDoc(doc(db, 'notifications', notif.id), notif);
       showToast(notif.title, notif.message);
     } catch (err) {
-      console.error("Error creating Anak Asuh in Firestore:", err);
-      showToast("Gagal Mendaftarkan Anak", "Terjadi kesalahan saat menyimpan ke database.");
+      handleFirestoreError(err, OperationType.WRITE, `users/${newAnak.id}`);
     }
   };
 
@@ -169,7 +167,7 @@ export default function App() {
   const handleSubmitReport = async (reportData: {
     title: string;
     content: string;
-    type: 'pengaduan' | 'pelaporan' | 'curhatan';
+    type: ReportType;
     attachmentUrl?: string;
   }) => {
     if (!currentUser || currentUser.role !== 'anak_asuh') return;
@@ -203,17 +201,28 @@ export default function App() {
       const notif: AppNotification = {
         id: generateId('notif'),
         userId: waliAsuh.id,
-        title: `${reportData.type === 'pengaduan' ? '⚠️ Pengaduan' : reportData.type === 'curhatan' ? '💖 Curhatan' : '📋 Laporan'} Baru`,
-        message: `${currentUser.name} mengirim ${reportData.type} tentang "${reportData.title}"`,
+        title: `${
+          reportData.type === 'pengaduan' 
+            ? '⚠️ Pengaduan' 
+            : reportData.type === 'curhatan' 
+              ? '💖 Curhatan' 
+              : reportData.type === 'pesan_ortu'
+                ? '💌 Pesan Orang Tua'
+                : '📋 Laporan'
+        } Baru`,
+        message: `${currentUser.name} mengirim ${
+          reportData.type === 'pesan_ortu' ? 'pesan untuk orang tua' : reportData.type
+        } tentang "${reportData.title}"`,
         isRead: false,
         createdAt: new Date().toISOString()
       };
       await setDoc(doc(db, 'notifications', notif.id), notif);
 
-      showToast("Berhasil Dikirim", `Laporan terenkripsi tentang "${reportData.title}" berhasil dikirim ke ${waliAsuh.name}`);
+      showToast("Berhasil Dikirim", `${
+        reportData.type === 'pesan_ortu' ? 'Pesan orang tua' : 'Laporan terenkripsi'
+      } tentang "${reportData.title}" berhasil dikirim ke ${waliAsuh.name}`);
     } catch (err) {
-      console.error("Error submitting report to Firestore:", err);
-      showToast("Gagal Mengirim Laporan", "Terjadi kesalahan saat menyimpan ke database.");
+      handleFirestoreError(err, OperationType.WRITE, `reports/${newReport.id}`);
     }
   };
 
@@ -239,8 +248,7 @@ export default function App() {
       await setDoc(doc(db, 'notifications', notif.id), notif);
       showToast(notif.title, notif.message);
     } catch (err) {
-      console.error("Error updating report status in Firestore:", err);
-      showToast("Gagal Memperbarui Status", "Terjadi kesalahan saat menyimpan ke database.");
+      handleFirestoreError(err, OperationType.UPDATE, `reports/${reportId}`);
     }
   };
 
@@ -281,8 +289,7 @@ export default function App() {
       await setDoc(doc(db, 'notifications', notif.id), notif);
       showToast(notif.title, notif.message);
     } catch (err) {
-      console.error("Error adding reply in Firestore:", err);
-      showToast("Gagal Mengirim Balasan", "Terjadi kesalahan saat menyimpan ke database.");
+      handleFirestoreError(err, OperationType.UPDATE, `reports/${reportId}`);
     }
   };
 
@@ -291,7 +298,7 @@ export default function App() {
     try {
       await updateDoc(doc(db, 'notifications', id), { isRead: true });
     } catch (err) {
-      console.error("Error marking notification as read:", err);
+      handleFirestoreError(err, OperationType.UPDATE, `notifications/${id}`);
     }
   };
 
@@ -302,7 +309,7 @@ export default function App() {
       try {
         await updateDoc(doc(db, 'notifications', notif.id), { isRead: true });
       } catch (err) {
-        console.error("Error marking notification as read:", err);
+        handleFirestoreError(err, OperationType.UPDATE, `notifications/${notif.id}`);
       }
     }
   };
@@ -314,7 +321,7 @@ export default function App() {
       try {
         await deleteDoc(doc(db, 'notifications', notif.id));
       } catch (err) {
-        console.error("Error deleting notification:", err);
+        handleFirestoreError(err, OperationType.DELETE, `notifications/${notif.id}`);
       }
     }
   };

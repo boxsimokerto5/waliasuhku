@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
-import { User, Report } from '../types';
-import { Send, Upload, Lock, ShieldCheck, Heart, Clipboard, HelpCircle, FileText, AlertCircle, Trash2, CheckCircle, Clock, ShieldAlert, ImageIcon } from 'lucide-react';
+import { User, Report, ReportType } from '../types';
+import { Send, Upload, Lock, ShieldCheck, Heart, Clipboard, HelpCircle, FileText, AlertCircle, Trash2, CheckCircle, Clock, ShieldAlert, ImageIcon, MessageCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { decryptMessage, encryptMessage, formatDate, getStatusBadge, getTypeBadge } from '../utils/crypto';
 
@@ -11,7 +11,7 @@ interface AnakAsuhDashboardProps {
   onSubmitReport: (reportData: {
     title: string;
     content: string;
-    type: 'pengaduan' | 'pelaporan' | 'curhatan';
+    type: ReportType;
     attachmentUrl?: string;
   }) => void;
   onAddReply: (reportId: string, replyContent: string) => void;
@@ -54,7 +54,7 @@ export default function AnakAsuhDashboard({
 }: AnakAsuhDashboardProps) {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [reportType, setReportType] = useState<'pengaduan' | 'pelaporan' | 'curhatan'>('pengaduan');
+  const [reportType, setReportType] = useState<ReportType>('pengaduan');
   const [photoUrl, setPhotoUrl] = useState<string>('');
   const [customPhotoName, setCustomPhotoName] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'form' | 'history'>('form');
@@ -63,6 +63,8 @@ export default function AnakAsuhDashboard({
   const [dragActive, setDragActive] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const isPesanOrtu = reportType === 'pesan_ortu';
 
   // Get current child's assigned Wali Asuh
   const myGuardian = users.find(u => u.id === currentUser.waliAsuhId && u.role === 'wali_asuh');
@@ -81,7 +83,10 @@ export default function AnakAsuhDashboard({
       attachmentUrl: photoUrl || undefined
     });
 
-    setSuccessMsg('Yey! Laporan kamu berhasil dikirim dengan Enkripsi Aman.');
+    const msg = reportType === 'pesan_ortu'
+      ? 'Yey! Pesan untuk Orang Tua berhasil dikirim ke Wali Asuh kamu.'
+      : 'Yey! Laporan kamu berhasil dikirim dengan Enkripsi Aman.';
+    setSuccessMsg(msg);
     setTitle('');
     setContent('');
     setPhotoUrl('');
@@ -229,7 +234,7 @@ export default function AnakAsuhDashboard({
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
                   Tipe Laporan / Suasana Hati
                 </label>
-                <div className="grid grid-cols-3 gap-2.5">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                   <button
                     type="button"
                     onClick={() => setReportType('pengaduan')}
@@ -240,7 +245,7 @@ export default function AnakAsuhDashboard({
                     }`}
                   >
                     <ShieldAlert className={`w-5 h-5 ${reportType === 'pengaduan' ? 'text-rose-600' : 'text-slate-400'}`} />
-                    <span className="text-xs font-bold">⚠️ Pengaduan</span>
+                    <span className="text-[11px] font-bold">⚠️ Pengaduan</span>
                   </button>
 
                   <button
@@ -253,7 +258,7 @@ export default function AnakAsuhDashboard({
                     }`}
                   >
                     <Heart className={`w-5 h-5 ${reportType === 'curhatan' ? 'text-violet-600' : 'text-slate-400'}`} />
-                    <span className="text-xs font-bold">💖 Curhat Rahasia</span>
+                    <span className="text-[11px] font-bold">💖 Curhat Rahasia</span>
                   </button>
 
                   <button
@@ -266,7 +271,20 @@ export default function AnakAsuhDashboard({
                     }`}
                   >
                     <Clipboard className={`w-5 h-5 ${reportType === 'pelaporan' ? 'text-indigo-600' : 'text-slate-400'}`} />
-                    <span className="text-xs font-bold">📋 Laporan Rutin</span>
+                    <span className="text-[11px] font-bold">📋 Laporan Rutin</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setReportType('pesan_ortu')}
+                    className={`p-3 rounded-2xl border text-left cursor-pointer transition-all flex flex-col justify-between h-20 ${
+                      reportType === 'pesan_ortu'
+                        ? 'border-emerald-500 bg-emerald-50/50 text-emerald-950 ring-2 ring-emerald-500/15'
+                        : 'border-slate-100 bg-slate-50/50 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <MessageCircle className={`w-5 h-5 ${reportType === 'pesan_ortu' ? 'text-emerald-600' : 'text-slate-400'}`} />
+                    <span className="text-[11px] font-bold">💌 Pesan Ortu</span>
                   </button>
                 </div>
               </div>
@@ -274,13 +292,13 @@ export default function AnakAsuhDashboard({
               {/* Title */}
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 ml-1">
-                  Judul Ringkas
+                  {isPesanOrtu ? "Topik / Nama Penerima Pesan" : "Judul Ringkas"}
                 </label>
                 <input
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Contoh: Lampu Kamar Mandi Redup / Curhat Kangen Ibu"
+                  placeholder={isPesanOrtu ? "Contoh: Kabar Fajar Untuk Ibu / Salam Untuk Ayah" : "Contoh: Lampu Kamar Mandi Redup / Curhat Kangen Ibu"}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-pink-500 focus:bg-white transition-all text-slate-800"
                   required
                 />
@@ -289,12 +307,12 @@ export default function AnakAsuhDashboard({
               {/* Content Description */}
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 ml-1">
-                  Cerita Lengkap Kamu (Erat Rahasia)
+                  {isPesanOrtu ? "Pesan Lengkap untuk Orang Tua" : "Cerita Lengkap Kamu (Erat Rahasia)"}
                 </label>
                 <textarea
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
-                  placeholder="Tuliskan secara lengkap di sini. Wali Asuh kamu akan membaca ini secara aman..."
+                  placeholder={isPesanOrtu ? "Tuliskan pesan utuh yang ingin disampaikan. Wali asuh kamu akan membaca pesan ini lalu menyalinnya untuk diteruskan ke orang tua/keluarga kamu..." : "Tuliskan secara lengkap di sini. Wali Asuh kamu akan membaca ini secara aman..."}
                   rows={4}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-pink-500 focus:bg-white transition-all text-slate-800 leading-relaxed"
                   required
@@ -348,7 +366,7 @@ export default function AnakAsuhDashboard({
                 type="submit"
                 className="w-full bg-pink-600 hover:bg-pink-700 text-white font-semibold rounded-xl py-3 text-xs tracking-wider uppercase transition-all shadow-md shadow-pink-600/10 active:scale-[0.98] cursor-pointer"
               >
-                Kirim Pengaduan Rahasia
+                {isPesanOrtu ? "Kirim Pesan untuk Orang Tua" : "Kirim Pengaduan Rahasia"}
               </button>
             </form>
 

@@ -14,7 +14,7 @@ export interface User {
   createdAt: string;
 }
 
-export type ReportType = 'pengaduan' | 'pelaporan' | 'curhatan';
+export type ReportType = 'pengaduan' | 'pelaporan' | 'curhatan' | 'pesan_ortu';
 
 export type ReportStatus = 'pending' | 'processed' | 'resolved';
 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { User, Report, Reply } from '../types';
-import { Plus, UserPlus, FileText, Send, Lock, ShieldAlert, Heart, Clipboard, HelpCircle, Eye, CheckCircle2, MessageSquare, Image as ImageIcon } from 'lucide-react';
+import { Plus, UserPlus, FileText, Send, Lock, ShieldAlert, Heart, Clipboard, HelpCircle, Eye, CheckCircle2, MessageSquare, Image as ImageIcon, MessageCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { decryptMessage, encryptMessage, formatDate, getStatusBadge, getTypeBadge } from '../utils/crypto';
 
@@ -29,6 +29,16 @@ export default function WaliAsuhDashboard({
   const [replyText, setReplyText] = useState('');
   const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'processed' | 'resolved'>('all');
   const [showPhotoModal, setShowPhotoModal] = useState<string | null>(null);
+  const [filterType, setFilterType] = useState<'all' | 'reports_only' | 'pesan_ortu'>('all');
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const handleCopyText = (id: string, text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => {
+      setCopiedId(null);
+    }, 2000);
+  };
 
   // Filter children under this Wali Asuh
   const myChildren = users.filter(u => u.role === 'anak_asuh' && u.waliAsuhId === currentUser.id);
@@ -37,6 +47,11 @@ export default function WaliAsuhDashboard({
   const myReports = reports.filter(r => r.receiverId === currentUser.id);
 
   const filteredReports = myReports.filter(r => {
+    // Filter by type
+    if (filterType === 'reports_only' && r.type === 'pesan_ortu') return false;
+    if (filterType === 'pesan_ortu' && r.type !== 'pesan_ortu') return false;
+
+    // Filter by status tab
     if (activeTab === 'all') return true;
     return r.status === activeTab;
   });
@@ -236,6 +251,34 @@ export default function WaliAsuhDashboard({
               </div>
             </div>
 
+            {/* Type Filters Sub-Bar */}
+            <div className="bg-white border border-slate-100/75 p-3 rounded-2xl shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-left">
+              <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Kategori:</span>
+                <button
+                  type="button"
+                  onClick={() => setFilterType('all')}
+                  className={`px-2.5 py-1 text-[11px] font-bold rounded-lg cursor-pointer whitespace-nowrap transition-all ${filterType === 'all' ? 'bg-violet-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                >
+                  Semua Tipe
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFilterType('reports_only')}
+                  className={`px-2.5 py-1 text-[11px] font-bold rounded-lg cursor-pointer whitespace-nowrap transition-all ${filterType === 'reports_only' ? 'bg-violet-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                >
+                  Hanya Laporan/Curhat
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFilterType('pesan_ortu')}
+                  className={`px-2.5 py-1 text-[11px] font-bold rounded-lg cursor-pointer whitespace-nowrap transition-all ${filterType === 'pesan_ortu' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                >
+                  💌 Hanya Pesan Ortu
+                </button>
+              </div>
+            </div>
+
             {/* Feed Cards Container */}
             <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
               {filteredReports.length === 0 ? (
@@ -294,10 +337,27 @@ export default function WaliAsuhDashboard({
                           <p className="text-[10px] font-bold text-slate-600 truncate">{r.senderName}</p>
                         </div>
                         
-                        <div className="flex items-center gap-1 text-[10px] text-violet-600 font-extrabold">
-                          <MessageSquare className="w-3.5 h-3.5" />
-                          <span>{r.replies.length} Tanggapan</span>
-                        </div>
+                        {r.type === 'pesan_ortu' ? (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCopyText(r.id, decryptMessage(r.content));
+                            }}
+                            className={`px-2.5 py-1 text-[10px] font-bold rounded-xl border transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
+                              copiedId === r.id
+                                ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                                : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-100'
+                            }`}
+                          >
+                            <Clipboard className="w-3.5 h-3.5" />
+                            <span>{copiedId === r.id ? 'Tersalin!' : 'Salin Pesan'}</span>
+                          </button>
+                        ) : (
+                          <div className="flex items-center gap-1 text-[10px] text-violet-600 font-extrabold">
+                            <MessageSquare className="w-3.5 h-3.5" />
+                            <span>{r.replies.length} Tanggapan</span>
+                          </div>
+                        )}
                       </div>
                     </motion.div>
                   );
@@ -342,6 +402,29 @@ export default function WaliAsuhDashboard({
                       </p>
                     </div>
                   </div>
+
+                  {/* Copy Action for Message to Parents */}
+                  {selectedReport.type === 'pesan_ortu' && (
+                    <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-2xl flex flex-col gap-2 text-left">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-emerald-950">Salin Pesan Orang Tua</span>
+                        <button
+                          onClick={() => handleCopyText(selectedReport.id, decryptMessage(selectedReport.content))}
+                          className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+                            copiedId === selectedReport.id
+                              ? 'bg-emerald-600 text-white shadow-xs'
+                              : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200'
+                          }`}
+                        >
+                          <Clipboard className="w-4 h-4" />
+                          <span>{copiedId === selectedReport.id ? 'Tersalin!' : 'Salin Pesan'}</span>
+                        </button>
+                      </div>
+                      <p className="text-[10px] text-emerald-700 leading-normal">
+                        Gunakan tombol di atas untuk menyalin isi pesan dari {selectedReport.senderName} ini sehingga Anda dapat menempelkannya (paste) ke SMS, WhatsApp, atau saluran orang tuanya dengan mudah.
+                      </p>
+                    </div>
+                  )}
 
                   {/* Original Report Box */}
                   <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">

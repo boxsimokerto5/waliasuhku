@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import { initializeFirestore, doc, getDocFromServer } from 'firebase/firestore';
 
 // Configuration from firebase-applet-config.json
 const firebaseConfig = {
@@ -14,7 +14,71 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firestore with the custom database ID
-const db = getFirestore(app, "ai-studio-waliasuhku-5b4d6e99-725b-48c6-9756-310ee01109f2");
+// Initialize Firestore with custom database ID and long-polling forced to prevent WebSocket issues
+const db = initializeFirestore(app, {
+  experimentalForceLongPolling: true
+}, "ai-studio-waliasuhku-5b4d6e99-725b-48c6-9756-310ee01109f2");
+
+// Validate Connection to Firestore
+async function testConnection() {
+  try {
+    // Attempt a direct fetch from server to verify connection health
+    await getDocFromServer(doc(db, 'users', 'connection_test_doc'));
+    console.log("Firestore connection healthy!");
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('the client is offline')) {
+      console.error("Firestore is currently running offline. Please check your Firebase configuration or internet connection.");
+    } else {
+      console.log("Firestore initialized in offline/fallback mode:", error);
+    }
+  }
+}
+testConnection();
+
+// Define operational enum for error logging context
+export enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+export interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
+  }
+}
+
+// Global firestore error translator as requested by guidelines
+export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: null,
+      email: null,
+      emailVerified: null,
+      isAnonymous: null,
+      tenantId: null,
+      providerInfo: []
+    },
+    operationType,
+    path
+  };
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
 
 export { app, db };

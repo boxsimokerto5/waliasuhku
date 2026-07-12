@@ -1,0 +1,130 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Profil pengguna pada aplikasi WaliAsuhku.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "ID unik pengguna"
+        },
+        "username": {
+          "type": "string",
+          "description": "Username unik untuk login"
+        },
+        "name": {
+          "type": "string",
+          "description": "Nama lengkap pengguna"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["super_admin", "wali_asuh", "anak_asuh"],
+          "description": "Peran pengguna"
+        },
+        "password": {
+          "type": "string",
+          "description": "Password terenkripsi/tersimpan"
+        },
+        "waliAsuhId": {
+          "type": "string",
+          "description": "ID Wali Asuh (opsional, hanya untuk anak asuh)"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Waktu pembuatan akun"
+        }
+      },
+      "required": ["id", "username", "name", "role", "createdAt"]
+    },
+    "Report": {
+      "title": "Report",
+      "description": "Laporan terenkripsi yang diajukan oleh anak asuh.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "senderId": {
+          "type": "string"
+        },
+        "senderName": {
+          "type": "string"
+        },
+        "receiverId": {
+          "type": "string"
+        },
+        "receiverName": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["pengaduan", "pelaporan", "curhatan"]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "processed", "resolved"]
+        },
+        "attachmentUrl": {
+          "type": "string"
+        },
+        "isEncrypted": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "replies": {
+          "type": "array"
+        }
+      },
+      "required": ["id", "senderId", "senderName", "receiverId", "receiverName", "title", "content", "type", "status", "isEncrypted", "createdAt", "replies"]
+    },
+    "AppNotification": {
+      "title": "AppNotification",
+      "description": "Notifikasi dalam aplikasi untuk pengguna.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "isRead": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "userId", "title", "message", "isRead", "createdAt"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "Koleksi pengguna sistem"
+    },
+    "reports/{reportId}": {
+      "schema": "Report",
+      "description": "Koleksi laporan anak asuh"
+    },
+    "notifications/{notificationId}": {
+      "schema": "AppNotification",
+      "description": "Koleksi notifikasi real-time"
+    }
+  }
+}

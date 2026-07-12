@@ -119,6 +119,12 @@ export function getTypeBadge(type: string) {
         label: 'Curahan Hati',
         icon: 'HeartHandshake'
       };
+    case 'pesan_ortu':
+      return {
+        bg: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+        label: 'Pesan Orang Tua',
+        icon: 'MessageCircle'
+      };
     default:
       return {
         bg: 'bg-slate-100 text-slate-800 border-slate-200',
