@@ -1,0 +1,18 @@
+{
+  "short_name": "WaliAsuhku",
+  "name": "WaliAsuhku - Aplikasi Pengasuhan & Pelaporan Aman",
+  "description": "Aplikasi pelaporan, pengaduan, dan curhatan aman berenkripsi untuk hubungan harmonis anak asuh dan wali asuh.",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#4f46e5",
+  "theme_color": "#4f46e5",
+  "display": "standalone",
+  "orientation": "portrait"
+}
