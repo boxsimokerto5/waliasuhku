@@ -1,0 +1,488 @@
+import React, { useState, useEffect } from 'react';
+import { User, Report, AppNotification, Reply } from './types';
+import { initialUsers, getInitialReports, getInitialNotifications } from './data/mockData';
+import LoginScreen from './components/LoginScreen';
+import Header from './components/Header';
+import SuperAdminDashboard from './components/SuperAdminDashboard';
+import WaliAsuhDashboard from './components/WaliAsuhDashboard';
+import AnakAsuhDashboard from './components/AnakAsuhDashboard';
+import NotificationCenter from './components/NotificationCenter';
+import { encryptMessage } from './utils/crypto';
+import { Bell, Lock, ShieldAlert, Monitor, Phone, HeartHandshake } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { collection, onSnapshot, setDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { db } from './lib/firebase';
+
+export default function App() {
+  // Persistence state
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
+  const [reports, setReports] = useState<Report[]>([]);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [viewportMode, setViewportMode] = useState<'mobile' | 'desktop'>('desktop');
+  
+  // Real-time Active Toast Banner
+  const [activeToast, setActiveToast] = useState<{ id: string; title: string; message: string } | null>(null);
+
+  // Synchronize Users from Firestore in Real-Time
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, 'users'), (snapshot) => {
+      const fetchedUsers: User[] = [];
+      snapshot.forEach((doc) => {
+        fetchedUsers.push(doc.data() as User);
+      });
+      
+      const hasSuperadmin = fetchedUsers.some(u => u.username === 'superadmin');
+      if (!hasSuperadmin) {
+        const defaultAdmin: User = {
+          id: 'superadmin_1',
+          username: 'superadmin',
+          name: 'Super Admin',
+          role: 'super_admin',
+          password: 'Woyowoyo1',
+          createdAt: '2026-06-01T08:00:00Z'
+        };
+        setDoc(doc(db, 'users', defaultAdmin.id), defaultAdmin).catch(err => {
+          console.error("Error writing default superadmin:", err);
+        });
+      } else {
+        setUsers(fetchedUsers);
+      }
+    }, (error) => {
+      console.error("Error listening to users collection:", error);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Synchronize Reports from Firestore in Real-Time
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, 'reports'), (snapshot) => {
+      const fetchedReports: Report[] = [];
+      snapshot.forEach((doc) => {
+        fetchedReports.push(doc.data() as Report);
+      });
+      // Sort descending by creation date
+      fetchedReports.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setReports(fetchedReports);
+    }, (error) => {
+      console.error("Error listening to reports collection:", error);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Synchronize Notifications from Firestore in Real-Time
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, 'notifications'), (snapshot) => {
+      const fetchedNotifications: AppNotification[] = [];
+      snapshot.forEach((doc) => {
+        fetchedNotifications.push(doc.data() as AppNotification);
+      });
+      // Sort descending by creation date
+      fetchedNotifications.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setNotifications(fetchedNotifications);
+    }, (error) => {
+      console.error("Error listening to notifications collection:", error);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Helper to generate a unique ID
+  const generateId = (prefix: string) => {
+    return `${prefix}_${Math.random().toString(36).substr(2, 9)}`;
+  };
+
+  // Toast helper
+  const showToast = (title: string, message: string) => {
+    const id = Math.random().toString();
+    setActiveToast({ id, title, message });
+    setTimeout(() => {
+      setActiveToast(prev => prev?.id === id ? null : prev);
+    }, 4500);
+  };
+
+  // Action: Create Wali Asuh (Super Admin action)
+  const handleCreateWaliAsuh = async (username: string, name: string) => {
+    const newWali: User = {
+      id: generateId('wali'),
+      username,
+      name,
+      role: 'wali_asuh',
+      password: username, // default password is username
+      createdAt: new Date().toISOString()
+    };
+
+    try {
+      await setDoc(doc(db, 'users', newWali.id), newWali);
+
+      // Create a real-time notification
+      const notif: AppNotification = {
+        id: generateId('notif'),
+        userId: currentUser?.id || 'system',
+        title: 'Wali Asuh Terdaftar',
+        message: `Akun Wali Asuh "${name}" berhasil dibuat dengan username "${username}".`,
+        isRead: false,
+        createdAt: new Date().toISOString()
+      };
+      await setDoc(doc(db, 'notifications', notif.id), notif);
+      showToast(notif.title, notif.message);
+    } catch (err) {
+      console.error("Error creating Wali Asuh in Firestore:", err);
+      showToast("Gagal Membuat Akun", "Terjadi kesalahan saat menyimpan ke database.");
+    }
+  };
+
+  // Action: Create Anak Asuh (Wali Asuh action)
+  const handleCreateAnakAsuh = async (username: string, name: string, waliAsuhId: string) => {
+    const newAnak: User = {
+      id: generateId('anak'),
+      username,
+      name,
+      role: 'anak_asuh',
+      password: username, // default password is username
+      waliAsuhId,
+      createdAt: new Date().toISOString()
+    };
+
+    try {
+      await setDoc(doc(db, 'users', newAnak.id), newAnak);
+
+      // Create a real-time notification
+      const notif: AppNotification = {
+        id: generateId('notif'),
+        userId: currentUser?.id || 'system',
+        title: 'Anak Asuh Ditambahkan',
+        message: `Anak asuh "${name}" berhasil didaftarkan di bawah bimbingan Anda.`,
+        isRead: false,
+        createdAt: new Date().toISOString()
+      };
+      await setDoc(doc(db, 'notifications', notif.id), notif);
+      showToast(notif.title, notif.message);
+    } catch (err) {
+      console.error("Error creating Anak Asuh in Firestore:", err);
+      showToast("Gagal Mendaftarkan Anak", "Terjadi kesalahan saat menyimpan ke database.");
+    }
+  };
+
+  // Action: Submit a Report (Anak Asuh action)
+  const handleSubmitReport = async (reportData: {
+    title: string;
+    content: string;
+    type: 'pengaduan' | 'pelaporan' | 'curhatan';
+    attachmentUrl?: string;
+  }) => {
+    if (!currentUser || currentUser.role !== 'anak_asuh') return;
+
+    const waliAsuh = users.find(u => u.id === currentUser.waliAsuhId && u.role === 'wali_asuh');
+    if (!waliAsuh) return;
+
+    // Encrypt content on submission to guard privacy
+    const encryptedContent = encryptMessage(reportData.content, 'waliasuhku-secure-key');
+
+    const newReport: Report = {
+      id: generateId('rep'),
+      senderId: currentUser.id,
+      senderName: currentUser.name,
+      receiverId: waliAsuh.id,
+      receiverName: waliAsuh.name,
+      title: reportData.title,
+      content: encryptedContent,
+      type: reportData.type,
+      status: 'pending',
+      attachmentUrl: reportData.attachmentUrl || "",
+      isEncrypted: true,
+      createdAt: new Date().toISOString(),
+      replies: []
+    };
+
+    try {
+      await setDoc(doc(db, 'reports', newReport.id), newReport);
+
+      // Create notification for their Wali Asuh
+      const notif: AppNotification = {
+        id: generateId('notif'),
+        userId: waliAsuh.id,
+        title: `${reportData.type === 'pengaduan' ? '⚠️ Pengaduan' : reportData.type === 'curhatan' ? '💖 Curhatan' : '📋 Laporan'} Baru`,
+        message: `${currentUser.name} mengirim ${reportData.type} tentang "${reportData.title}"`,
+        isRead: false,
+        createdAt: new Date().toISOString()
+      };
+      await setDoc(doc(db, 'notifications', notif.id), notif);
+
+      showToast("Berhasil Dikirim", `Laporan terenkripsi tentang "${reportData.title}" berhasil dikirim ke ${waliAsuh.name}`);
+    } catch (err) {
+      console.error("Error submitting report to Firestore:", err);
+      showToast("Gagal Mengirim Laporan", "Terjadi kesalahan saat menyimpan ke database.");
+    }
+  };
+
+  // Action: Update Report Status (Wali Asuh action)
+  const handleUpdateReportStatus = async (reportId: string, status: 'pending' | 'processed' | 'resolved') => {
+    const reportToUpdate = reports.find(r => r.id === reportId);
+    if (!reportToUpdate) return;
+
+    try {
+      await updateDoc(doc(db, 'reports', reportId), { status });
+
+      // Trigger notification to the child
+      const notif: AppNotification = {
+        id: generateId('notif'),
+        userId: reportToUpdate.senderId,
+        title: 'Perubahan Status Laporan',
+        message: `Laporan Anda tentang "${reportToUpdate.title}" telah diubah statusnya menjadi: ${
+          status === 'processed' ? 'Diproses (Sedang Ditindaklanjuti)' : 'Selesai (Ditangani)'
+        }`,
+        isRead: false,
+        createdAt: new Date().toISOString()
+      };
+      await setDoc(doc(db, 'notifications', notif.id), notif);
+      showToast(notif.title, notif.message);
+    } catch (err) {
+      console.error("Error updating report status in Firestore:", err);
+      showToast("Gagal Memperbarui Status", "Terjadi kesalahan saat menyimpan ke database.");
+    }
+  };
+
+  // Action: Add Reply (Both Wali Asuh and Anak Asuh can reply)
+  const handleAddReply = async (reportId: string, replyContent: string) => {
+    if (!currentUser) return;
+
+    const r = reports.find(item => item.id === reportId);
+    if (!r) return;
+
+    // Encrypt reply for maximum privacy
+    const encryptedReply = encryptMessage(replyContent, 'waliasuhku-secure-key');
+
+    const newReply: Reply = {
+      id: generateId('reply'),
+      senderId: currentUser.id,
+      senderName: currentUser.name,
+      senderRole: currentUser.role,
+      content: encryptedReply,
+      createdAt: new Date().toISOString()
+    };
+
+    const updatedReplies = [...(r.replies || []), newReply];
+
+    try {
+      await updateDoc(doc(db, 'reports', reportId), { replies: updatedReplies });
+
+      // Notify the counterpart
+      const recipientId = currentUser.role === 'anak_asuh' ? r.receiverId : r.senderId;
+      const notif: AppNotification = {
+        id: generateId('notif'),
+        userId: recipientId,
+        title: 'Pesan Balasan Baru',
+        message: `${currentUser.name} membalas laporan tentang "${r.title}"`,
+        isRead: false,
+        createdAt: new Date().toISOString()
+      };
+      await setDoc(doc(db, 'notifications', notif.id), notif);
+      showToast(notif.title, notif.message);
+    } catch (err) {
+      console.error("Error adding reply in Firestore:", err);
+      showToast("Gagal Mengirim Balasan", "Terjadi kesalahan saat menyimpan ke database.");
+    }
+  };
+
+  // Notification management
+  const handleMarkAsRead = async (id: string) => {
+    try {
+      await updateDoc(doc(db, 'notifications', id), { isRead: true });
+    } catch (err) {
+      console.error("Error marking notification as read:", err);
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    if (!currentUser) return;
+    const userNotifs = notifications.filter(n => n.userId === currentUser.id && !n.isRead);
+    for (const notif of userNotifs) {
+      try {
+        await updateDoc(doc(db, 'notifications', notif.id), { isRead: true });
+      } catch (err) {
+        console.error("Error marking notification as read:", err);
+      }
+    }
+  };
+
+  const handleClearAll = async () => {
+    if (!currentUser) return;
+    const userNotifs = notifications.filter(n => n.userId === currentUser.id);
+    for (const notif of userNotifs) {
+      try {
+        await deleteDoc(doc(db, 'notifications', notif.id));
+      } catch (err) {
+        console.error("Error deleting notification:", err);
+      }
+    }
+  };
+
+
+  // Render appropriate dashboard depending on role
+  const renderDashboard = () => {
+    if (!currentUser) return null;
+
+    switch (currentUser.role) {
+      case 'super_admin':
+        return (
+          <SuperAdminDashboard
+            users={users}
+            reports={reports}
+            onCreateWaliAsuh={handleCreateWaliAsuh}
+          />
+        );
+      case 'wali_asuh':
+        return (
+          <WaliAsuhDashboard
+            currentUser={currentUser}
+            users={users}
+            reports={reports}
+            onCreateAnakAsuh={handleCreateAnakAsuh}
+            onUpdateReportStatus={handleUpdateReportStatus}
+            onAddReply={handleAddReply}
+          />
+        );
+      case 'anak_asuh':
+        return (
+          <AnakAsuhDashboard
+            currentUser={currentUser}
+            users={users}
+            reports={reports}
+            onSubmitReport={handleSubmitReport}
+            onAddReply={handleAddReply}
+          />
+        );
+      default:
+        return <div className="text-center py-12">Role tidak dikenal.</div>;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#f8fafc] text-slate-800 antialiased selection:bg-indigo-500 selection:text-white pb-12 transition-colors duration-300">
+      
+      {/* Real-time Toast Popups (Visible on top screen) */}
+      <AnimatePresence>
+        {activeToast && (
+          <motion.div
+            initial={{ opacity: 0, y: -50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.9 }}
+            className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-4"
+          >
+            <div className="bg-slate-900/95 backdrop-blur-md text-white p-4 rounded-2xl shadow-xl flex items-start gap-3 border border-slate-800 text-left">
+              <div className="p-2 bg-indigo-600 rounded-xl text-white">
+                <Bell className="w-5 h-5 animate-bounce" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest block">Notifikasi Real-Time</span>
+                <h4 className="text-xs font-bold mt-0.5">{activeToast.title}</h4>
+                <p className="text-[11px] text-slate-300 mt-0.5 leading-normal">{activeToast.message}</p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Main Container Layer */}
+      {currentUser ? (
+        <div className="flex flex-col min-h-screen">
+          
+          {/* Main Navigation Header */}
+          <Header
+            currentUser={currentUser}
+            onLogout={() => setCurrentUser(null)}
+            notifications={notifications}
+            onOpenNotifications={() => setIsNotificationOpen(true)}
+          />
+
+          {/* VP Toggles & Layout Options */}
+          <div className="max-w-7xl mx-auto w-full px-4 pt-4 flex justify-between items-center text-slate-400">
+            <span className="text-xs font-medium flex items-center gap-1.5 bg-emerald-50 text-emerald-800 border border-emerald-100 px-3 py-1 rounded-full">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-soft-pulse"></span>
+              Kanal Enkripsi Sesi Aktif
+            </span>
+
+            {/* Viewport simulation buttons */}
+            <div className="flex items-center gap-1 bg-slate-200/60 p-1 rounded-xl">
+              <button
+                onClick={() => setViewportMode('desktop')}
+                className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                  viewportMode === 'desktop' 
+                    ? 'bg-white text-slate-800 shadow-xs' 
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+                title="Tampilan Web Lebar"
+              >
+                <Monitor className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setViewportMode('mobile')}
+                className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                  viewportMode === 'mobile' 
+                    ? 'bg-white text-slate-800 shadow-xs' 
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+                title="Simulasi Layar Mobile"
+              >
+                <Phone className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Dynamic viewport wrapper */}
+          <main className="flex-1 py-4 px-4 sm:px-6">
+            {viewportMode === 'mobile' ? (
+              /* Simulated iPhone/Mobile Frame Container */
+              <div className="max-w-[400px] mx-auto bg-slate-950 p-3.5 rounded-[50px] shadow-2xl border-4 border-slate-900 relative">
+                {/* Simulated Speaker / Camera Island notch */}
+                <div className="absolute top-6 left-1/2 -translate-x-1/2 w-28 h-5 bg-slate-900 rounded-full flex items-center justify-center z-40">
+                  <div className="w-12 h-1 bg-slate-800 rounded-full"></div>
+                </div>
+
+                <div className="bg-[#f8fafc] rounded-[38px] overflow-hidden min-h-[750px] max-h-[800px] overflow-y-auto px-3.5 py-8 border border-slate-800/20 text-xs">
+                  {renderDashboard()}
+                </div>
+              </div>
+            ) : (
+              /* Standard Desktop Wide Responsive View */
+              <div className="w-full">
+                {renderDashboard()}
+              </div>
+            )}
+          </main>
+
+          {/* App Notification Sidebar Panel */}
+          <NotificationCenter
+            currentUser={currentUser}
+            notifications={notifications}
+            isOpen={isNotificationOpen}
+            onClose={() => setIsNotificationOpen(false)}
+            onMarkAsRead={handleMarkAsRead}
+            onMarkAllAsRead={handleMarkAllAsRead}
+            onClearAll={handleClearAll}
+          />
+
+        </div>
+      ) : (
+        /* Login screen */
+        <div className="min-h-screen flex items-center justify-center py-12">
+          <LoginScreen
+            users={users}
+            onLogin={(user) => {
+              setCurrentUser(user);
+              showToast("Selamat Datang!", `Berhasil masuk sebagai ${user.name}`);
+            }}
+          />
+        </div>
+      )}
+
+      {/* Footer Branding */}
+      <footer className="text-center text-slate-400 text-xs font-semibold py-8 mt-12 border-t border-slate-200/50 max-w-7xl mx-auto">
+        <p>WaliAsuhku • Hak Cipta Dilindungi © 2026</p>
+        <p className="text-[10px] text-slate-300 mt-1 uppercase tracking-widest font-mono">End-to-End Encrypted Complaint System</p>
+      </footer>
+    </div>
+  );
+}

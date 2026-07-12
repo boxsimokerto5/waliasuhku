@@ -1,0 +1,53 @@
+/**
+ * Types for WaliAsuhku App
+ */
+
+export type UserRole = 'super_admin' | 'wali_asuh' | 'anak_asuh';
+
+export interface User {
+  id: string;
+  username: string;
+  name: string;
+  role: UserRole;
+  password?: string; // Standard simulation
+  waliAsuhId?: string; // Links anak_asuh to their wali_asuh
+  createdAt: string;
+}
+
+export type ReportType = 'pengaduan' | 'pelaporan' | 'curhatan';
+
+export type ReportStatus = 'pending' | 'processed' | 'resolved';
+
+export interface Reply {
+  id: string;
+  senderId: string;
+  senderName: string;
+  senderRole: UserRole;
+  content: string; // cipher text
+  createdAt: string;
+}
+
+export interface Report {
+  id: string;
+  senderId: string;
+  senderName: string;
+  receiverId: string; // wali_asuh's ID
+  receiverName: string;
+  title: string;
+  content: string; // stored as ciphertext
+  type: ReportType;
+  status: ReportStatus;
+  attachmentUrl?: string; // Base64 data URL for uploaded proof
+  isEncrypted: boolean;
+  createdAt: string;
+  replies: Reply[];
+}
+
+export interface AppNotification {
+  id: string;
+  userId: string;
+  title: string;
+  message: string;
+  isRead: boolean;
+  createdAt: string;
+}

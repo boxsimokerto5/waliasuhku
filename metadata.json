@@ -1,0 +1,6 @@
+{
+  "name": "WaliAsuhku",
+  "description": "Aplikasi pelaporan, pengaduan, dan curhatan anak asuh kepada wali asuh dengan enkripsi pesan, notifikasi real-time, unggah bukti foto, dan kelola akun berjenjang (Super Admin, Wali Asuh, Anak Asuh).",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
