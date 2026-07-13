@@ -181,6 +181,29 @@ export default function App() {
     }
   };
 
+  // Action: Update Child Category (Wali Asuh action)
+  const handleUpdateChildCategory = async (childId: string, category: string) => {
+    try {
+      await updateDoc(doc(db, 'users', childId), { category: category || "" });
+      showToast('Kategori Diperbarui', 'Kategori siswa berhasil diperbarui.');
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, `users/${childId}`);
+    }
+  };
+
+  // Action: Toggle suspension status of any user (Wali Asuh action)
+  const handleToggleUserSuspension = async (userId: string, isSuspended: boolean) => {
+    try {
+      await updateDoc(doc(db, 'users', userId), { isSuspended });
+      showToast(
+        isSuspended ? 'Akun Ditangguhkan' : 'Akun Diaktifkan', 
+        `Status akun berhasil diubah menjadi ${isSuspended ? 'Ditangguhkan' : 'Aktif'}.`
+      );
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, `users/${userId}`);
+    }
+  };
+
   // Action: Create Orang Tua (Wali Asuh action)
   const handleCreateOrangTua = async (username: string, name: string, waliAsuhId: string, anakAsuhId: string) => {
     const newOrangTua: User = {
@@ -349,13 +372,16 @@ export default function App() {
     // Encrypt reply for maximum privacy
     const encryptedReply = encryptMessage(replyContent, 'waliasuhku-secure-key');
 
+    const isPesanOrtuChildReply = currentUser.role === 'anak_asuh' && r.type === 'pesan_ortu';
+
     const newReply: Reply = {
       id: generateId('reply'),
       senderId: currentUser.id,
       senderName: currentUser.name,
       senderRole: currentUser.role,
       content: encryptedReply,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      isApproved: isPesanOrtuChildReply ? false : true
     };
 
     const updatedReplies = [...(r.replies || []), newReply];
@@ -363,18 +389,70 @@ export default function App() {
     try {
       await updateDoc(doc(db, 'reports', reportId), { replies: updatedReplies });
 
-      // Notify the counterpart
-      const recipientId = currentUser.role === 'anak_asuh' ? r.receiverId : r.senderId;
+      // Notify the counterpart/Wali Asuh
+      let recipientId = currentUser.role === 'anak_asuh' ? r.receiverId : r.senderId;
+      let title = 'Pesan Balasan Baru';
+      let message = `${currentUser.name} membalas laporan tentang "${r.title}"`;
+
+      if (isPesanOrtuChildReply) {
+        recipientId = r.receiverId; // Goes to Wali Asuh
+        title = 'Balasan Pesan Ortu (Butuh Persetujuan)';
+        message = `${currentUser.name} membalas pesan untuk orang tua tentang "${r.title}" dan memerlukan persetujuan Anda.`;
+      } else if (currentUser.role === 'orang_tua') {
+        recipientId = r.senderId; // Goes to child
+        title = 'Balasan dari Orang Tua';
+        message = `Orang tua Anda (${currentUser.name}) membalas pesan tentang "${r.title}"`;
+      }
+
       const notif: AppNotification = {
         id: generateId('notif'),
         userId: recipientId,
-        title: 'Pesan Balasan Baru',
-        message: `${currentUser.name} membalas laporan tentang "${r.title}"`,
+        title,
+        message,
         isRead: false,
         createdAt: new Date().toISOString()
       };
       await setDoc(doc(db, 'notifications', notif.id), notif);
       showToast(notif.title, notif.message);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, `reports/${reportId}`);
+    }
+  };
+
+  // Action: Approve/Reject a specific reply on a parent-message
+  const handleUpdateReplyApproval = async (reportId: string, replyId: string, isApproved: boolean) => {
+    const r = reports.find(item => item.id === reportId);
+    if (!r) return;
+
+    const updatedReplies = r.replies.map(rep => {
+      if (rep.id === replyId) {
+        return { ...rep, isApproved };
+      }
+      return rep;
+    });
+
+    try {
+      await updateDoc(doc(db, 'reports', reportId), { replies: updatedReplies });
+      
+      const reply = r.replies.find(rep => rep.id === replyId);
+      if (reply && isApproved) {
+        // Retrieve parent user linked to the child
+        const childUser = users.find(u => u.id === r.senderId);
+        const parentUser = users.find(u => u.role === 'orang_tua' && u.anakAsuhId === r.senderId);
+        
+        if (parentUser) {
+          const notif: AppNotification = {
+            id: generateId('notif'),
+            userId: parentUser.id,
+            title: 'Pesan Balasan Baru dari Anak',
+            message: `${childUser?.name || 'Anak Anda'} membalas pesan tentang "${r.title}".`,
+            isRead: false,
+            createdAt: new Date().toISOString()
+          };
+          await setDoc(doc(db, 'notifications', notif.id), notif);
+          showToast(notif.title, notif.message);
+        }
+      }
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, `reports/${reportId}`);
     }
@@ -471,8 +549,11 @@ export default function App() {
             onUpdateReportStatus={handleUpdateReportStatus}
             onUpdateParentApproval={handleUpdateParentApproval}
             onAddReply={handleAddReply}
+            onUpdateReplyApproval={handleUpdateReplyApproval}
             onCreateBroadcast={handleCreateBroadcast}
             onDeleteBroadcast={handleDeleteBroadcast}
+            onUpdateChildCategory={handleUpdateChildCategory}
+            onToggleUserSuspension={handleToggleUserSuspension}
           />
         );
       case 'anak_asuh':

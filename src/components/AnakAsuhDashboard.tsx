@@ -852,24 +852,42 @@ export default function AnakAsuhDashboard({
 
                       {/* Responses list */}
                       <div className="space-y-2.5">
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Percakapan dengan Wali Asuh ({selectedReport.replies.length}):</span>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Percakapan dengan Wali Asuh & Orang Tua ({selectedReport.replies.length}):</span>
                         {selectedReport.replies.map(rep => {
                           const isMe = rep.senderId === currentUser.id;
+                          const isPesanOrtu = selectedReport.type === 'pesan_ortu';
+                          const isChildReply = rep.senderRole === 'anak_asuh';
+                          const isApproved = rep.isApproved;
+
                           return (
                             <div 
                               key={rep.id}
                               className={`p-3 rounded-2xl text-xs flex flex-col max-w-[90%] leading-relaxed ${
                                 isMe 
                                   ? 'bg-pink-50 text-pink-950 border border-pink-100 ml-auto items-end text-right' 
-                                  : 'bg-violet-50 text-violet-950 border border-violet-100 mr-auto items-start text-left'
+                                  : rep.senderRole === 'orang_tua'
+                                    ? 'bg-amber-50 text-amber-950 border border-amber-100 mr-auto items-start text-left'
+                                    : 'bg-violet-50 text-violet-950 border border-violet-100 mr-auto items-start text-left'
                               }`}
                             >
-                              <div className="flex items-center gap-1.5 mb-1 text-[9px] font-bold text-slate-400">
-                                <span className={isMe ? "text-pink-600" : "text-violet-600"}>{rep.senderName}</span>
+                              <div className="flex flex-wrap items-center gap-1.5 mb-1.5 text-[9px] font-bold text-slate-400">
+                                <span className={isMe ? "text-pink-600" : rep.senderRole === 'orang_tua' ? "text-amber-600" : "text-violet-600"}>
+                                  {rep.senderName} {rep.senderRole === 'orang_tua' ? '(Orang Tua)' : rep.senderRole === 'wali_asuh' ? '(Wali Asuh)' : isMe ? '(Anda)' : ''}
+                                </span>
                                 <span>•</span>
                                 <span>{formatDate(rep.createdAt).split(',')[0]}</span>
+
+                                {isPesanOrtu && isChildReply && (
+                                  <span className={`px-2 py-0.5 rounded-full text-[8px] font-extrabold border ${
+                                    isApproved 
+                                      ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                                      : 'bg-amber-50 text-amber-700 border-amber-100'
+                                  }`}>
+                                    {isApproved ? '✅ Terkirim ke Ortu' : '⏳ Menunggu Persetujuan Wali'}
+                                  </span>
+                                )}
                               </div>
-                              <p className="text-[11px] font-semibold break-words leading-relaxed">
+                              <p className="text-[11px] font-semibold break-words leading-relaxed text-left">
                                 {decryptMessage(rep.content)}
                               </p>
                             </div>

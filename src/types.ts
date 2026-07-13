@@ -13,6 +13,8 @@ export interface User {
   waliAsuhId?: string; // Links anak_asuh to their wali_asuh, or orang_tua to their wali_asuh
   anakAsuhId?: string; // Links orang_tua to their anak_asuh
   createdAt: string;
+  category?: string; // For grouping students/anak_asuh into categories (e.g. Kelas 10, Asrama A)
+  isSuspended?: boolean; // Track suspended status for account control
 }
 
 export type ReportType = 'pengaduan' | 'pelaporan' | 'curhatan' | 'pesan_ortu' | 'kebutuhan_logistik';
@@ -26,6 +28,7 @@ export interface Reply {
   senderRole: UserRole;
   content: string; // cipher text
   createdAt: string;
+  isApproved?: boolean;
 }
 
 export interface Report {

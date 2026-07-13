@@ -216,37 +216,46 @@ export default function OrangTuaDashboard({
                     </p>
                   </div>
 
-                  {/* Replies (Thread) */}
-                  <div className="space-y-2.5">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Percakapan ({selectedReport.replies.length}):</span>
-                    {selectedReport.replies.map(rep => {
-                      const isMe = rep.senderId === currentUser.id;
-                      const isWali = rep.senderRole === 'wali_asuh';
-                      return (
-                        <div 
-                          key={rep.id} 
-                          className={`p-3 rounded-2xl text-xs flex flex-col max-w-[90%] leading-relaxed ${
-                            isMe 
-                              ? 'bg-amber-50 text-amber-950 border border-amber-100 ml-auto items-end text-right' 
-                              : isWali
-                                ? 'bg-violet-50 text-violet-950 border border-violet-100 mr-auto items-start text-left'
-                                : 'bg-slate-50 text-slate-800 border border-slate-100 mr-auto items-start text-left'
-                          }`}
-                        >
-                          <div className="flex items-center gap-1.5 mb-1 text-[9px] font-bold text-slate-400">
-                            <span>
-                              {rep.senderName} {isWali ? '(Wali Asuh)' : isMe ? '(Anda)' : '(Anak)'}
-                            </span>
-                            <span>•</span>
-                            <span>{formatDate(rep.createdAt).split(',')[0]}</span>
-                          </div>
-                          <p className="text-[11px] font-medium leading-relaxed break-words">
-                            {decryptMessage(rep.content)}
-                          </p>
-                        </div>
-                      );
-                    })}
-                  </div>
+                   {/* Replies (Thread) */}
+                   <div className="space-y-2.5">
+                     {(() => {
+                       const visibleReplies = (selectedReport.replies || []).filter(
+                         rep => rep.senderRole !== 'anak_asuh' || rep.isApproved
+                       );
+                       return (
+                         <>
+                           <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Percakapan ({visibleReplies.length}):</span>
+                           {visibleReplies.map(rep => {
+                             const isMe = rep.senderId === currentUser.id;
+                             const isWali = rep.senderRole === 'wali_asuh';
+                             return (
+                               <div 
+                                 key={rep.id} 
+                                 className={`p-3 rounded-2xl text-xs flex flex-col max-w-[90%] leading-relaxed ${
+                                   isMe 
+                                     ? 'bg-amber-50 text-amber-950 border border-amber-100 ml-auto items-end text-right' 
+                                     : isWali
+                                       ? 'bg-violet-50 text-violet-950 border border-violet-100 mr-auto items-start text-left'
+                                       : 'bg-slate-50 text-slate-800 border border-slate-100 mr-auto items-start text-left'
+                                 }`}
+                               >
+                                 <div className="flex items-center gap-1.5 mb-1 text-[9px] font-bold text-slate-400">
+                                   <span>
+                                     {rep.senderName} {isWali ? '(Wali Asuh)' : isMe ? '(Anda)' : '(Anak)'}
+                                   </span>
+                                   <span>•</span>
+                                   <span>{formatDate(rep.createdAt).split(',')[0]}</span>
+                                 </div>
+                                 <p className="text-[11px] font-medium leading-relaxed break-words text-left">
+                                   {decryptMessage(rep.content)}
+                                 </p>
+                               </div>
+                             );
+                           })}
+                         </>
+                       );
+                     })()}
+                   </div>
 
                 </div>
 

@@ -25,6 +25,10 @@ export default function LoginScreen({ users, onLogin }: LoginScreenProps) {
     );
 
     if (foundUser) {
+      if (foundUser.isSuspended) {
+        setError('Akun Anda ditangguhkan (suspended) oleh Wali Asuh. Silakan hubungi pengelola Anda.');
+        return;
+      }
       onLogin(foundUser);
     } else {
       setError('Username atau Password salah. Silakan coba lagi.');
