@@ -1,5 +1,5 @@
 import { User, AppNotification } from '../types';
-import { HeartHandshake, LogOut, Bell, Shield, UserCheck, Baby } from 'lucide-react';
+import { HeartHandshake, LogOut, Bell, Shield, UserCheck, Baby, Heart } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface HeaderProps {
@@ -36,6 +36,12 @@ export default function Header({
           bg: 'bg-pink-500 text-white',
           label: 'Anak Asuh',
           icon: <Baby className="w-3 h-3" />
+        };
+      case 'orang_tua':
+        return {
+          bg: 'bg-amber-500 text-white',
+          label: 'Orang Tua',
+          icon: <Heart className="w-3 h-3" />
         };
       default:
         return {

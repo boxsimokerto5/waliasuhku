@@ -2,7 +2,7 @@
  * Types for WaliAsuhku App
  */
 
-export type UserRole = 'super_admin' | 'wali_asuh' | 'anak_asuh';
+export type UserRole = 'super_admin' | 'wali_asuh' | 'anak_asuh' | 'orang_tua';
 
 export interface User {
   id: string;
@@ -10,7 +10,8 @@ export interface User {
   name: string;
   role: UserRole;
   password?: string; // Standard simulation
-  waliAsuhId?: string; // Links anak_asuh to their wali_asuh
+  waliAsuhId?: string; // Links anak_asuh to their wali_asuh, or orang_tua to their wali_asuh
+  anakAsuhId?: string; // Links orang_tua to their anak_asuh
   createdAt: string;
 }
 
@@ -41,6 +42,7 @@ export interface Report {
   isEncrypted: boolean;
   createdAt: string;
   replies: Reply[];
+  parentApprovalStatus?: 'pending' | 'approved' | 'rejected';
 }
 
 export interface AppNotification {

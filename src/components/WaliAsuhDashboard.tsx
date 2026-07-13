@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, Report, Reply, Broadcast } from '../types';
-import { Plus, UserPlus, FileText, Send, Lock, ShieldAlert, Heart, Clipboard, HelpCircle, Eye, CheckCircle2, MessageSquare, Image as ImageIcon, MessageCircle, ZoomIn, ZoomOut, RotateCw, X, Download, Maximize2, Megaphone, Trash2, Link, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, UserPlus, FileText, Send, Lock, ShieldAlert, Heart, Clipboard, HelpCircle, Eye, CheckCircle2, MessageSquare, Image as ImageIcon, MessageCircle, ZoomIn, ZoomOut, RotateCw, X, Download, Maximize2, Megaphone, Trash2, Link, ChevronDown, ChevronUp, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { decryptMessage, encryptMessage, formatDate, getStatusBadge, getTypeBadge } from '../utils/crypto';
 
@@ -10,7 +10,9 @@ interface WaliAsuhDashboardProps {
   reports: Report[];
   broadcasts: Broadcast[];
   onCreateAnakAsuh: (username: string, name: string, waliAsuhId: string) => void;
+  onCreateOrangTua: (username: string, name: string, waliAsuhId: string, anakAsuhId: string) => void;
   onUpdateReportStatus: (reportId: string, status: 'pending' | 'processed' | 'resolved') => void;
+  onUpdateParentApproval: (reportId: string, approvalStatus: 'approved' | 'rejected') => void;
   onAddReply: (reportId: string, replyContent: string) => void;
   onCreateBroadcast: (message: string, linkUrl?: string, linkText?: string) => void;
   onDeleteBroadcast: (broadcastId: string) => void;
@@ -22,7 +24,9 @@ export default function WaliAsuhDashboard({
   reports,
   broadcasts,
   onCreateAnakAsuh,
+  onCreateOrangTua,
   onUpdateReportStatus,
+  onUpdateParentApproval,
   onAddReply,
   onCreateBroadcast,
   onDeleteBroadcast
@@ -31,9 +35,19 @@ export default function WaliAsuhDashboard({
   const [newName, setNewName] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // State variables for registering Parent (Orang Tua) accounts
+  const [isParentRegisterOpen, setIsParentRegisterOpen] = useState(false);
+  const [parentName, setParentName] = useState('');
+  const [parentUsername, setParentUsername] = useState('');
+  const [selectedChildId, setSelectedChildId] = useState('');
+  const [parentError, setParentError] = useState('');
+  const [parentSuccess, setParentSuccess] = useState('');
+
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [replyText, setReplyText] = useState('');
   const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'processed' | 'resolved'>('all');
+  const [dateFilter, setDateFilter] = useState<'today' | 'yesterday' | 'this_week' | 'this_month' | 'all'>('today');
   const [showPhotoModal, setShowPhotoModal] = useState<string | null>(null);
   const [zoomScale, setZoomScale] = useState(1);
   const [rotation, setRotation] = useState(0);
@@ -91,8 +105,51 @@ export default function WaliAsuhDashboard({
     if (filterType === 'kebutuhan_logistik' && r.type !== 'kebutuhan_logistik') return false;
 
     // Filter by status tab
-    if (activeTab === 'all') return true;
-    return r.status === activeTab;
+    if (activeTab !== 'all' && r.status !== activeTab) return false;
+
+    // Filter by date category
+    const reportDate = new Date(r.createdAt);
+    const now = new Date();
+
+    // 1. Today boundaries
+    const todayStart = new Date(now);
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date(now);
+    todayEnd.setHours(23, 59, 59, 999);
+
+    // 2. Yesterday boundaries
+    const yesterdayStart = new Date(now);
+    yesterdayStart.setDate(now.getDate() - 1);
+    yesterdayStart.setHours(0, 0, 0, 0);
+    const yesterdayEnd = new Date(now);
+    yesterdayEnd.setDate(now.getDate() - 1);
+    yesterdayEnd.setHours(23, 59, 59, 999);
+
+    // 3. This week boundaries (Monday to Sunday)
+    const currentDay = now.getDay();
+    const distanceToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() + distanceToMonday);
+    weekStart.setHours(0, 0, 0, 0);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    weekEnd.setHours(23, 59, 59, 999);
+
+    // 4. This month boundaries
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+    if (dateFilter === 'today') {
+      if (reportDate < todayStart || reportDate > todayEnd) return false;
+    } else if (dateFilter === 'yesterday') {
+      if (reportDate < yesterdayStart || reportDate > yesterdayEnd) return false;
+    } else if (dateFilter === 'this_week') {
+      if (reportDate < weekStart || reportDate > weekEnd) return false;
+    } else if (dateFilter === 'this_month') {
+      if (reportDate < monthStart || reportDate > monthEnd) return false;
+    }
+
+    return true;
   });
 
   const handleCreateChild = (e: React.FormEvent) => {
@@ -119,6 +176,33 @@ export default function WaliAsuhDashboard({
     setSuccess(`Akun Anak Asuh "${newName}" berhasil didaftarkan! Password default adalah "${newUsername.trim()}"`);
     setNewUsername('');
     setNewName('');
+  };
+
+  const handleCreateParent = (e: React.FormEvent) => {
+    e.preventDefault();
+    setParentError('');
+    setParentSuccess('');
+
+    if (!parentName || !parentUsername || !selectedChildId) {
+      setParentError('Mohon lengkapi semua bidang form dan pilih anak asuh');
+      return;
+    }
+
+    if (parentUsername.length < 3) {
+      setParentError('Username orang tua minimal 3 karakter');
+      return;
+    }
+
+    if (users.some(u => u.username.toLowerCase() === parentUsername.toLowerCase())) {
+      setParentError('Username tersebut sudah digunakan oleh akun lain');
+      return;
+    }
+
+    onCreateOrangTua(parentUsername.trim(), parentName.trim(), currentUser.id, selectedChildId);
+    setParentSuccess(`Akun Orang Tua "${parentName}" berhasil didaftarkan! Password default adalah "${parentUsername.trim()}"`);
+    setParentUsername('');
+    setParentName('');
+    setSelectedChildId('');
   };
 
   const handleSubmitBroadcast = (e: React.FormEvent) => {
@@ -263,6 +347,110 @@ export default function WaliAsuhDashboard({
                       className="w-full bg-violet-600 hover:bg-violet-700 text-white font-semibold rounded-xl py-2.5 text-xs transition-all shadow-md shadow-violet-600/10 active:scale-[0.98] cursor-pointer"
                     >
                       Simpan Anak Asuh
+                    </button>
+                  </form>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Create Orang Tua Form */}
+          <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
+            <button
+              type="button"
+              onClick={() => setIsParentRegisterOpen(!isParentRegisterOpen)}
+              className="w-full flex items-center justify-between text-left focus:outline-none cursor-pointer"
+            >
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-amber-50 text-amber-600 rounded-lg">
+                  <UserPlus className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-extrabold text-slate-800">Daftarkan Orang Tua</h3>
+                  <p className="text-[10px] text-slate-400">Buat akun untuk wali murid / orang tua</p>
+                </div>
+              </div>
+              <span className="p-1 bg-slate-50 hover:bg-slate-100 text-slate-400 rounded-lg transition-all shrink-0">
+                {isParentRegisterOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </span>
+            </button>
+
+            <AnimatePresence initial={false}>
+              {isParentRegisterOpen && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0, marginTop: 0 }}
+                  animate={{ height: "auto", opacity: 1, marginTop: 16 }}
+                  exit={{ height: 0, opacity: 0, marginTop: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden border-t border-slate-50 pt-4"
+                >
+                  <form onSubmit={handleCreateParent} className="space-y-4">
+                    {parentError && (
+                      <div className="p-3 bg-rose-50 border border-rose-100 text-rose-700 text-xs rounded-xl font-medium text-left">
+                        {parentError}
+                      </div>
+                    )}
+                    {parentSuccess && (
+                      <div className="p-3 bg-emerald-50 border border-emerald-100 text-emerald-800 text-xs rounded-xl font-medium text-left">
+                        {parentSuccess}
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 text-left">
+                        Nama Orang Tua
+                      </label>
+                      <input
+                        type="text"
+                        value={parentName}
+                        onChange={(e) => setParentName(e.target.value)}
+                        placeholder="Contoh: Budi Santoso"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs focus:outline-none focus:border-amber-500 focus:bg-white transition-all text-slate-800"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 text-left">
+                        Username Akun Orang Tua
+                      </label>
+                      <input
+                        type="text"
+                        value={parentUsername}
+                        onChange={(e) => setParentUsername(e.target.value.toLowerCase().replace(/\s+/g, ''))}
+                        placeholder="Contoh: budis"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs focus:outline-none focus:border-amber-500 focus:bg-white transition-all text-slate-800"
+                      />
+                      <span className="text-[10px] text-slate-400 mt-1 block leading-tight text-left">
+                        * Tanpa spasi. Password default disamakan dengan username orang tua.
+                      </span>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 text-left">
+                        Hubungkan dengan Siswa (Anak Asuh)
+                      </label>
+                      <select
+                        value={selectedChildId}
+                        onChange={(e) => setSelectedChildId(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-amber-500 focus:bg-white transition-all text-slate-800"
+                      >
+                        <option value="">-- Pilih Siswa / Anak Asuh --</option>
+                        {myChildren.map(child => (
+                          <option key={child.id} value={child.id}>
+                            {child.name} ({child.username})
+                          </option>
+                        ))}
+                      </select>
+                      <span className="text-[10px] text-slate-400 mt-1 block leading-tight text-left">
+                        * Hubungkan orang tua dengan akun siswa yang sudah terdaftar agar pesan terarah dengan tepat.
+                      </span>
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="w-full bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-xl py-2.5 text-xs transition-all shadow-md shadow-amber-500/10 active:scale-[0.98] cursor-pointer"
+                    >
+                      Simpan Akun Orang Tua
                     </button>
                   </form>
                 </motion.div>
@@ -488,6 +676,50 @@ export default function WaliAsuhDashboard({
               </div>
             </div>
 
+            {/* Date Filters Sub-Bar */}
+            <div className="bg-white border border-slate-100 p-3 rounded-2xl shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-left">
+              <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none w-full">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1 flex items-center gap-1 mr-1 shrink-0">
+                  <Calendar className="w-3.5 h-3.5 text-violet-500" /> Waktu:
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setDateFilter('today')}
+                  className={`px-3 py-1 text-[11px] font-extrabold rounded-lg cursor-pointer whitespace-nowrap transition-all ${dateFilter === 'today' ? 'bg-violet-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 bg-slate-50 border border-slate-100/60'}`}
+                >
+                  Hari Ini
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDateFilter('yesterday')}
+                  className={`px-3 py-1 text-[11px] font-extrabold rounded-lg cursor-pointer whitespace-nowrap transition-all ${dateFilter === 'yesterday' ? 'bg-violet-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 bg-slate-50 border border-slate-100/60'}`}
+                >
+                  Kemarin
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDateFilter('this_week')}
+                  className={`px-3 py-1 text-[11px] font-extrabold rounded-lg cursor-pointer whitespace-nowrap transition-all ${dateFilter === 'this_week' ? 'bg-violet-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 bg-slate-50 border border-slate-100/60'}`}
+                >
+                  Minggu Ini
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDateFilter('this_month')}
+                  className={`px-3 py-1 text-[11px] font-extrabold rounded-lg cursor-pointer whitespace-nowrap transition-all ${dateFilter === 'this_month' ? 'bg-violet-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 bg-slate-50 border border-slate-100/60'}`}
+                >
+                  Bulan Ini
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDateFilter('all')}
+                  className={`px-3 py-1 text-[11px] font-extrabold rounded-lg cursor-pointer whitespace-nowrap transition-all ${dateFilter === 'all' ? 'bg-slate-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 bg-slate-50 border border-slate-100/60'}`}
+                >
+                  Semua Waktu
+                </button>
+              </div>
+            </div>
+
             {/* Type Filters Sub-Bar */}
             <div className="bg-white border border-slate-100/75 p-3 rounded-2xl shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-left">
               <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
@@ -647,26 +879,95 @@ export default function WaliAsuhDashboard({
                     </div>
                   </div>
 
-                  {/* Copy Action for Message to Parents */}
+                  {/* Copy Action and Approval for Message to Parents */}
                   {selectedReport.type === 'pesan_ortu' && (
-                    <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-2xl flex flex-col gap-2 text-left">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-emerald-950">Salin Pesan Orang Tua</span>
-                        <button
-                          onClick={() => handleCopyText(selectedReport.id, decryptMessage(selectedReport.content))}
-                          className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
-                            copiedId === selectedReport.id
-                              ? 'bg-emerald-600 text-white shadow-xs'
-                              : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200'
-                          }`}
-                        >
-                          <Clipboard className="w-4 h-4" />
-                          <span>{copiedId === selectedReport.id ? 'Tersalin!' : 'Salin Pesan'}</span>
-                        </button>
+                    <div className="space-y-3">
+                      {/* Approval Status and Actions */}
+                      <div className="bg-amber-50/60 border border-amber-200/80 p-4 rounded-3xl flex flex-col gap-2.5 text-left">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 bg-amber-100 text-amber-800 rounded-xl">
+                            <HelpCircle className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <h4 className="text-[11px] font-bold text-amber-950 uppercase tracking-wide">Persetujuan Pesan ke Orang Tua</h4>
+                            <p className="text-[10px] text-amber-800 leading-tight">
+                              Tinjau pesan ini sebelum dikirimkan ke halaman akun Orang Tua murid.
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-[10px] font-bold text-slate-500">Status Persetujuan:</span>
+                          <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border ${
+                            selectedReport.parentApprovalStatus === 'approved'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                              : selectedReport.parentApprovalStatus === 'rejected'
+                                ? 'bg-rose-50 text-rose-700 border-rose-100'
+                                : 'bg-amber-50 text-amber-700 border-amber-100'
+                          }`}>
+                            {selectedReport.parentApprovalStatus === 'approved'
+                              ? '✅ Disetujui (Terkirim ke Ortu)'
+                              : selectedReport.parentApprovalStatus === 'rejected'
+                                ? '❌ Ditolak (Tidak Terkirim)'
+                                : '⏳ Menunggu Persetujuan Wali'}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 mt-1">
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              await onUpdateParentApproval(selectedReport.id, 'approved');
+                              // Refresh local instance state
+                              setSelectedReport({
+                                ...selectedReport,
+                                parentApprovalStatus: 'approved'
+                              });
+                            }}
+                            className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-bold transition-all cursor-pointer text-center shadow-xs flex items-center justify-center gap-1"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>Setujui & Kirim</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              await onUpdateParentApproval(selectedReport.id, 'rejected');
+                              // Refresh local instance state
+                              setSelectedReport({
+                                ...selectedReport,
+                                parentApprovalStatus: 'rejected'
+                              });
+                            }}
+                            className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-[10px] font-bold transition-all cursor-pointer text-center flex items-center justify-center gap-1"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                            <span>Tolak Pesan</span>
+                          </button>
+                        </div>
                       </div>
-                      <p className="text-[10px] text-emerald-700 leading-normal">
-                        Gunakan tombol di atas untuk menyalin isi pesan dari {selectedReport.senderName} ini sehingga Anda dapat menempelkannya (paste) ke SMS, WhatsApp, atau saluran orang tuanya dengan mudah.
-                      </p>
+
+                      {/* Copy Action */}
+                      <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-3xl flex flex-col gap-2 text-left">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-emerald-950">Salin Pesan Orang Tua</span>
+                          <button
+                            type="button"
+                            onClick={() => handleCopyText(selectedReport.id, decryptMessage(selectedReport.content))}
+                            className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+                              copiedId === selectedReport.id
+                                ? 'bg-emerald-600 text-white shadow-xs'
+                                : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200'
+                            }`}
+                          >
+                            <Clipboard className="w-4 h-4" />
+                            <span>{copiedId === selectedReport.id ? 'Tersalin!' : 'Salin Pesan'}</span>
+                          </button>
+                        </div>
+                        <p className="text-[10px] text-emerald-700 leading-normal">
+                          Gunakan tombol di atas untuk menyalin isi pesan dari {selectedReport.senderName} ini sehingga Anda dapat menempelkannya (paste) ke saluran luar jika diperlukan.
+                        </p>
+                      </div>
                     </div>
                   )}
 

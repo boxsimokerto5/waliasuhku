@@ -6,6 +6,7 @@ import Header from './components/Header';
 import SuperAdminDashboard from './components/SuperAdminDashboard';
 import WaliAsuhDashboard from './components/WaliAsuhDashboard';
 import AnakAsuhDashboard from './components/AnakAsuhDashboard';
+import OrangTuaDashboard from './components/OrangTuaDashboard';
 import NotificationCenter from './components/NotificationCenter';
 import { encryptMessage } from './utils/crypto';
 import { Bell, Lock, ShieldAlert, Monitor, Phone, HeartHandshake } from 'lucide-react';
@@ -180,6 +181,64 @@ export default function App() {
     }
   };
 
+  // Action: Create Orang Tua (Wali Asuh action)
+  const handleCreateOrangTua = async (username: string, name: string, waliAsuhId: string, anakAsuhId: string) => {
+    const newOrangTua: User = {
+      id: generateId('ortu'),
+      username,
+      name,
+      role: 'orang_tua',
+      password: username, // default password is username
+      waliAsuhId,
+      anakAsuhId,
+      createdAt: new Date().toISOString()
+    };
+
+    try {
+      await setDoc(doc(db, 'users', newOrangTua.id), newOrangTua);
+
+      // Create a real-time notification
+      const notif: AppNotification = {
+        id: generateId('notif'),
+        userId: currentUser?.id || 'system',
+        title: 'Orang Tua Terdaftar',
+        message: `Akun Orang Tua "${name}" berhasil didaftarkan dan dihubungkan dengan anak asuh Anda.`,
+        isRead: false,
+        createdAt: new Date().toISOString()
+      };
+      await setDoc(doc(db, 'notifications', notif.id), notif);
+      showToast(notif.title, notif.message);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.WRITE, `users/${newOrangTua.id}`);
+    }
+  };
+
+  // Action: Update Parent Approval Status (Wali Asuh action)
+  const handleUpdateParentApproval = async (reportId: string, approvalStatus: 'approved' | 'rejected') => {
+    try {
+      await updateDoc(doc(db, 'reports', reportId), { parentApprovalStatus: approvalStatus });
+
+      const r = reports.find(item => item.id === reportId);
+      if (r) {
+        // Trigger notification to the child
+        const notif: AppNotification = {
+          id: generateId('notif'),
+          userId: r.senderId,
+          title: `Persetujuan Pesan Orang Tua`,
+          message: `Pesan Anda ke Orang Tua tentang "${r.title}" telah ${
+            approvalStatus === 'approved' ? 'disetujui dan terkirim' : 'ditolak oleh Wali Asuh'
+          }.`,
+          isRead: false,
+          createdAt: new Date().toISOString()
+        };
+        await setDoc(doc(db, 'notifications', notif.id), notif);
+        showToast(notif.title, notif.message);
+      }
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, `reports/${reportId}`);
+    }
+  };
+
   // Action: Submit a Report (Anak Asuh action)
   const handleSubmitReport = async (reportData: {
     title: string;
@@ -208,7 +267,8 @@ export default function App() {
       attachmentUrl: reportData.attachmentUrl || "",
       isEncrypted: true,
       createdAt: new Date().toISOString(),
-      replies: []
+      replies: [],
+      parentApprovalStatus: reportData.type === 'pesan_ortu' ? 'pending' : undefined
     };
 
     try {
@@ -407,7 +467,9 @@ export default function App() {
             reports={reports}
             broadcasts={broadcasts}
             onCreateAnakAsuh={handleCreateAnakAsuh}
+            onCreateOrangTua={handleCreateOrangTua}
             onUpdateReportStatus={handleUpdateReportStatus}
+            onUpdateParentApproval={handleUpdateParentApproval}
             onAddReply={handleAddReply}
             onCreateBroadcast={handleCreateBroadcast}
             onDeleteBroadcast={handleDeleteBroadcast}
@@ -421,6 +483,15 @@ export default function App() {
             reports={reports}
             broadcasts={broadcasts}
             onSubmitReport={handleSubmitReport}
+            onAddReply={handleAddReply}
+          />
+        );
+      case 'orang_tua':
+        return (
+          <OrangTuaDashboard
+            currentUser={currentUser}
+            users={users}
+            reports={reports}
             onAddReply={handleAddReply}
           />
         );

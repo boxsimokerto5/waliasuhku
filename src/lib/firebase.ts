@@ -1,5 +1,8 @@
 import { initializeApp } from 'firebase/app';
-import { initializeFirestore, doc, getDocFromServer } from 'firebase/firestore';
+import { initializeFirestore, doc, getDocFromServer, setLogLevel } from 'firebase/firestore';
+
+// Silence Firestore logs to prevent connection warnings in restricted or offline test environments
+setLogLevel('silent');
 
 // Configuration from firebase-applet-config.json
 const firebaseConfig = {
@@ -26,10 +29,10 @@ async function testConnection() {
     await getDocFromServer(doc(db, 'users', 'connection_test_doc'));
     console.log("Firestore connection healthy!");
   } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.error("Firestore is currently running offline. Please check your Firebase configuration or internet connection.");
+    if (error instanceof Error && (error.message.includes('the client is offline') || error.message.includes('unavailable'))) {
+      console.warn("Firestore is currently running offline. Please check your Firebase configuration or internet connection.");
     } else {
-      console.log("Firestore initialized in offline/fallback mode:", error);
+      console.info("Firestore initialized in offline/fallback mode:", error);
     }
   }
 }
