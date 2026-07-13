@@ -93,7 +93,7 @@ export default function OrangTuaDashboard({
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-slate-800">{myChild.name}</h4>
-                  <p className="text-[10px] text-slate-500 mt-0.5">Siswa Terdaftar (ID: {myChild.username})</p>
+                  <p className="text-[10px] text-slate-500 mt-0.5">Siswa Terdaftar</p>
                 </div>
               </div>
             ) : (
