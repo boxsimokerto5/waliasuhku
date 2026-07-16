@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { User, Report, Reply } from '../types';
-import { Heart, Lock, Calendar, MessageSquare, Send, CheckCircle2, User as UserIcon, ShieldCheck, Mail, RefreshCw } from 'lucide-react';
+import { User, Report, Reply, SavingsTransaction } from '../types';
+import { Heart, Lock, Calendar, MessageSquare, Send, CheckCircle2, User as UserIcon, ShieldCheck, Mail, RefreshCw, Coins, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { decryptMessage, formatDate } from '../utils/crypto';
 
@@ -8,6 +8,7 @@ interface OrangTuaDashboardProps {
   currentUser: User;
   users: User[];
   reports: Report[];
+  savingsTransactions: SavingsTransaction[];
   onAddReply: (reportId: string, replyContent: string) => void;
 }
 
@@ -15,11 +16,13 @@ export default function OrangTuaDashboard({
   currentUser,
   users,
   reports,
+  savingsTransactions,
   onAddReply
 }: OrangTuaDashboardProps) {
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [replyText, setReplyText] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [showSavingsHistory, setShowSavingsHistory] = useState(false);
 
   // Find the child linked to this Parent account
   const myChild = users.find(u => u.id === currentUser.anakAsuhId && u.role === 'anak_asuh');
@@ -87,13 +90,64 @@ export default function OrangTuaDashboard({
           <div className="bg-white border border-slate-100 rounded-3xl p-5 shadow-sm text-left">
             <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-3">Informasi Anak</h3>
             {myChild ? (
-              <div className="flex items-center gap-3 p-3 bg-amber-50/40 border border-amber-100/50 rounded-2xl">
-                <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center font-bold text-sm uppercase">
-                  {myChild.name.charAt(0)}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between gap-3 p-3 bg-amber-50/40 border border-amber-100/50 rounded-2xl">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center font-bold text-sm uppercase shrink-0">
+                      {myChild.name.charAt(0)}
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-800">{myChild.name}</h4>
+                      <p className="text-[10px] text-slate-500 mt-0.5 font-medium">Siswa Terdaftar</p>
+                    </div>
+                  </div>
+                  <div className="text-right pl-3 border-l border-amber-200/40">
+                    <span className="text-[8px] text-slate-400 font-bold block uppercase tracking-wider">Tabungan Anak</span>
+                    <span className="text-xs font-extrabold text-amber-700 block">
+                      Rp {(myChild.savingsBalance || 0).toLocaleString('id-ID')}
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="text-xs font-bold text-slate-800">{myChild.name}</h4>
-                  <p className="text-[10px] text-slate-500 mt-0.5">Siswa Terdaftar</p>
+
+                <div className="pt-2 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setShowSavingsHistory(!showSavingsHistory)}
+                    className="w-full flex items-center justify-between text-[11px] font-extrabold text-slate-600 hover:text-slate-800 cursor-pointer"
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <Coins className="w-4 h-4 text-amber-500" />
+                      Riwayat Tabungan Anak
+                    </span>
+                    <span className="text-[10px] text-amber-600 underline">
+                      {showSavingsHistory ? 'Sembunyikan' : 'Lihat Detail'}
+                    </span>
+                  </button>
+                  
+                  {showSavingsHistory && (
+                    <div className="mt-3 space-y-2 max-h-[220px] overflow-y-auto pr-1 pt-1 border-t border-slate-50">
+                      {savingsTransactions.filter(tx => tx.studentId === myChild.id).length === 0 ? (
+                        <p className="text-[10px] text-slate-400 italic py-3 text-center">Belum ada transaksi tabungan.</p>
+                      ) : (
+                        savingsTransactions
+                          .filter(tx => tx.studentId === myChild.id)
+                          .map(tx => {
+                            const isSetor = tx.type === 'setor';
+                            return (
+                              <div key={tx.id} className="p-2.5 bg-slate-50/50 border border-slate-100 rounded-xl flex items-center justify-between text-[10px]">
+                                <div className="min-w-0 pr-2">
+                                  <p className="font-bold text-slate-700 truncate leading-tight">{tx.description}</p>
+                                  <span className="text-[8px] text-slate-400 mt-0.5 block">{formatDate(tx.createdAt)}</span>
+                                </div>
+                                <span className={`font-extrabold shrink-0 ${isSetor ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                  {isSetor ? '+' : '-'} Rp {tx.amount.toLocaleString('id-ID')}
+                                </span>
+                              </div>
+                            );
+                          })
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             ) : (

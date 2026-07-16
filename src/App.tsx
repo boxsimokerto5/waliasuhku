@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Report, AppNotification, Reply, ReportType, Broadcast } from './types';
+import { User, Report, AppNotification, Reply, ReportType, Broadcast, SavingsTransaction } from './types';
 import { initialUsers, getInitialReports, getInitialNotifications } from './data/mockData';
 import LoginScreen from './components/LoginScreen';
 import Header from './components/Header';
@@ -21,6 +21,7 @@ export default function App() {
   const [reports, setReports] = useState<Report[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
+  const [savingsTransactions, setSavingsTransactions] = useState<SavingsTransaction[]>([]);
 
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [viewportMode, setViewportMode] = useState<'mobile' | 'desktop'>('desktop');
@@ -102,6 +103,22 @@ export default function App() {
       setBroadcasts(fetchedBroadcasts);
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, 'broadcasts');
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Synchronize Savings Transactions from Firestore in Real-Time
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, 'savings_transactions'), (snapshot) => {
+      const fetchedTransactions: SavingsTransaction[] = [];
+      snapshot.forEach((doc) => {
+        fetchedTransactions.push(doc.data() as SavingsTransaction);
+      });
+      // Sort descending by creation date
+      fetchedTransactions.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setSavingsTransactions(fetchedTransactions);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'savings_transactions');
     });
     return () => unsubscribe();
   }, []);
@@ -523,6 +540,84 @@ export default function App() {
     }
   };
 
+  // Action: Manage Student Savings (Wali Asuh action)
+  const handleCreateSavingsTransaction = async (
+    studentId: string,
+    amount: number,
+    type: 'setor' | 'tarik',
+    description: string
+  ) => {
+    if (!currentUser || currentUser.role !== 'wali_asuh') return;
+
+    const student = users.find(u => u.id === studentId);
+    if (!student) return;
+
+    const currentBalance = student.savingsBalance || 0;
+    let newBalance = currentBalance;
+
+    if (type === 'setor') {
+      newBalance += amount;
+    } else {
+      if (currentBalance < amount) {
+        showToast('Saldo Tidak Cukup', `Saldo tabungan ${student.name} tidak mencukupi untuk penarikan.`);
+        return;
+      }
+      newBalance -= amount;
+    }
+
+    const transactionId = generateId('saving');
+    const newTransaction: SavingsTransaction = {
+      id: transactionId,
+      studentId,
+      studentName: student.name,
+      waliAsuhId: currentUser.id,
+      amount,
+      type,
+      description: description.trim(),
+      createdAt: new Date().toISOString()
+    };
+
+    try {
+      // 1. Create transaction doc in firestore
+      await setDoc(doc(db, 'savings_transactions', transactionId), newTransaction);
+
+      // 2. Update student savings balance in users doc
+      await updateDoc(doc(db, 'users', studentId), { savingsBalance: newBalance });
+
+      // 3. Create a notification for the student (anak_asuh)
+      const notif: AppNotification = {
+        id: generateId('notif'),
+        userId: studentId,
+        title: `💰 Tabungan: ${type === 'setor' ? 'Penyetoran' : 'Penarikan'}`,
+        message: `Wali Asuh ${currentUser.name} telah mencatat ${type === 'setor' ? 'setoran' : 'penarikan'} sebesar Rp ${amount.toLocaleString('id-ID')} (${description}). Saldo kamu sekarang: Rp ${newBalance.toLocaleString('id-ID')}`,
+        isRead: false,
+        createdAt: new Date().toISOString()
+      };
+      await setDoc(doc(db, 'notifications', notif.id), notif);
+
+      // 4. Create a notification for the parents if they are registered and linked
+      const parent = users.find(u => u.role === 'orang_tua' && u.anakAsuhId === studentId);
+      if (parent) {
+        const parentNotif: AppNotification = {
+          id: generateId('notif'),
+          userId: parent.id,
+          title: `💰 Tabungan Anak: ${type === 'setor' ? 'Penyetoran' : 'Penarikan'}`,
+          message: `Wali Asuh mencatat ${type === 'setor' ? 'setoran' : 'penarikan'} sebesar Rp ${amount.toLocaleString('id-ID')} untuk anak Anda ${student.name} (${description}). Saldo akhir: Rp ${newBalance.toLocaleString('id-ID')}`,
+          isRead: false,
+          createdAt: new Date().toISOString()
+        };
+        await setDoc(doc(db, 'notifications', parentNotif.id), parentNotif);
+      }
+
+      showToast(
+        'Transaksi Berhasil',
+        `Mencatat ${type === 'setor' ? 'setoran' : 'penarikan'} Rp ${amount.toLocaleString('id-ID')} untuk ${student.name}.`
+      );
+    } catch (err) {
+      handleFirestoreError(err, OperationType.WRITE, `savings_transactions/${transactionId}`);
+    }
+  };
+
 
   // Render appropriate dashboard depending on role
   const renderDashboard = () => {
@@ -544,6 +639,7 @@ export default function App() {
             users={users}
             reports={reports}
             broadcasts={broadcasts}
+            savingsTransactions={savingsTransactions}
             onCreateAnakAsuh={handleCreateAnakAsuh}
             onCreateOrangTua={handleCreateOrangTua}
             onUpdateReportStatus={handleUpdateReportStatus}
@@ -554,6 +650,7 @@ export default function App() {
             onDeleteBroadcast={handleDeleteBroadcast}
             onUpdateChildCategory={handleUpdateChildCategory}
             onToggleUserSuspension={handleToggleUserSuspension}
+            onAddSavingsTransaction={handleCreateSavingsTransaction}
           />
         );
       case 'anak_asuh':
@@ -563,6 +660,7 @@ export default function App() {
             users={users}
             reports={reports}
             broadcasts={broadcasts}
+            savingsTransactions={savingsTransactions}
             onSubmitReport={handleSubmitReport}
             onAddReply={handleAddReply}
           />
@@ -573,6 +671,7 @@ export default function App() {
             currentUser={currentUser}
             users={users}
             reports={reports}
+            savingsTransactions={savingsTransactions}
             onAddReply={handleAddReply}
           />
         );

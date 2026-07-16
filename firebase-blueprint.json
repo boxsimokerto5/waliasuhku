@@ -33,6 +33,10 @@
         "createdAt": {
           "type": "string",
           "description": "Waktu pembuatan akun"
+        },
+        "savingsBalance": {
+          "type": "integer",
+          "description": "Saldo tabungan siswa (anak asuh)"
         }
       },
       "required": ["id", "username", "name", "role", "createdAt"]
@@ -111,6 +115,39 @@
         }
       },
       "required": ["id", "userId", "title", "message", "isRead", "createdAt"]
+    },
+    "SavingsTransaction": {
+      "title": "SavingsTransaction",
+      "description": "Transaksi tabungan siswa (setor atau tarik) yang dikelola oleh Wali Asuh.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "studentId": {
+          "type": "string"
+        },
+        "studentName": {
+          "type": "string"
+        },
+        "waliAsuhId": {
+          "type": "string"
+        },
+        "amount": {
+          "type": "integer"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["setor", "tarik"]
+        },
+        "description": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "studentId", "studentName", "waliAsuhId", "amount", "type", "description", "createdAt"]
     }
   },
   "firestore": {
@@ -125,6 +162,10 @@
     "notifications/{notificationId}": {
       "schema": "AppNotification",
       "description": "Koleksi notifikasi real-time"
+    },
+    "savings_transactions/{transactionId}": {
+      "schema": "SavingsTransaction",
+      "description": "Koleksi transaksi tabungan siswa"
     }
   }
 }

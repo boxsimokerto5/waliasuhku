@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { User, Report, ReportType, Broadcast } from '../types';
-import { Send, Upload, Lock, ShieldCheck, Heart, Clipboard, HelpCircle, FileText, AlertCircle, Trash2, CheckCircle, Clock, ShieldAlert, ImageIcon, MessageCircle, ZoomIn, ZoomOut, RotateCw, X, Download, Maximize2, Package, Megaphone, ExternalLink, Calendar } from 'lucide-react';
+import { User, Report, ReportType, Broadcast, SavingsTransaction } from '../types';
+import { Send, Upload, Lock, ShieldCheck, Heart, Clipboard, HelpCircle, FileText, AlertCircle, Trash2, CheckCircle, Clock, ShieldAlert, ImageIcon, MessageCircle, ZoomIn, ZoomOut, RotateCw, X, Download, Maximize2, Package, Megaphone, ExternalLink, Calendar, Coins, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { decryptMessage, encryptMessage, formatDate, getStatusBadge, getTypeBadge } from '../utils/crypto';
 
@@ -9,6 +9,7 @@ interface AnakAsuhDashboardProps {
   users: User[];
   reports: Report[];
   broadcasts: Broadcast[];
+  savingsTransactions: SavingsTransaction[];
   onSubmitReport: (reportData: {
     title: string;
     content: string;
@@ -64,6 +65,7 @@ export default function AnakAsuhDashboard({
   users,
   reports,
   broadcasts,
+  savingsTransactions,
   onSubmitReport,
   onAddReply
 }: AnakAsuhDashboardProps) {
@@ -72,7 +74,7 @@ export default function AnakAsuhDashboard({
   const [reportType, setReportType] = useState<ReportType>('pengaduan');
   const [photoUrl, setPhotoUrl] = useState<string>('');
   const [customPhotoName, setCustomPhotoName] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'form' | 'history'>('form');
+  const [activeTab, setActiveTab] = useState<'form' | 'history' | 'tabungan'>('form');
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [replyText, setReplyText] = useState('');
   const [dragActive, setDragActive] = useState(false);
@@ -275,7 +277,7 @@ export default function AnakAsuhDashboard({
       </div>
 
       {/* Main Mode Toggles */}
-      <div className="flex bg-slate-100 p-1.5 rounded-2xl w-fit">
+      <div className="flex flex-wrap gap-1 bg-slate-100 p-1.5 rounded-2xl w-fit">
         <button
           onClick={() => setActiveTab('form')}
           className={`px-5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
@@ -295,6 +297,16 @@ export default function AnakAsuhDashboard({
           }`}
         >
           📂 Riwayat Laporanku ({myReports.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('tabungan')}
+          className={`px-5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            activeTab === 'tabungan' 
+              ? 'bg-white text-indigo-600 shadow-sm' 
+              : 'text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          🪙 Tabunganku (Rp {(currentUser.savingsBalance || 0).toLocaleString('id-ID')})
         </button>
       </div>
 
@@ -701,7 +713,7 @@ export default function AnakAsuhDashboard({
 
             </div>
           </div>
-        ) : (
+        ) : activeTab === 'history' ? (
           /* HISTORY & PROGRESS TIMELINE VIEW */
           <div className="lg:col-span-12 grid grid-cols-1 md:grid-cols-12 gap-6">
             
@@ -924,6 +936,84 @@ export default function AnakAsuhDashboard({
               </AnimatePresence>
             </div>
 
+          </div>
+        ) : (
+          /* TABUNGAN VIEW */
+          <div className="lg:col-span-12 space-y-6">
+            <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 rounded-3xl p-6 text-white text-left shadow-lg relative overflow-hidden">
+              <div className="absolute right-0 bottom-0 translate-x-10 translate-y-10 text-white/10">
+                <Coins className="w-48 h-48" />
+              </div>
+              <div className="relative z-10">
+                <span className="text-[10px] font-bold bg-white/20 px-2.5 py-1 rounded-full uppercase tracking-wider">
+                  Tabungan Mandiri Siswa
+                </span>
+                <h2 className="text-xl sm:text-2xl font-extrabold mt-3">Saldo Tabunganku</h2>
+                <div className="text-3xl sm:text-4xl font-black mt-2 font-sans">
+                  Rp {(currentUser.savingsBalance || 0).toLocaleString('id-ID')}
+                </div>
+                <p className="text-xs text-white/80 mt-2 max-w-xl">
+                  Tabungan ini dicatat dan dikelola oleh Wali Asuh kamu ({myGuardian?.name || 'Wali Asuh'}). Kamu bisa menitipkan uang jajan atau menariknya sesuai kebutuhan asrama/sekolah.
+                </p>
+              </div>
+            </div>
+
+            {/* Transaction Grid */}
+            <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm text-left">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4 mb-4">
+                <div>
+                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Riwayat Mutasi Tabungan</h3>
+                  <p className="text-[10px] text-slate-400 mt-0.5">Semua catatan penyetoran dan penarikan yang dicatat oleh Wali Asuh.</p>
+                </div>
+              </div>
+
+              {/* Transactions List */}
+              <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
+                {savingsTransactions.filter(tx => tx.studentId === currentUser.id).length === 0 ? (
+                  <div className="py-12 text-center text-slate-400 text-xs italic">
+                    Belum ada catatan transaksi tabungan. Silakan titipkan tabungan kamu ke Wali Asuh!
+                  </div>
+                ) : (
+                  savingsTransactions
+                    .filter(tx => tx.studentId === currentUser.id)
+                    .map(tx => {
+                      const isSetor = tx.type === 'setor';
+                      return (
+                        <div
+                          key={tx.id}
+                          className="p-4 bg-slate-50/50 hover:bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-between gap-3"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded-xl shrink-0 ${
+                              isSetor ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
+                            }`}>
+                              {isSetor ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownLeft className="w-4 h-4" />}
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold text-slate-700 leading-tight">{tx.description}</p>
+                              <span className="text-[9px] text-slate-400 block mt-1 flex items-center gap-1 font-medium">
+                                <Calendar className="w-3 h-3 text-slate-300" />
+                                {formatDate(tx.createdAt)}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          <div className="text-right">
+                            <span className={`text-xs font-extrabold block ${
+                              isSetor ? 'text-emerald-600' : 'text-rose-600'
+                            }`}>
+                              {isSetor ? '+' : '-'} Rp {tx.amount.toLocaleString('id-ID')}
+                            </span>
+                            <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-slate-200/50 text-slate-500 mt-1 inline-block uppercase">
+                              {isSetor ? 'Setoran' : 'Penarikan'}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })
+                )}
+              </div>
+            </div>
           </div>
         )}
 

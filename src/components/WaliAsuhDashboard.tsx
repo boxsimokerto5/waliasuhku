@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { User, Report, Reply, Broadcast } from '../types';
-import { Plus, UserPlus, FileText, Send, Lock, ShieldAlert, Heart, Clipboard, HelpCircle, Eye, CheckCircle2, MessageSquare, Image as ImageIcon, MessageCircle, ZoomIn, ZoomOut, RotateCw, X, Download, Maximize2, Megaphone, Trash2, Link, ChevronDown, ChevronUp, Calendar, MoreVertical, Tag, Filter, Check, FolderOpen, Mail, ArrowLeft, Home } from 'lucide-react';
+import { User, Report, Reply, Broadcast, SavingsTransaction } from '../types';
+import { Plus, UserPlus, FileText, Send, Lock, ShieldAlert, Heart, Clipboard, HelpCircle, Eye, CheckCircle2, MessageSquare, Image as ImageIcon, MessageCircle, ZoomIn, ZoomOut, RotateCw, X, Download, Maximize2, Megaphone, Trash2, Link, ChevronDown, ChevronUp, Calendar, MoreVertical, Tag, Filter, Check, FolderOpen, Mail, ArrowLeft, Home, Coins } from 'lucide-react';
 import { generateSingleCardPDF, generateAllCardsPDF } from '../utils/pdfGenerator';
 import { motion, AnimatePresence } from 'motion/react';
 import { decryptMessage, encryptMessage, formatDate, getStatusBadge, getTypeBadge } from '../utils/crypto';
@@ -8,12 +8,14 @@ import { ChildRegistration } from './ChildRegistration';
 import { ParentRegistration } from './ParentRegistration';
 import { BroadcastModule } from './BroadcastModule';
 import { AnakAsuhList } from './AnakAsuhList';
+import { SavingsManagement } from './SavingsManagement';
 
 interface WaliAsuhDashboardProps {
   currentUser: User;
   users: User[];
   reports: Report[];
   broadcasts: Broadcast[];
+  savingsTransactions: SavingsTransaction[];
   onCreateAnakAsuh: (username: string, name: string, waliAsuhId: string) => void;
   onCreateOrangTua: (username: string, name: string, waliAsuhId: string, anakAsuhId: string) => void;
   onUpdateReportStatus: (reportId: string, status: 'pending' | 'processed' | 'resolved') => void;
@@ -24,6 +26,7 @@ interface WaliAsuhDashboardProps {
   onDeleteBroadcast: (broadcastId: string) => void;
   onUpdateChildCategory: (childId: string, category: string) => void;
   onToggleUserSuspension?: (userId: string, isSuspended: boolean) => void;
+  onAddSavingsTransaction: (studentId: string, amount: number, type: 'setor' | 'tarik', description: string) => void;
 }
 
 export default function WaliAsuhDashboard({
@@ -31,6 +34,7 @@ export default function WaliAsuhDashboard({
   users,
   reports,
   broadcasts,
+  savingsTransactions,
   onCreateAnakAsuh,
   onCreateOrangTua,
   onUpdateReportStatus,
@@ -40,7 +44,8 @@ export default function WaliAsuhDashboard({
   onCreateBroadcast,
   onDeleteBroadcast,
   onUpdateChildCategory,
-  onToggleUserSuspension
+  onToggleUserSuspension,
+  onAddSavingsTransaction
 }: WaliAsuhDashboardProps) {
   const [newUsername, setNewUsername] = useState('');
   const [newName, setNewName] = useState('');
@@ -387,6 +392,10 @@ export default function WaliAsuhDashboard({
     subPageTitle = "Laporan & Kendala Siswa";
     subPageSubtitle = "Daftar pelaporan penting mengenai aktivitas atau kendala siswa";
     subPageIcon = <FileText className="w-5 h-5 text-red-600" />;
+  } else if (activeSubPage === 'tabungan') {
+    subPageTitle = "Tabungan Anak Asuh";
+    subPageSubtitle = "Kelola saldo tabungan, catat setoran dan penarikan uang saku anak asuh Anda";
+    subPageIcon = <Coins className="w-5 h-5 text-emerald-600" />;
   }
 
   return (
@@ -422,7 +431,7 @@ export default function WaliAsuhDashboard({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-3 pt-1">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-9 gap-3 pt-1">
             {/* 1. Akun Anak Asuh */}
             <button
               type="button"
@@ -535,7 +544,21 @@ export default function WaliAsuhDashboard({
               <span className="text-[11px] font-extrabold leading-tight">Laporan Siswa</span>
             </button>
 
-            {/* 8. Kelola Akun */}
+            {/* 8. Tabungan Anak Asuh */}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveSubPage('tabungan');
+              }}
+              className="flex flex-col items-center justify-center p-3 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-700 hover:bg-emerald-100/70 transition-all text-center cursor-pointer gap-1.5"
+            >
+              <div className="p-2 bg-white rounded-xl shadow-xs">
+                <Coins className="w-5 h-5 text-emerald-600" />
+              </div>
+              <span className="text-[11px] font-extrabold leading-tight">Tabungan Anak</span>
+            </button>
+
+            {/* 9. Kelola Akun */}
             <button
               type="button"
               onClick={() => {
@@ -597,6 +620,17 @@ export default function WaliAsuhDashboard({
           onDeleteBroadcast={onDeleteBroadcast}
           currentUser={currentUser}
           formatDate={formatDate}
+        />
+      )}
+
+      {/* Tabungan Management Sub-Page */}
+      {activeSubPage === 'tabungan' && (
+        <SavingsManagement
+          currentUser={currentUser}
+          myChildren={myChildren}
+          savingsTransactions={savingsTransactions}
+          onAddSavingsTransaction={onAddSavingsTransaction}
+          onBack={() => setActiveSubPage(null)}
         />
       )}
 

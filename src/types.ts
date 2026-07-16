@@ -15,6 +15,18 @@ export interface User {
   createdAt: string;
   category?: string; // For grouping students/anak_asuh into categories (e.g. Kelas 10, Asrama A)
   isSuspended?: boolean; // Track suspended status for account control
+  savingsBalance?: number; // Current savings balance (primarily for anak_asuh)
+}
+
+export interface SavingsTransaction {
+  id: string;
+  studentId: string;
+  studentName: string;
+  waliAsuhId: string;
+  amount: number; // nominal transaksi
+  type: 'setor' | 'tarik'; // deposit (setor) or withdrawal (tarik)
+  description: string;
+  createdAt: string;
 }
 
 export type ReportType = 'pengaduan' | 'pelaporan' | 'curhatan' | 'pesan_ortu' | 'kebutuhan_logistik';
