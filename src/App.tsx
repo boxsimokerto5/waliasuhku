@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Report, AppNotification, Reply, ReportType, Broadcast, SavingsTransaction } from './types';
+import { User, Report, AppNotification, Reply, ReportType, Broadcast, SavingsTransaction, ChatMessage } from './types';
 import { initialUsers, getInitialReports, getInitialNotifications } from './data/mockData';
 import LoginScreen from './components/LoginScreen';
 import Header from './components/Header';
@@ -22,6 +22,7 @@ export default function App() {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
   const [savingsTransactions, setSavingsTransactions] = useState<SavingsTransaction[]>([]);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
 
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [viewportMode, setViewportMode] = useState<'mobile' | 'desktop'>('desktop');
@@ -119,6 +120,22 @@ export default function App() {
       setSavingsTransactions(fetchedTransactions);
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, 'savings_transactions');
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Synchronize Chat Messages from Firestore in Real-Time
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, 'chat_messages'), (snapshot) => {
+      const fetchedMessages: ChatMessage[] = [];
+      snapshot.forEach((doc) => {
+        fetchedMessages.push(doc.data() as ChatMessage);
+      });
+      // Sort ascending by creation date so conversation reads normally
+      fetchedMessages.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      setChatMessages(fetchedMessages);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'chat_messages');
     });
     return () => unsubscribe();
   }, []);
@@ -618,6 +635,47 @@ export default function App() {
     }
   };
 
+  // Action: Send Chat Message (Anak Asuh or Wali Asuh)
+  const handleSendChatMessage = async (receiverId: string, content: string) => {
+    if (!currentUser) return;
+
+    const receiver = users.find(u => u.id === receiverId);
+    if (!receiver) return;
+
+    // Encrypt content on submission for end-to-end privacy
+    const encryptedContent = encryptMessage(content, 'waliasuhku-secure-key');
+
+    const messageId = generateId('chat');
+    const newMsg: ChatMessage = {
+      id: messageId,
+      senderId: currentUser.id,
+      senderName: currentUser.name,
+      senderRole: currentUser.role,
+      receiverId: receiver.id,
+      receiverName: receiver.name,
+      content: encryptedContent,
+      isEncrypted: true,
+      createdAt: new Date().toISOString()
+    };
+
+    try {
+      await setDoc(doc(db, 'chat_messages', messageId), newMsg);
+
+      // Create notification for receiver
+      const notif: AppNotification = {
+        id: generateId('notif'),
+        userId: receiver.id,
+        title: `💬 Pesan Chat Baru`,
+        message: `${currentUser.name} mengirim pesan: "${content.length > 40 ? content.slice(0, 40) + '...' : content}"`,
+        isRead: false,
+        createdAt: new Date().toISOString()
+      };
+      await setDoc(doc(db, 'notifications', notif.id), notif);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.WRITE, `chat_messages/${messageId}`);
+    }
+  };
+
 
   // Render appropriate dashboard depending on role
   const renderDashboard = () => {
@@ -640,6 +698,7 @@ export default function App() {
             reports={reports}
             broadcasts={broadcasts}
             savingsTransactions={savingsTransactions}
+            chatMessages={chatMessages}
             onCreateAnakAsuh={handleCreateAnakAsuh}
             onCreateOrangTua={handleCreateOrangTua}
             onUpdateReportStatus={handleUpdateReportStatus}
@@ -651,6 +710,7 @@ export default function App() {
             onUpdateChildCategory={handleUpdateChildCategory}
             onToggleUserSuspension={handleToggleUserSuspension}
             onAddSavingsTransaction={handleCreateSavingsTransaction}
+            onSendChatMessage={handleSendChatMessage}
           />
         );
       case 'anak_asuh':
@@ -661,8 +721,10 @@ export default function App() {
             reports={reports}
             broadcasts={broadcasts}
             savingsTransactions={savingsTransactions}
+            chatMessages={chatMessages}
             onSubmitReport={handleSubmitReport}
             onAddReply={handleAddReply}
+            onSendChatMessage={handleSendChatMessage}
           />
         );
       case 'orang_tua':

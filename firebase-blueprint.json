@@ -148,6 +148,41 @@
         }
       },
       "required": ["id", "studentId", "studentName", "waliAsuhId", "amount", "type", "description", "createdAt"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Pesan chat real-time antara Wali Asuh dan Anak Asuh.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "senderId": {
+          "type": "string"
+        },
+        "senderName": {
+          "type": "string"
+        },
+        "senderRole": {
+          "type": "string"
+        },
+        "receiverId": {
+          "type": "string"
+        },
+        "receiverName": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string"
+        },
+        "isEncrypted": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "senderId", "senderName", "senderRole", "receiverId", "receiverName", "content", "isEncrypted", "createdAt"]
     }
   },
   "firestore": {
@@ -166,6 +201,10 @@
     "savings_transactions/{transactionId}": {
       "schema": "SavingsTransaction",
       "description": "Koleksi transaksi tabungan siswa"
+    },
+    "chat_messages/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "Koleksi pesan chat real-time"
     }
   }
 }

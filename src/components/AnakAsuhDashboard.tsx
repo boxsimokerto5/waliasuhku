@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { User, Report, ReportType, Broadcast, SavingsTransaction } from '../types';
+import { User, Report, ReportType, Broadcast, SavingsTransaction, ChatMessage } from '../types';
 import { Send, Upload, Lock, ShieldCheck, Heart, Clipboard, HelpCircle, FileText, AlertCircle, Trash2, CheckCircle, Clock, ShieldAlert, ImageIcon, MessageCircle, ZoomIn, ZoomOut, RotateCw, X, Download, Maximize2, Package, Megaphone, ExternalLink, Calendar, Coins, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { decryptMessage, encryptMessage, formatDate, getStatusBadge, getTypeBadge } from '../utils/crypto';
@@ -10,6 +10,7 @@ interface AnakAsuhDashboardProps {
   reports: Report[];
   broadcasts: Broadcast[];
   savingsTransactions: SavingsTransaction[];
+  chatMessages: ChatMessage[];
   onSubmitReport: (reportData: {
     title: string;
     content: string;
@@ -17,47 +18,21 @@ interface AnakAsuhDashboardProps {
     attachmentUrl?: string;
   }) => void;
   onAddReply: (reportId: string, replyContent: string) => void;
+  onSendChatMessage: (receiverId: string, content: string) => void;
 }
 
-// Preset evidence photos to make browser-based demo super high fidelity and instant to play with!
-const PRESET_PHOTOS = [
-  {
-    id: 'math_book',
-    name: 'Buku Hilang / Rusak',
-    url: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=400',
-    description: 'Catatan pelajaran matematika yang koyak/hilang.'
-  },
-  {
-    id: 'broken_faucet',
-    name: 'Fasilitas Rusak',
-    url: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&q=80&w=400',
-    description: 'Gagang keran air kamar mandi asrama patah.'
-  },
-  {
-    id: 'medicine',
-    name: 'Obat & Kesehatan',
-    url: 'https://images.unsplash.com/photo-1584017911766-d451b3d0e843?auto=format&fit=crop&q=80&w=400',
-    description: 'Foto resep obat dari puskesmas asrama.'
-  },
-  {
-    id: 'permit_letter',
-    name: 'Surat Izin',
-    url: 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?auto=format&fit=crop&q=80&w=400',
-    description: 'Format surat izin keluar asrama bermeterai.'
-  }
-];
 
-export const LOGISTIC_ITEMS = [
-  { id: 'sabun', label: '🧼 Sabun Mandi', category: 'Mandi' },
-  { id: 'shampoo', label: '🧴 Shampo', category: 'Mandi' },
-  { id: 'pasta_gigi', label: '🪥 Pasta Gigi', category: 'Mandi' },
-  { id: 'sikat_gigi', label: '🪥 Sikat Gigi', category: 'Mandi' },
-  { id: 'detergen', label: '🧺 Detergen Cuci', category: 'Mandi' },
-  { id: 'buku_tulis', label: '📖 Buku Tulis', category: 'Tulis / Sekolah' },
-  { id: 'pulpen', label: '✍️ Pulpen / Pena', category: 'Tulis / Sekolah' },
-  { id: 'pensil', label: '✏️ Pensil & Penghapus', category: 'Tulis / Sekolah' },
-  { id: 'obat_pribadi', label: '💊 Obat / Vitamin', category: 'Lain-lain' },
-  { id: 'pembalut', label: '🚺 Pembalut', category: 'Lain-lain' }
+
+export const SUGGESTED_ITEMS = [
+  { label: '📖 Buku Tulis', defaultName: 'Buku Tulis' },
+  { label: '📐 Penggaris', defaultName: 'Penggaris' },
+  { label: '✏️ Pensil', defaultName: 'Pensil' },
+  { label: '✍️ Pena / Pulpen', defaultName: 'Pena' },
+  { label: '🧼 Sabun Mandi', defaultName: 'Sabun Mandi' },
+  { label: '🪥 Sikat Gigi', defaultName: 'Sikat Gigi' },
+  { label: '🧴 Shampo', defaultName: 'Shampo' },
+  { label: '🧺 Detergen', defaultName: 'Detergen' },
+  { label: '💊 Obat / Vitamin', defaultName: 'Obat/Vitamin' }
 ];
 
 export default function AnakAsuhDashboard({
@@ -66,21 +41,47 @@ export default function AnakAsuhDashboard({
   reports,
   broadcasts,
   savingsTransactions,
+  chatMessages,
   onSubmitReport,
-  onAddReply
+  onAddReply,
+  onSendChatMessage
 }: AnakAsuhDashboardProps) {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [reportType, setReportType] = useState<ReportType>('pengaduan');
   const [photoUrl, setPhotoUrl] = useState<string>('');
   const [customPhotoName, setCustomPhotoName] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'form' | 'history' | 'tabungan'>('form');
+  const [activeTab, setActiveTab] = useState<'form' | 'history' | 'tabungan' | 'chat'>('form');
+  const [chatInputText, setChatInputText] = useState('');
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (activeTab === 'chat' && chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [activeTab, chatMessages]);
+
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [replyText, setReplyText] = useState('');
   const [dragActive, setDragActive] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
-  const [selectedItems, setSelectedItems] = useState<{ [key: string]: 'habis' | 'hampir_habis' | '' }>({});
+  const [customItems, setCustomItems] = useState<{ name: string; status: 'habis' | 'sedikit' }[]>([]);
+  const [newItemName, setNewItemName] = useState('');
+  const [newItemStatus, setNewItemStatus] = useState<'habis' | 'sedikit'>('habis');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAddCustomItem = (name: string, status: 'habis' | 'sedikit') => {
+    const trimmedName = name.trim();
+    if (!trimmedName) return;
+
+    // Avoid duplicate names (case-insensitive check)
+    if (customItems.some(item => item.name.toLowerCase() === trimmedName.toLowerCase())) {
+      return;
+    }
+
+    setCustomItems(prev => [...prev, { name: trimmedName, status }]);
+    setNewItemName('');
+  };
 
   const [showPhotoModal, setShowPhotoModal] = useState<string | null>(null);
   const [zoomScale, setZoomScale] = useState(1);
@@ -144,15 +145,12 @@ export default function AnakAsuhDashboard({
     let finalContent = content.trim();
 
     if (reportType === 'kebutuhan_logistik') {
-      const activeItems = Object.entries(selectedItems)
-        .filter(([_, status]) => status !== '')
-        .map(([id, status]) => {
-          const item = LOGISTIC_ITEMS.find(li => li.id === id);
-          return `- ${item?.label || id} (${status === 'habis' ? '❌ Habis Total' : '⚠️ Hampir Habis'})`;
-        });
+      const activeItems = customItems.map(item => {
+        return `- ${item.name} (${item.status === 'habis' ? '❌ Habis Total' : '⚠️ Tinggal Sedikit / Rusak'})`;
+      });
 
       if (activeItems.length === 0 && !finalContent) {
-        alert('Silakan pilih minimal satu barang yang habis atau tulis catatan kebutuhan!');
+        alert('Silakan tambahkan minimal satu barang yang habis atau tulis catatan kebutuhan!');
         return;
       }
 
@@ -190,7 +188,7 @@ export default function AnakAsuhDashboard({
     setContent('');
     setPhotoUrl('');
     setCustomPhotoName('');
-    setSelectedItems({});
+    setCustomItems([]);
 
     setTimeout(() => {
       setSuccessMsg('');
@@ -308,6 +306,16 @@ export default function AnakAsuhDashboard({
         >
           🪙 Tabunganku (Rp {(currentUser.savingsBalance || 0).toLocaleString('id-ID')})
         </button>
+        <button
+          onClick={() => setActiveTab('chat')}
+          className={`px-5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+            activeTab === 'chat' 
+              ? 'bg-white text-indigo-600 shadow-sm' 
+              : 'text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          💬 Chat Wali Asuh
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -422,64 +430,120 @@ export default function AnakAsuhDashboard({
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="p-4 bg-amber-50/40 border border-amber-100 rounded-2xl space-y-3"
+                  className="p-5 bg-amber-50/40 border border-amber-100/50 rounded-3xl space-y-4 text-left"
                 >
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-amber-950 block">📋 Pilih Properti Siswa yang Habis / Sedikit</span>
+                  <div>
+                    <h4 className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
+                      <Package className="w-4 h-4 text-amber-600" />
+                      Pendataan Kebutuhan Sarpras / Logistik
+                    </h4>
+                    <p className="text-[10px] text-amber-800/80 mt-1">
+                      Ketik nama barang yang habis/mau habis di bawah ini, atau ketuk tombol saran cepat untuk menambahkannya langsung.
+                    </p>
                   </div>
-                  <p className="text-[10px] text-amber-700/80">Silakan pilih status ketersediaan properti kamu di bawah ini sebelum mengirim laporan.</p>
-                  
-                  {/* Categorized grid */}
-                  <div className="space-y-3">
-                    {['Mandi', 'Tulis / Sekolah', 'Lain-lain'].map(cat => {
-                      const catItems = LOGISTIC_ITEMS.filter(item => item.category === cat);
-                      return (
-                        <div key={cat} className="space-y-1.5">
-                          <h4 className="text-[10px] font-extrabold text-amber-900/60 uppercase tracking-wider">{cat}</h4>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            {catItems.map(item => {
-                              const currentStatus = selectedItems[item.id] || '';
-                              return (
-                                <div key={item.id} className="flex items-center justify-between p-2 bg-white rounded-xl border border-slate-100 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-                                  <span className="text-xs font-semibold text-slate-700">{item.label}</span>
-                                  <div className="flex gap-1">
-                                    <button
-                                      type="button"
-                                      onClick={() => setSelectedItems(prev => ({
-                                        ...prev,
-                                        [item.id]: currentStatus === 'habis' ? '' : 'habis'
-                                      }))}
-                                      className={`px-2 py-1 text-[9px] font-bold rounded-lg transition-all cursor-pointer border ${
-                                        currentStatus === 'habis'
-                                          ? 'bg-rose-500 border-rose-500 text-white'
-                                          : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100'
-                                      }`}
-                                    >
-                                      ❌ Habis
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => setSelectedItems(prev => ({
-                                        ...prev,
-                                        [item.id]: currentStatus === 'hampir_habis' ? '' : 'hampir_habis'
-                                      }))}
-                                      className={`px-2 py-1 text-[9px] font-bold rounded-lg transition-all cursor-pointer border ${
-                                        currentStatus === 'hampir_habis'
-                                          ? 'bg-amber-500 border-amber-500 text-white'
-                                          : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100'
-                                      }`}
-                                    >
-                                      ⚠️ Sedikit
-                                    </button>
-                                  </div>
-                                </div>
-                              );
-                            })}
+
+                  {/* Add Custom Item Form */}
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="text"
+                      value={newItemName}
+                      onChange={(e) => setNewItemName(e.target.value)}
+                      placeholder="Contoh: Sandal Kamar Mandi, Buku Gambar..."
+                      className="flex-1 bg-white border border-amber-200/60 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-amber-500 text-slate-800 shadow-sm placeholder:text-slate-400"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddCustomItem(newItemName, newItemStatus);
+                        }
+                      }}
+                    />
+                    <div className="flex gap-2">
+                      <select
+                        value={newItemStatus}
+                        onChange={(e) => setNewItemStatus(e.target.value as 'habis' | 'sedikit')}
+                        className="bg-white border border-amber-200/60 rounded-xl px-2 py-2 text-xs focus:outline-none text-slate-700 font-bold cursor-pointer shadow-sm"
+                      >
+                        <option value="habis">❌ Habis Total</option>
+                        <option value="sedikit">⚠️ Tinggal Sedikit</option>
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => handleAddCustomItem(newItemName, newItemStatus)}
+                        className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-sm transition-colors cursor-pointer shrink-0"
+                      >
+                        Tambah
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Smart Suggestion Quick Toggles */}
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] font-extrabold text-amber-900/60 uppercase tracking-wider">Saran Cepat (Ketuk untuk mengisi otomatis):</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {SUGGESTED_ITEMS.map((item) => {
+                        const isCurrentValue = newItemName.toLowerCase() === item.defaultName.toLowerCase();
+                        return (
+                          <button
+                            key={item.defaultName}
+                            type="button"
+                            onClick={() => {
+                              setNewItemName(item.defaultName);
+                            }}
+                            className={`px-2.5 py-1.5 rounded-xl text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1 border ${
+                              isCurrentValue 
+                                ? 'bg-amber-600 border-amber-700 text-white shadow-sm' 
+                                : 'bg-white border-amber-200 hover:border-amber-400 text-amber-950 hover:bg-amber-50 shadow-xs'
+                            }`}
+                          >
+                            <span>✍️</span>
+                            <span>{item.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* List of Added Items */}
+                  {customItems.length > 0 && (
+                    <div className="pt-3 border-t border-amber-200/40 space-y-2">
+                      <div className="flex items-center justify-between text-[10px] font-extrabold text-amber-900/60 uppercase tracking-wider">
+                        <span>Daftar Barang yang Dicatat ({customItems.length}):</span>
+                        <button
+                          type="button"
+                          onClick={() => setCustomItems([])}
+                          className="text-rose-600 hover:underline hover:text-rose-700 text-[9px] cursor-pointer"
+                        >
+                          Hapus Semua
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {customItems.map((item, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-center justify-between p-2 bg-white rounded-xl border border-amber-100 shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
+                          >
+                            <span className="text-xs font-semibold text-slate-700 truncate max-w-[150px]">{item.name}</span>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <span className={`px-2 py-0.5 text-[9px] font-extrabold rounded-md ${
+                                item.status === 'habis' 
+                                  ? 'bg-rose-50 border border-rose-100 text-rose-700' 
+                                  : 'bg-amber-50 border border-amber-100 text-amber-700'
+                              }`}>
+                                {item.status === 'habis' ? '❌ Habis' : '⚠️ Sedikit'}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setCustomItems(prev => prev.filter((_, i) => i !== idx))}
+                                className="p-1 hover:bg-rose-50 rounded-lg text-slate-400 hover:text-rose-600 cursor-pointer transition-colors"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </motion.div>
               )}
 
@@ -626,48 +690,7 @@ export default function AnakAsuhDashboard({
                 </div>
               </div>
 
-              {/* DEMO EFFICIENCY PRESET IMAGES CARD */}
-              <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm text-left">
-                <div>
-                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                    Galeri Simulasi Bukti Instan
-                  </h3>
-                  <p className="text-[9px] text-slate-400 mt-0.5">
-                    Gunakan foto contoh beresolusi tinggi di bawah ini untuk menguji laporan foto langsung tanpa harus repot mencari file di laptop Anda!
-                  </p>
-                </div>
 
-                <div className="grid grid-cols-2 gap-2 mt-4">
-                  {PRESET_PHOTOS.map(p => {
-                    const isSelected = photoUrl === p.url;
-                    return (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => {
-                          setPhotoUrl(p.url);
-                          setCustomPhotoName(p.name);
-                        }}
-                        className={`p-2 rounded-xl border text-left flex items-start gap-2 cursor-pointer transition-all ${
-                          isSelected 
-                            ? 'border-pink-500 bg-pink-50/40 text-pink-950 shadow-xs' 
-                            : 'border-slate-100 hover:border-slate-200 bg-slate-50/30 text-slate-700'
-                        }`}
-                      >
-                        <img 
-                          src={p.url} 
-                          alt={p.name} 
-                          className="w-10 h-10 object-cover rounded-lg border border-slate-200 shrink-0" 
-                        />
-                        <div className="min-w-0">
-                          <p className="text-[10px] font-bold truncate leading-snug">{p.name}</p>
-                          <p className="text-[8px] text-slate-400 line-clamp-2 mt-0.5 leading-normal">{p.description}</p>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
 
               {/* PAPAN PENGUMUMAN WALI ASUH */}
               <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm text-left">
@@ -937,7 +960,7 @@ export default function AnakAsuhDashboard({
             </div>
 
           </div>
-        ) : (
+        ) : activeTab === 'tabungan' ? (
           /* TABUNGAN VIEW */
           <div className="lg:col-span-12 space-y-6">
             <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 rounded-3xl p-6 text-white text-left shadow-lg relative overflow-hidden">
@@ -1013,6 +1036,120 @@ export default function AnakAsuhDashboard({
                     })
                 )}
               </div>
+            </div>
+          </div>
+        ) : (
+          /* CHAT VIEW */
+          <div className="lg:col-span-12 space-y-4 text-left">
+            <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm flex flex-col h-[550px] text-left">
+              {/* Chat Header */}
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3.5 mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-pink-50 text-pink-600 rounded-2xl">
+                    <MessageCircle className="w-5 h-5 animate-pulse" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-extrabold text-slate-800">
+                      Obrolan Chat Aman dengan {myGuardian?.name || 'Wali Asuh'}
+                    </h3>
+                    <p className="text-[10px] text-slate-400 mt-0.5">
+                      Ruang chat dienkripsi penuh. Pesan hanya dapat dibaca oleh Anda dan Wali Asuh Anda.
+                    </p>
+                  </div>
+                </div>
+                {myGuardian && (
+                  <span className="text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-100 px-3 py-1 rounded-full flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping"></span>
+                    Tersambung
+                  </span>
+                )}
+              </div>
+
+              {/* Chat Messages List */}
+              <div className="flex-1 overflow-y-auto space-y-3 mb-4 pr-1 scrollbar-thin">
+                {!myGuardian ? (
+                  <div className="h-full flex flex-col items-center justify-center text-center text-slate-400 p-6">
+                    <AlertCircle className="w-8 h-8 text-rose-400 mb-2" />
+                    <p className="text-xs font-bold text-slate-700">Wali Asuh Tidak Ditemukan</p>
+                    <p className="text-[11px] text-slate-400 mt-1">Anda belum memiliki Wali Asuh yang terhubung.</p>
+                  </div>
+                ) : chatMessages.filter(
+                    msg => (msg.senderId === currentUser.id && msg.receiverId === myGuardian.id) ||
+                           (msg.senderId === myGuardian.id && msg.receiverId === currentUser.id)
+                  ).length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-center text-slate-400 p-6">
+                    <MessageCircle className="w-10 h-10 text-slate-300 mb-2" />
+                    <p className="text-xs font-bold text-slate-700">Mulai Percakapan Aman</p>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      Kirim pesan sapaan atau ceritakan tentang keseharianmu hari ini secara langsung.
+                    </p>
+                  </div>
+                ) : (
+                  chatMessages
+                    .filter(
+                      msg => (msg.senderId === currentUser.id && msg.receiverId === myGuardian.id) ||
+                             (msg.senderId === myGuardian.id && msg.receiverId === currentUser.id)
+                    )
+                    .map(msg => {
+                      const isMe = msg.senderId === currentUser.id;
+                      const decryptedContent = msg.isEncrypted 
+                        ? decryptMessage(msg.content, 'waliasuhku-secure-key') 
+                        : msg.content;
+                      return (
+                        <div
+                          key={msg.id}
+                          className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
+                        >
+                          <div className={`max-w-[75%] rounded-2xl p-3 text-xs leading-relaxed border ${
+                            isMe 
+                              ? 'bg-pink-600 border-pink-700 text-white rounded-br-none text-right' 
+                              : 'bg-slate-50 border-slate-100 text-slate-800 rounded-bl-none text-left'
+                          }`}>
+                            <div className="flex items-center justify-between gap-4 mb-1 text-[8px] font-bold opacity-80">
+                              <span>{msg.senderName}</span>
+                              <span className="font-mono">{formatDate(msg.createdAt).split(',')[1]?.trim() || ''}</span>
+                            </div>
+                            <p className="text-[11px] font-semibold break-words whitespace-pre-wrap">{decryptedContent}</p>
+                            <div className="flex items-center justify-end gap-0.5 mt-1 text-[8px] opacity-65">
+                              <Lock className="w-2.5 h-2.5 inline" />
+                              <span>Enkripsi Aman</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                )}
+                <div ref={chatEndRef} />
+              </div>
+
+              {/* Chat Input Bar */}
+              {myGuardian && (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!chatInputText.trim()) return;
+                    onSendChatMessage(myGuardian.id, chatInputText.trim());
+                    setChatInputText('');
+                  }}
+                  className="flex gap-2 border-t border-slate-100 pt-3"
+                >
+                  <input
+                    type="text"
+                    value={chatInputText}
+                    onChange={(e) => setChatInputText(e.target.value)}
+                    placeholder={`Tulis pesan rahasia ke ${myGuardian.name}...`}
+                    className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-pink-500 focus:bg-white transition-all text-slate-800"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!chatInputText.trim()}
+                    className="px-4 py-2 bg-pink-600 hover:bg-pink-700 disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-md shadow-pink-600/10 active:scale-95"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>Kirim</span>
+                  </button>
+                </form>
+              )}
             </div>
           </div>
         )}

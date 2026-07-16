@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Report, Reply, Broadcast, SavingsTransaction } from '../types';
+import { User, Report, Reply, Broadcast, SavingsTransaction, ChatMessage } from '../types';
 import { Plus, UserPlus, FileText, Send, Lock, ShieldAlert, Heart, Clipboard, HelpCircle, Eye, CheckCircle2, MessageSquare, Image as ImageIcon, MessageCircle, ZoomIn, ZoomOut, RotateCw, X, Download, Maximize2, Megaphone, Trash2, Link, ChevronDown, ChevronUp, Calendar, MoreVertical, Tag, Filter, Check, FolderOpen, Mail, ArrowLeft, Home, Coins } from 'lucide-react';
 import { generateSingleCardPDF, generateAllCardsPDF } from '../utils/pdfGenerator';
 import { motion, AnimatePresence } from 'motion/react';
@@ -16,6 +16,7 @@ interface WaliAsuhDashboardProps {
   reports: Report[];
   broadcasts: Broadcast[];
   savingsTransactions: SavingsTransaction[];
+  chatMessages: ChatMessage[];
   onCreateAnakAsuh: (username: string, name: string, waliAsuhId: string) => void;
   onCreateOrangTua: (username: string, name: string, waliAsuhId: string, anakAsuhId: string) => void;
   onUpdateReportStatus: (reportId: string, status: 'pending' | 'processed' | 'resolved') => void;
@@ -27,6 +28,7 @@ interface WaliAsuhDashboardProps {
   onUpdateChildCategory: (childId: string, category: string) => void;
   onToggleUserSuspension?: (userId: string, isSuspended: boolean) => void;
   onAddSavingsTransaction: (studentId: string, amount: number, type: 'setor' | 'tarik', description: string) => void;
+  onSendChatMessage: (receiverId: string, content: string) => void;
 }
 
 export default function WaliAsuhDashboard({
@@ -35,6 +37,7 @@ export default function WaliAsuhDashboard({
   reports,
   broadcasts,
   savingsTransactions,
+  chatMessages,
   onCreateAnakAsuh,
   onCreateOrangTua,
   onUpdateReportStatus,
@@ -45,7 +48,8 @@ export default function WaliAsuhDashboard({
   onDeleteBroadcast,
   onUpdateChildCategory,
   onToggleUserSuspension,
-  onAddSavingsTransaction
+  onAddSavingsTransaction,
+  onSendChatMessage
 }: WaliAsuhDashboardProps) {
   const [newUsername, setNewUsername] = useState('');
   const [newName, setNewName] = useState('');
@@ -85,6 +89,17 @@ export default function WaliAsuhDashboard({
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [isMyChildrenOpen, setIsMyChildrenOpen] = useState(true);
   const [activeSubPage, setActiveSubPage] = useState<string | null>(null);
+
+  // Chat-specific states
+  const [activeChatChildId, setActiveChatChildId] = useState<string | null>(null);
+  const [waliChatInputText, setWaliChatInputText] = useState('');
+  const waliChatEndRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (activeSubPage === 'chat' && waliChatEndRef.current) {
+      waliChatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [activeSubPage, chatMessages, activeChatChildId]);
 
   const handleOpenPhoto = (url: string) => {
     setShowPhotoModal(url);
@@ -396,6 +411,10 @@ export default function WaliAsuhDashboard({
     subPageTitle = "Tabungan Anak Asuh";
     subPageSubtitle = "Kelola saldo tabungan, catat setoran dan penarikan uang saku anak asuh Anda";
     subPageIcon = <Coins className="w-5 h-5 text-emerald-600" />;
+  } else if (activeSubPage === 'chat') {
+    subPageTitle = "Chat Real-time Anak Asuh";
+    subPageSubtitle = "Ruang obrolan langsung terenkripsi penuh dengan masing-masing anak asuh Anda";
+    subPageIcon = <MessageCircle className="w-5 h-5 text-pink-600" />;
   }
 
   return (
@@ -571,6 +590,20 @@ export default function WaliAsuhDashboard({
               </div>
               <span className="text-[11px] font-extrabold leading-tight">Kelola Status Akun</span>
             </button>
+
+            {/* 10. Chat Anak Asuh */}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveSubPage('chat');
+              }}
+              className="flex flex-col items-center justify-center p-3 rounded-2xl bg-pink-50 border border-pink-100 text-pink-700 hover:bg-pink-100/70 transition-all text-center cursor-pointer gap-1.5"
+            >
+              <div className="p-2 bg-white rounded-xl shadow-xs">
+                <MessageCircle className="w-5 h-5 text-pink-500" />
+              </div>
+              <span className="text-[11px] font-extrabold leading-tight">Chat Anak Asuh</span>
+            </button>
           </div>
         </div>
       )}
@@ -632,6 +665,178 @@ export default function WaliAsuhDashboard({
           onAddSavingsTransaction={onAddSavingsTransaction}
           onBack={() => setActiveSubPage(null)}
         />
+      )}
+
+      {/* Real-time Chat with Anak Asuh Sub-Page */}
+      {activeSubPage === 'chat' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 max-w-6xl mx-auto">
+          {/* Left Panel: Children List (col-span-4) */}
+          <div className="lg:col-span-4 bg-white border border-slate-100 rounded-3xl p-5 shadow-sm text-left h-[550px] flex flex-col">
+            <h3 className="text-sm font-extrabold text-slate-800 mb-3 border-b border-slate-100 pb-3 flex items-center gap-2">
+              <MessageCircle className="w-5 h-5 text-pink-500" />
+              <span>Anak Asuh Anda ({myChildren.length})</span>
+            </h3>
+            
+            <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+              {myChildren.length === 0 ? (
+                <div className="py-12 text-center text-slate-400 text-xs italic">
+                  Belum ada anak asuh terdaftar.
+                </div>
+              ) : (
+                myChildren.map(child => {
+                  const isSelected = activeChatChildId === child.id;
+                  
+                  // Get latest message for this child
+                  const childMsgs = chatMessages.filter(
+                    msg => (msg.senderId === child.id && msg.receiverId === currentUser.id) ||
+                           (msg.senderId === currentUser.id && msg.receiverId === child.id)
+                  );
+                  const latestMsg = childMsgs[childMsgs.length - 1];
+                  let latestExcerpt = "Belum ada obrolan.";
+                  if (latestMsg) {
+                    const decrypted = latestMsg.isEncrypted
+                      ? decryptMessage(latestMsg.content, 'waliasuhku-secure-key')
+                      : latestMsg.content;
+                    latestExcerpt = decrypted.length > 25 ? decrypted.slice(0, 25) + "..." : decrypted;
+                  }
+
+                  return (
+                    <button
+                      key={child.id}
+                      type="button"
+                      onClick={() => {
+                        setActiveChatChildId(child.id);
+                        setWaliChatInputText('');
+                      }}
+                      className={`w-full p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                        isSelected
+                          ? 'border-pink-500 bg-pink-50/50 text-pink-950 ring-2 ring-pink-500/10'
+                          : 'border-slate-100 bg-slate-50/50 hover:bg-slate-50 text-slate-600'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2 w-full">
+                        <span className="text-xs font-extrabold text-slate-800">{child.name}</span>
+                        {child.category && (
+                          <span className="text-[8px] font-extrabold bg-slate-200/60 text-slate-500 px-1.5 py-0.5 rounded uppercase">
+                            {child.category}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-slate-400 mt-1 truncate w-full">
+                        {latestExcerpt}
+                      </p>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          {/* Right Panel: Chat Thread (col-span-8) */}
+          <div className="lg:col-span-8 bg-white border border-slate-100 rounded-3xl p-5 shadow-sm h-[550px] flex flex-col text-left">
+            {!activeChatChildId ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-center text-slate-400 p-6">
+                <MessageSquare className="w-12 h-12 text-slate-200 mb-2.5" />
+                <h4 className="text-xs font-extrabold text-slate-700">Pilih Anak Asuh</h4>
+                <p className="text-[11px] text-slate-400 mt-1 max-w-xs">
+                  Silakan pilih salah satu anak asuh di panel sebelah kiri untuk melihat pesan aman dan berkirim chat langsung.
+                </p>
+              </div>
+            ) : (() => {
+              const selectedChild = myChildren.find(c => c.id === activeChatChildId);
+              const conversation = chatMessages.filter(
+                msg => (msg.senderId === activeChatChildId && msg.receiverId === currentUser.id) ||
+                       (msg.senderId === currentUser.id && msg.receiverId === activeChatChildId)
+              );
+
+              return (
+                <div className="flex-1 flex flex-col h-full min-h-0">
+                  {/* Active Chat Header */}
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                    <div>
+                      <h4 className="text-xs font-extrabold text-slate-800">
+                        Chat dengan: <span className="text-pink-600 font-black">{selectedChild?.name}</span>
+                      </h4>
+                      <p className="text-[9px] text-slate-400 mt-0.5">
+                        Enkripsi otomatis aktif dengan kunci brankas digital
+                      </p>
+                    </div>
+                    <span className="text-[9px] font-extrabold bg-pink-50 text-pink-700 px-2 py-0.5 rounded-full border border-pink-100/50 flex items-center gap-1">
+                      <Lock className="w-3 h-3 text-pink-500" />
+                      Secure Encrypted
+                    </span>
+                  </div>
+
+                  {/* Conversation Bubble List */}
+                  <div className="flex-1 overflow-y-auto space-y-3 mb-4 pr-1 scrollbar-thin">
+                    {conversation.length === 0 ? (
+                      <div className="h-full flex flex-col items-center justify-center text-center text-slate-400 p-6">
+                        <MessageSquare className="w-10 h-10 text-slate-200 mb-2" />
+                        <p className="text-xs font-bold text-slate-600">Belum Ada Obrolan</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">
+                          Kirimkan pesan sapaan hangat atau tanyakan kabarnya di asrama.
+                        </p>
+                      </div>
+                    ) : (
+                      conversation.map(msg => {
+                        const isMe = msg.senderId === currentUser.id;
+                        const decrypted = msg.isEncrypted
+                          ? decryptMessage(msg.content, 'waliasuhku-secure-key')
+                          : msg.content;
+                        return (
+                          <div
+                            key={msg.id}
+                            className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
+                          >
+                            <div className={`max-w-[75%] rounded-2xl p-3 text-xs leading-relaxed border ${
+                              isMe
+                                ? 'bg-violet-600 border-violet-700 text-white rounded-br-none text-right'
+                                : 'bg-slate-50 border-slate-150 text-slate-800 rounded-bl-none text-left'
+                            }`}>
+                              <div className="flex items-center justify-between gap-4 mb-1 text-[8px] font-bold opacity-85">
+                                <span>{msg.senderName}</span>
+                                <span className="font-mono">{formatDate(msg.createdAt).split(',')[1]?.trim() || ''}</span>
+                              </div>
+                              <p className="text-[11px] font-semibold break-words whitespace-pre-wrap">{decrypted}</p>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                    <div ref={waliChatEndRef} />
+                  </div>
+
+                  {/* Send Input Form */}
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      if (!waliChatInputText.trim()) return;
+                      onSendChatMessage(activeChatChildId, waliChatInputText.trim());
+                      setWaliChatInputText('');
+                    }}
+                    className="flex gap-2 border-t border-slate-100 pt-3"
+                  >
+                    <input
+                      type="text"
+                      value={waliChatInputText}
+                      onChange={(e) => setWaliChatInputText(e.target.value)}
+                      placeholder={`Kirim pesan ke ${selectedChild?.name || 'anak asuh'}...`}
+                      className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-violet-500 focus:bg-white transition-all text-slate-800 font-medium"
+                    />
+                    <button
+                      type="submit"
+                      disabled={!waliChatInputText.trim()}
+                      className="px-4 py-2 bg-violet-600 hover:bg-violet-700 disabled:bg-slate-100 disabled:text-slate-400 text-white font-extrabold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-md shadow-violet-600/10 active:scale-95"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      <span>Kirim</span>
+                    </button>
+                  </form>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
       )}
 
       {/* 4. Account Management Sub-Page */}

@@ -79,3 +79,15 @@ export interface Broadcast {
   createdAt: string;
 }
 
+export interface ChatMessage {
+  id: string;
+  senderId: string;
+  senderName: string;
+  senderRole: UserRole;
+  receiverId: string;
+  receiverName: string;
+  content: string; // stored as ciphertext or text
+  isEncrypted: boolean;
+  createdAt: string;
+}
+
