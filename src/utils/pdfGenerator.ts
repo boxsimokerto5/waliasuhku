@@ -2,9 +2,50 @@ import { jsPDF } from 'jspdf';
 import { User } from '../types';
 
 /**
+ * Preload an image URL and convert it to a canvas-compatible base64 format
+ */
+const loadImage = (url: string): Promise<string> => {
+  return new Promise((resolve) => {
+    if (!url) {
+      resolve('');
+      return;
+    }
+    // If already a base64 data URL, return it directly
+    if (url.startsWith('data:image/')) {
+      resolve(url);
+      return;
+    }
+    
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth || img.width || 120;
+        canvas.height = img.naturalHeight || img.height || 120;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          resolve(canvas.toDataURL('image/jpeg', 0.8));
+          return;
+        }
+      } catch (err) {
+        console.warn('Canvas conversion failed for URL:', url, err);
+      }
+      resolve(url); // fallback to original URL
+    };
+    img.onerror = () => {
+      console.warn('Image preloading failed for URL:', url);
+      resolve(''); // fallback to empty, which triggers the letter placeholder
+    };
+    img.src = url;
+  });
+};
+
+/**
  * Draw a beautiful card on the PDF document at (x, y) coordinates
  */
-export const drawCard = (doc: jsPDF, x: number, y: number, user: User, users: User[]) => {
+export const drawCard = (doc: jsPDF, x: number, y: number, user: User, users: User[], imgData?: string) => {
   const w = 90;
   const h = 60;
 
@@ -35,55 +76,107 @@ export const drawCard = (doc: jsPDF, x: number, y: number, user: User, users: Us
   let textY = y + 18;
   doc.setFontSize(7);
   
-  // Name
+  // Left Column: Avatar / Photo Frame
+  const avatarX = x + 5.5;
+  const avatarY = y + 15.5;
+  const avatarSize = 13.5;
+  
+  let drawPlaceholder = true;
+
+  if (imgData) {
+    try {
+      // Draw frame background and subtle border first for picture
+      doc.setFillColor(248, 250, 252); // Slate 50
+      doc.setDrawColor(226, 232, 240); // Slate 200
+      doc.setLineWidth(0.35);
+      doc.roundedRect(avatarX, avatarY, avatarSize, avatarSize, 1.5, 1.5, 'FD');
+
+      // Determine the format if possible
+      let format = 'JPEG';
+      if (imgData.includes('image/png')) {
+        format = 'PNG';
+      } else if (imgData.includes('image/webp')) {
+        format = 'WEBP';
+      }
+      
+      // Draw the image slightly insetted to look beautifully framed
+      doc.addImage(imgData, format, avatarX + 0.4, avatarY + 0.4, avatarSize - 0.8, avatarSize - 0.8);
+      drawPlaceholder = false;
+    } catch (e) {
+      console.warn('jsPDF addImage failed inside drawCard:', e);
+      drawPlaceholder = true;
+    }
+  }
+
+  if (drawPlaceholder) {
+    // Draw a beautiful background circle/rounded rect placeholder
+    doc.setFillColor(124, 58, 237); // Violet 600
+    doc.roundedRect(avatarX, avatarY, avatarSize, avatarSize, 1.5, 1.5, 'F');
+    
+    // Draw the first letter of the name
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(8.5);
+    const initialLetter = user.name ? user.name.charAt(0).toUpperCase() : '?';
+    // Center the text inside the avatar box (avatarSize / 2 is 6.75)
+    doc.text(initialLetter, avatarX + avatarSize / 2, avatarY + avatarSize / 2 + 2.8, { align: 'center' });
+  }
+
+  // Right Column: text starts at x + 23
+  const infoX = x + 23;
+  
+  // Name label
   doc.setTextColor(100, 116, 139); // Slate 500
   doc.setFont('Helvetica', 'normal');
-  doc.text('Nama Lengkap', x + 5, textY);
+  doc.setFontSize(6.5);
+  doc.text('Nama Lengkap', infoX, textY);
+  
+  // Name value
   doc.setTextColor(30, 41, 59); // Slate 800
   doc.setFont('Helvetica', 'bold');
-  doc.setFontSize(8.5);
-  
-  // Prevent name from clipping if it's too long
-  const displayName = user.name.length > 20 ? user.name.substring(0, 18) + '...' : user.name;
-  doc.text(displayName, x + 5, textY + 3.5);
+  doc.setFontSize(8);
+  const displayName = user.name.length > 22 ? user.name.substring(0, 20) + '...' : user.name;
+  doc.text(displayName, infoX, textY + 3.5);
 
   // Role/Peran (right aligned)
-  doc.setFontSize(7);
+  doc.setFontSize(6.5);
   doc.setTextColor(100, 116, 139);
   doc.setFont('Helvetica', 'normal');
-  doc.text('Peran / Hak Akses', x + w - 5, textY, { align: 'right' });
+  doc.text('Peran / Hak Akses', x + w - 5.5, textY, { align: 'right' });
   
   doc.setFont('Helvetica', 'bold');
-  doc.setFontSize(8);
+  doc.setFontSize(7.5);
   const roleText = user.role === 'anak_asuh' ? 'Siswa (Anak Asuh)' : 'Orang Tua Asuh';
   doc.setTextColor(79, 70, 229); // Indigo 600
-  doc.text(roleText, x + w - 5, textY + 3.5, { align: 'right' });
+  doc.text(roleText, x + w - 5.5, textY + 3.5, { align: 'right' });
 
-  // Divider
+  // Divider line
   doc.setDrawColor(241, 245, 249); // Slate 100
   doc.setLineWidth(0.25);
-  doc.line(x + 5, textY + 6, x + w - 5, textY + 6);
+  doc.line(x + 5.5, y + 32, x + w - 5.5, y + 32);
 
-  // ID / Username
-  textY = textY + 11;
-  doc.setFontSize(7);
+  // Bottom info fields: Username & Password
+  const bottomY = y + 37;
+  
+  // Username / ID
+  doc.setFontSize(6.5);
   doc.setTextColor(100, 116, 139);
   doc.setFont('Helvetica', 'normal');
-  doc.text('Username / ID', x + 5, textY);
+  doc.text('Username / ID', x + 5.5, bottomY);
   doc.setTextColor(30, 41, 59);
   doc.setFont('Helvetica', 'bold');
-  doc.setFontSize(8.5);
-  doc.text(user.username, x + 5, textY + 3.5);
+  doc.setFontSize(8);
+  doc.text(user.username, x + 5.5, bottomY + 3.5);
 
   // Password
-  doc.setFontSize(7);
+  doc.setFontSize(6.5);
   doc.setTextColor(100, 116, 139);
   doc.setFont('Helvetica', 'normal');
-  doc.text('Kata Sandi Default', x + 40, textY);
+  doc.text('Kata Sandi Default', x + 35, bottomY);
   doc.setTextColor(30, 41, 59);
   doc.setFont('Helvetica', 'bold');
-  doc.setFontSize(8.5);
-  doc.text(user.password || user.username, x + 40, textY + 3.5);
+  doc.setFontSize(8);
+  doc.text(user.password || user.username, x + 35, bottomY + 3.5);
 
   // Connection info (Category or Linked relative)
   let connectionLabel = 'Kelompok';
@@ -94,21 +187,21 @@ export const drawCard = (doc: jsPDF, x: number, y: number, user: User, users: Us
     connectionVal = child ? child.name : 'Tidak ditemukan';
   }
   
-  doc.setFontSize(7);
+  doc.setFontSize(6.5);
   doc.setTextColor(100, 116, 139);
   doc.setFont('Helvetica', 'normal');
-  doc.text(connectionLabel, x + w - 5, textY, { align: 'right' });
+  doc.text(connectionLabel, x + w - 5.5, bottomY, { align: 'right' });
   doc.setTextColor(30, 41, 59);
   doc.setFont('Helvetica', 'bold');
-  doc.setFontSize(8);
+  doc.setFontSize(7.5);
   const displayConn = connectionVal.length > 15 ? connectionVal.substring(0, 13) + '...' : connectionVal;
-  doc.text(displayConn, x + w - 5, textY + 3.5, { align: 'right' });
+  doc.text(displayConn, x + w - 5.5, bottomY + 3.5, { align: 'right' });
 
   // 4. Important instructions
   doc.setFontSize(5.5);
   doc.setTextColor(148, 163, 184); // Slate 400
   doc.setFont('Helvetica', 'italic');
-  doc.text('*Harap segera ubah kata sandi setelah masuk pertama kali.', x + 5, y + 43);
+  doc.text('*Harap segera ubah kata sandi setelah masuk pertama kali.', x + 5.5, y + 46);
 
   // 5. Footer Band
   doc.setFillColor(30, 41, 59); // Slate 800
@@ -126,7 +219,7 @@ export const drawCard = (doc: jsPDF, x: number, y: number, user: User, users: Us
 /**
  * Generate a PDF for a single user's card
  */
-export const generateSingleCardPDF = (user: User, users: User[]) => {
+export const generateSingleCardPDF = async (user: User, users: User[]) => {
   // Page size: 90mm x 60mm
   const doc = new jsPDF({
     orientation: 'landscape',
@@ -134,7 +227,10 @@ export const generateSingleCardPDF = (user: User, users: User[]) => {
     format: [90, 60]
   });
 
-  drawCard(doc, 0, 0, user, users);
+  // Preload image
+  const imgData = user.fotoUrl ? await loadImage(user.fotoUrl) : '';
+
+  drawCard(doc, 0, 0, user, users, imgData);
   
   const safeName = user.name.toLowerCase().replace(/[^a-z0-9]/g, '_');
   doc.save(`kartu_akses_${user.role}_${safeName}.pdf`);
@@ -143,7 +239,7 @@ export const generateSingleCardPDF = (user: User, users: User[]) => {
 /**
  * Generate a PDF document containing a grid of cards for multiple users (A4 Portrait)
  */
-export const generateAllCardsPDF = (usersToPrint: User[], users: User[], tabName: string) => {
+export const generateAllCardsPDF = async (usersToPrint: User[], users: User[], tabName: string) => {
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -159,6 +255,16 @@ export const generateAllCardsPDF = (usersToPrint: User[], users: User[], tabName
   const gapY = 6;
 
   let currentCount = 0;
+
+  // Preload all images in parallel for blazing-fast performance!
+  const preloadedImages = await Promise.all(
+    usersToPrint.map(async (u) => {
+      const imgUrl = u.fotoUrl ? await loadImage(u.fotoUrl) : '';
+      return { id: u.id, imgData: imgUrl };
+    })
+  );
+
+  const imageMap = new Map(preloadedImages.map((item) => [item.id, item.imgData]));
 
   usersToPrint.forEach((user, index) => {
     if (index > 0 && index % cardsPerPage === 0) {
@@ -190,7 +296,8 @@ export const generateAllCardsPDF = (usersToPrint: User[], users: User[], tabName
     const x = startX + col * (cardW + gapX);
     const y = startY + row * (cardH + gapY);
 
-    drawCard(doc, x, y, user, users);
+    const imgData = imageMap.get(user.id) || '';
+    drawCard(doc, x, y, user, users, imgData);
 
     // Draw print helper cutting dotted line around each card
     doc.setDrawColor(203, 213, 225);
