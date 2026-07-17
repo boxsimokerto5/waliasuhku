@@ -1,17 +1,21 @@
 import React, { useState } from 'react';
 import { Mail, Phone, MapPin, CreditCard, Camera, Sparkles, Award, Edit2, Check, ExternalLink, Upload, FileText, Eye, X } from 'lucide-react';
 import { User } from '../types';
+import { generateStudentPortfolioPDF } from '../utils/pdfGenerator';
 
 interface AnakAsuhBiodataTabProps {
   currentUser: User;
   onUpdateBiodata?: (childId: string, updatedFields: Partial<User>) => Promise<void> | void;
+  users?: User[];
 }
 
 export default function AnakAsuhBiodataTab({
   currentUser,
   onUpdateBiodata,
+  users = [],
 }: AnakAsuhBiodataTabProps) {
   const [subTab, setSubTab] = useState<'biodata' | 'portofolio'>('biodata');
+  const [isPrinting, setIsPrinting] = useState(false);
   
   // Edit state
   const [isEditing, setIsEditing] = useState(false);
@@ -156,25 +160,47 @@ export default function AnakAsuhBiodataTab({
       </div>
 
       {/* Navigation Sub-Tabs */}
-      <div className="flex border-b border-slate-100 bg-white rounded-t-3xl px-6 pt-2 shadow-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 bg-white rounded-t-3xl pr-4 pl-2 sm:pl-0 pt-2 shadow-xs">
+        <div className="flex flex-wrap">
+          <button
+            type="button"
+            onClick={() => setSubTab('biodata')}
+            className={`py-3.5 px-4 font-black text-xs uppercase tracking-wider transition-all border-b-2 -mb-[2px] cursor-pointer ${
+              subTab === 'biodata' ? 'border-violet-600 text-violet-700' : 'border-transparent text-slate-400 hover:text-slate-600'
+            }`}
+          >
+            Biodata Pribadiku
+          </button>
+          <button
+            type="button"
+            onClick={() => setSubTab('portofolio')}
+            className={`py-3.5 px-4 font-black text-xs uppercase tracking-wider transition-all border-b-2 -mb-[2px] cursor-pointer flex items-center gap-1.5 ${
+              subTab === 'portofolio' ? 'border-violet-600 text-violet-700' : 'border-transparent text-slate-400 hover:text-slate-600'
+            }`}
+          >
+            <Award className="w-4 h-4 text-amber-500 animate-pulse" />
+            <span>Portofolio & Prestasiku</span>
+          </button>
+        </div>
+
         <button
           type="button"
-          onClick={() => setSubTab('biodata')}
-          className={`py-3.5 px-4 font-black text-xs uppercase tracking-wider transition-all border-b-2 -mb-[2px] cursor-pointer ${
-            subTab === 'biodata' ? 'border-violet-600 text-violet-700' : 'border-transparent text-slate-400 hover:text-slate-600'
-          }`}
+          onClick={async () => {
+            setIsPrinting(true);
+            try {
+              await generateStudentPortfolioPDF(currentUser, users);
+            } catch (err) {
+              console.error(err);
+              alert("Gagal mengunduh portofolio");
+            } finally {
+              setIsPrinting(false);
+            }
+          }}
+          disabled={isPrinting}
+          className="my-2 sm:my-0 px-3.5 py-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 disabled:from-slate-200 disabled:to-slate-300 disabled:text-slate-400 text-white font-extrabold text-[10px] uppercase tracking-wider rounded-xl shadow-md transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-1.5 shrink-0"
         >
-          Biodata Pribadiku
-        </button>
-        <button
-          type="button"
-          onClick={() => setSubTab('portofolio')}
-          className={`py-3.5 px-4 font-black text-xs uppercase tracking-wider transition-all border-b-2 -mb-[2px] cursor-pointer flex items-center gap-1.5 ${
-            subTab === 'portofolio' ? 'border-violet-600 text-violet-700' : 'border-transparent text-slate-400 hover:text-slate-600'
-          }`}
-        >
-          <Award className="w-4 h-4 text-amber-500 animate-pulse" />
-          <span>Portofolio & Prestasiku</span>
+          <FileText className="w-3.5 h-3.5 text-white" />
+          <span>{isPrinting ? 'Mencetak...' : 'Unduh Portofolioku (A4)'}</span>
         </button>
       </div>
 

@@ -3,6 +3,7 @@ import { User, Report, Reply, SavingsTransaction } from '../types';
 import { Heart, Lock, Calendar, MessageSquare, Send, CheckCircle2, User as UserIcon, ShieldCheck, Mail, RefreshCw, Coins, ArrowUpRight, ArrowDownLeft, Eye, FileText, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { decryptMessage, formatDate } from '../utils/crypto';
+import { generateStudentPortfolioPDF } from '../utils/pdfGenerator';
 
 interface OrangTuaDashboardProps {
   currentUser: User;
@@ -25,6 +26,7 @@ export default function OrangTuaDashboard({
   const [showSavingsHistory, setShowSavingsHistory] = useState(false);
   const [showChildDetail, setShowChildDetail] = useState(false);
   const [zoomImage, setZoomImage] = useState<string | null>(null);
+  const [isPrinting, setIsPrinting] = useState(false);
 
   // Find the child linked to this Parent account
   const myChild = users.find(u => u.id === currentUser.anakAsuhId && u.role === 'anak_asuh');
@@ -170,18 +172,40 @@ export default function OrangTuaDashboard({
                   {showChildDetail && (
                     <div className="mt-3.5 pt-3.5 border-t border-slate-100 space-y-4 max-h-[350px] overflow-y-auto pr-1">
                       {/* Avatar & Basic details */}
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-xl bg-violet-50 overflow-hidden shrink-0 border border-violet-100 flex items-center justify-center">
-                          {myChild.fotoUrl ? (
-                            <img src={myChild.fotoUrl} alt={myChild.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                          ) : (
-                            <span className="text-xl font-black text-violet-700 uppercase">{myChild.name.charAt(0)}</span>
-                          )}
+                      <div className="flex items-center justify-between gap-3 bg-violet-50/20 p-3 rounded-2xl border border-violet-100/30">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-xl bg-violet-50 overflow-hidden shrink-0 border border-violet-100 flex items-center justify-center">
+                            {myChild.fotoUrl ? (
+                              <img src={myChild.fotoUrl} alt={myChild.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                            ) : (
+                              <span className="text-xl font-black text-violet-700 uppercase">{myChild.name.charAt(0)}</span>
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-xs font-black text-slate-800">{myChild.name}</p>
+                            <span className="text-[9px] font-mono text-slate-400">Username: @{myChild.username}</span>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-xs font-black text-slate-800">{myChild.name}</p>
-                          <span className="text-[9px] font-mono text-slate-400">Username: @{myChild.username}</span>
-                        </div>
+
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            setIsPrinting(true);
+                            try {
+                              await generateStudentPortfolioPDF(myChild, users);
+                            } catch (err) {
+                              console.error(err);
+                              alert("Gagal mengunduh portofolio");
+                            } finally {
+                              setIsPrinting(false);
+                            }
+                          }}
+                          disabled={isPrinting}
+                          className="px-2.5 py-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 disabled:from-slate-200 disabled:to-slate-300 disabled:text-slate-400 text-white font-extrabold text-[8px] uppercase tracking-wider rounded-lg shadow-sm transition-all active:scale-95 cursor-pointer flex items-center gap-1 shrink-0"
+                        >
+                          <FileText className="w-3 h-3 text-white" />
+                          <span>{isPrinting ? 'Cetak...' : 'Unduh A4'}</span>
+                        </button>
                       </div>
 
                       {/* Detail fields */}

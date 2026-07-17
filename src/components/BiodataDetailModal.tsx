@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Mail, Phone, MapPin, CreditCard, Camera, Sparkles, Award, Trash2, Plus, Edit2, Check, ExternalLink, Upload, FileText, Eye } from 'lucide-react';
 import { User } from '../types';
+import { generateStudentPortfolioPDF } from '../utils/pdfGenerator';
 
 interface BiodataDetailModalProps {
   child: User;
@@ -9,6 +10,7 @@ interface BiodataDetailModalProps {
   onSaveBiodata: (childId: string, updatedFields: Partial<User>) => Promise<void> | void;
   onAddPortfolio: (childId: string, title: string, description: string, date: string, category: any) => Promise<void> | void;
   onDeletePortfolio: (childId: string, portfolioId: string) => Promise<void> | void;
+  users?: User[];
 }
 
 export default function BiodataDetailModal({
@@ -17,6 +19,7 @@ export default function BiodataDetailModal({
   onSaveBiodata,
   onAddPortfolio,
   onDeletePortfolio,
+  users = [],
 }: BiodataDetailModalProps) {
   const [activeTab, setActiveTab] = useState<'biodata' | 'portofolio'>('biodata');
   
@@ -45,6 +48,7 @@ export default function BiodataDetailModal({
   const [portDate, setPortDate] = useState(new Date().toISOString().split('T')[0]);
   const [portCategory, setPortCategory] = useState<'Akademik' | 'Prestasi' | 'Sikap' | 'Karya' | 'Olahraga' | 'Lainnya'>('Prestasi');
   const [isAddingPort, setIsAddingPort] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -204,25 +208,47 @@ export default function BiodataDetailModal({
         </div>
 
         {/* Modal Navigation Tabs */}
-        <div className="flex border-b border-slate-100 px-6 bg-slate-50/50">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 bg-slate-50/50 pr-4 pl-2 sm:pl-0">
+          <div className="flex flex-wrap">
+            <button
+              type="button"
+              onClick={() => setActiveTab('biodata')}
+              className={`py-3.5 px-4 font-black text-xs uppercase tracking-wider transition-all border-b-2 -mb-[2px] cursor-pointer ${
+                activeTab === 'biodata' ? 'border-violet-600 text-violet-700' : 'border-transparent text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              Biodata Lengkap
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('portofolio')}
+              className={`py-3.5 px-4 font-black text-xs uppercase tracking-wider transition-all border-b-2 -mb-[2px] cursor-pointer flex items-center gap-1.5 ${
+                activeTab === 'portofolio' ? 'border-violet-600 text-violet-700' : 'border-transparent text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
+              <span>Portofolio & Prestasi</span>
+            </button>
+          </div>
+
           <button
             type="button"
-            onClick={() => setActiveTab('biodata')}
-            className={`py-3.5 px-4 font-black text-xs uppercase tracking-wider transition-all border-b-2 -mb-[2px] cursor-pointer ${
-              activeTab === 'biodata' ? 'border-violet-600 text-violet-700' : 'border-transparent text-slate-400 hover:text-slate-600'
-            }`}
+            onClick={async () => {
+              setIsPrinting(true);
+              try {
+                await generateStudentPortfolioPDF(child, users);
+              } catch (err) {
+                console.error(err);
+                alert("Gagal mengunduh portofolio");
+              } finally {
+                setIsPrinting(false);
+              }
+            }}
+            disabled={isPrinting}
+            className="my-2 sm:my-0 px-3.5 py-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 disabled:from-slate-200 disabled:to-slate-300 disabled:text-slate-400 disabled:cursor-not-allowed text-white font-extrabold text-[10px] uppercase tracking-wider rounded-xl shadow-md transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-1.5 shrink-0"
           >
-            Biodata Lengkap
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('portofolio')}
-            className={`py-3.5 px-4 font-black text-xs uppercase tracking-wider transition-all border-b-2 -mb-[2px] cursor-pointer flex items-center gap-1.5 ${
-              activeTab === 'portofolio' ? 'border-violet-600 text-violet-700' : 'border-transparent text-slate-400 hover:text-slate-600'
-            }`}
-          >
-            <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
-            <span>Portofolio & Prestasi</span>
+            <FileText className="w-3.5 h-3.5 text-white" />
+            <span>{isPrinting ? 'Mencetak...' : 'Unduh Portofolio (A4)'}</span>
           </button>
         </div>
 

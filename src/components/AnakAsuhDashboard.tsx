@@ -1170,6 +1170,7 @@ export default function AnakAsuhDashboard({
           <AnakAsuhBiodataTab
             currentUser={currentUser}
             onUpdateBiodata={onUpdateBiodata}
+            users={users}
           />
         )}
 

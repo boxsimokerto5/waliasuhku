@@ -2172,6 +2172,7 @@ export default function WaliAsuhDashboard({
             onSaveBiodata={onUpdateChildBiodata || (async () => {})}
             onAddPortfolio={onAddPortfolio || (async () => {})}
             onDeletePortfolio={onDeletePortfolio || (async () => {})}
+            users={users}
           />
         );
       })()}
