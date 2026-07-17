@@ -16,6 +16,21 @@ export interface User {
   category?: string; // For grouping students/anak_asuh into categories (e.g. Kelas 10, Asrama A)
   isSuspended?: boolean; // Track suspended status for account control
   savingsBalance?: number; // Current savings balance (primarily for anak_asuh)
+  
+  // Biodata & Portofolio Fields
+  fotoUrl?: string; // Foto profil / siswa
+  alamat?: string; // Alamat asal
+  nik?: string; // Nomor Induk Kependudukan
+  kk?: string; // Nomor Kartu Keluarga
+  parentPhone?: string; // Nomor HP Orang Tua
+  email?: string; // Alamat Email
+  portfolio?: {
+    id: string;
+    title: string;
+    description: string;
+    date: string;
+    category?: 'Akademik' | 'Prestasi' | 'Sikap' | 'Karya' | 'Olahraga' | 'Lainnya';
+  }[];
 }
 
 export interface SavingsTransaction {

@@ -9,6 +9,7 @@ import { ParentRegistration } from './ParentRegistration';
 import { BroadcastModule } from './BroadcastModule';
 import { AnakAsuhList } from './AnakAsuhList';
 import { SavingsManagement } from './SavingsManagement';
+import BiodataDetailModal from './BiodataDetailModal';
 
 interface WaliAsuhDashboardProps {
   currentUser: User;
@@ -17,7 +18,7 @@ interface WaliAsuhDashboardProps {
   broadcasts: Broadcast[];
   savingsTransactions: SavingsTransaction[];
   chatMessages: ChatMessage[];
-  onCreateAnakAsuh: (username: string, name: string, waliAsuhId: string) => void;
+  onCreateAnakAsuh: (username: string, name: string, waliAsuhId: string, additionalData?: any) => void;
   onCreateOrangTua: (username: string, name: string, waliAsuhId: string, anakAsuhId: string) => void;
   onUpdateReportStatus: (reportId: string, status: 'pending' | 'processed' | 'resolved') => void;
   onUpdateParentApproval: (reportId: string, approvalStatus: 'approved' | 'rejected') => void;
@@ -29,6 +30,9 @@ interface WaliAsuhDashboardProps {
   onToggleUserSuspension?: (userId: string, isSuspended: boolean) => void;
   onAddSavingsTransaction: (studentId: string, amount: number, type: 'setor' | 'tarik', description: string) => void;
   onSendChatMessage: (receiverId: string, content: string) => void;
+  onUpdateChildBiodata?: (childId: string, updatedFields: Partial<User>) => Promise<void> | void;
+  onAddPortfolio?: (childId: string, title: string, description: string, date: string, category: any) => Promise<void> | void;
+  onDeletePortfolio?: (childId: string, portfolioId: string) => Promise<void> | void;
 }
 
 export default function WaliAsuhDashboard({
@@ -49,12 +53,18 @@ export default function WaliAsuhDashboard({
   onUpdateChildCategory,
   onToggleUserSuspension,
   onAddSavingsTransaction,
-  onSendChatMessage
+  onSendChatMessage,
+  onUpdateChildBiodata,
+  onAddPortfolio,
+  onDeletePortfolio
 }: WaliAsuhDashboardProps) {
   const [newUsername, setNewUsername] = useState('');
   const [newName, setNewName] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // Selected child for biodata detail modal
+  const [selectedChildForDetail, setSelectedChildForDetail] = useState<User | null>(null);
 
   // State variables for registering Parent (Orang Tua) accounts
   const [isParentRegisterOpen, setIsParentRegisterOpen] = useState(false);
@@ -250,7 +260,7 @@ export default function WaliAsuhDashboard({
     return true;
   });
 
-  const handleCreateChild = (e: React.FormEvent) => {
+  const handleCreateChild = (e: React.FormEvent, additionalData?: any) => {
     e.preventDefault();
     setError('');
     setSuccess('');
@@ -270,7 +280,7 @@ export default function WaliAsuhDashboard({
       return;
     }
 
-    onCreateAnakAsuh(newUsername.trim(), newName.trim(), currentUser.id);
+    onCreateAnakAsuh(newUsername.trim(), newName.trim(), currentUser.id, additionalData);
     setSuccess(`Akun Anak Asuh "${newName}" berhasil didaftarkan! Password default adalah "${newUsername.trim()}"`);
     setNewUsername('');
     setNewName('');
@@ -1074,6 +1084,7 @@ export default function WaliAsuhDashboard({
                 setCustomCategoryInput={setCustomCategoryInput}
                 onUpdateChildCategory={onUpdateChildCategory}
                 onToggleUserSuspension={onToggleUserSuspension}
+                onSelectChildForDetail={setSelectedChildForDetail}
               />
               <div className="hidden">
                 {/* List of My Children */}
@@ -2150,6 +2161,20 @@ export default function WaliAsuhDashboard({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* 4. Biodata & Portofolio Detail Modal */}
+      {selectedChildForDetail && (() => {
+        const currentSelectedChild = users.find(u => u.id === selectedChildForDetail.id) || selectedChildForDetail;
+        return (
+          <BiodataDetailModal
+            child={currentSelectedChild}
+            onClose={() => setSelectedChildForDetail(null)}
+            onSaveBiodata={onUpdateChildBiodata || (async () => {})}
+            onAddPortfolio={onAddPortfolio || (async () => {})}
+            onDeletePortfolio={onDeletePortfolio || (async () => {})}
+          />
+        );
+      })()}
 
     </div>
   );

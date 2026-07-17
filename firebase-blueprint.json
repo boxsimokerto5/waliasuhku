@@ -37,6 +37,34 @@
         "savingsBalance": {
           "type": "integer",
           "description": "Saldo tabungan siswa (anak asuh)"
+        },
+        "fotoUrl": {
+          "type": "string",
+          "description": "URL Foto profil / foto anak asuh"
+        },
+        "alamat": {
+          "type": "string",
+          "description": "Alamat tempat tinggal asal"
+        },
+        "nik": {
+          "type": "string",
+          "description": "Nomor Induk Kependudukan (NIK)"
+        },
+        "kk": {
+          "type": "string",
+          "description": "Nomor Kartu Keluarga (KK)"
+        },
+        "parentPhone": {
+          "type": "string",
+          "description": "Nomor Handphone Orang Tua / Wali"
+        },
+        "email": {
+          "type": "string",
+          "description": "Alamat Email aktif"
+        },
+        "portfolio": {
+          "type": "array",
+          "description": "Daftar portofolio prestasi dan karya anak asuh"
         }
       },
       "required": ["id", "username", "name", "role", "createdAt"]

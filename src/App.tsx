@@ -186,7 +186,19 @@ export default function App() {
   };
 
   // Action: Create Anak Asuh (Wali Asuh action)
-  const handleCreateAnakAsuh = async (username: string, name: string, waliAsuhId: string) => {
+  const handleCreateAnakAsuh = async (
+    username: string, 
+    name: string, 
+    waliAsuhId: string, 
+    additionalData?: {
+      fotoUrl?: string;
+      alamat?: string;
+      nik?: string;
+      kk?: string;
+      parentPhone?: string;
+      email?: string;
+    }
+  ) => {
     const newAnak: User = {
       id: generateId('anak'),
       username,
@@ -194,7 +206,9 @@ export default function App() {
       role: 'anak_asuh',
       password: username, // default password is username
       waliAsuhId,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      ...additionalData,
+      portfolio: []
     };
 
     try {
@@ -236,6 +250,55 @@ export default function App() {
       );
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, `users/${userId}`);
+    }
+  };
+
+  // Action: Update Child Biodata (Wali Asuh action)
+  const handleUpdateChildBiodata = async (childId: string, updatedFields: Partial<User>) => {
+    try {
+      await updateDoc(doc(db, 'users', childId), updatedFields);
+      showToast('Biodata Diperbarui', 'Data pribadi anak asuh berhasil diperbarui.');
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, `users/${childId}`);
+    }
+  };
+
+  // Action: Add Portfolio Item (Wali Asuh action)
+  const handleAddPortfolio = async (
+    childId: string, 
+    title: string, 
+    description: string, 
+    date: string, 
+    category: 'Akademik' | 'Prestasi' | 'Sikap' | 'Karya' | 'Olahraga' | 'Lainnya'
+  ) => {
+    try {
+      const child = users.find(u => u.id === childId);
+      const currentPortfolio = child?.portfolio || [];
+      const newItem = {
+        id: generateId('port'),
+        title,
+        description,
+        date,
+        category
+      };
+      const updatedPortfolio = [...currentPortfolio, newItem];
+      await updateDoc(doc(db, 'users', childId), { portfolio: updatedPortfolio });
+      showToast('Portofolio Ditambahkan', 'Catatan portofolio baru siswa berhasil disimpan.');
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, `users/${childId}`);
+    }
+  };
+
+  // Action: Delete Portfolio Item (Wali Asuh action)
+  const handleDeletePortfolio = async (childId: string, portfolioId: string) => {
+    try {
+      const child = users.find(u => u.id === childId);
+      const currentPortfolio = child?.portfolio || [];
+      const updatedPortfolio = currentPortfolio.filter(item => item.id !== portfolioId);
+      await updateDoc(doc(db, 'users', childId), { portfolio: updatedPortfolio });
+      showToast('Portofolio Dihapus', 'Catatan portofolio siswa berhasil dihapus.');
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, `users/${childId}`);
     }
   };
 
@@ -712,6 +775,9 @@ export default function App() {
             onToggleUserSuspension={handleToggleUserSuspension}
             onAddSavingsTransaction={handleCreateSavingsTransaction}
             onSendChatMessage={handleSendChatMessage}
+            onUpdateChildBiodata={handleUpdateChildBiodata}
+            onAddPortfolio={handleAddPortfolio}
+            onDeletePortfolio={handleDeletePortfolio}
           />
         );
       case 'anak_asuh':
@@ -726,6 +792,7 @@ export default function App() {
             onSubmitReport={handleSubmitReport}
             onAddReply={handleAddReply}
             onSendChatMessage={handleSendChatMessage}
+            onUpdateBiodata={handleUpdateChildBiodata}
           />
         );
       case 'orang_tua':

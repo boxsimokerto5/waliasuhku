@@ -3,6 +3,7 @@ import { User, Report, ReportType, Broadcast, SavingsTransaction, ChatMessage } 
 import { Send, Upload, Lock, ShieldCheck, Heart, Clipboard, HelpCircle, FileText, AlertCircle, Trash2, CheckCircle, Clock, ShieldAlert, ImageIcon, MessageCircle, ZoomIn, ZoomOut, RotateCw, X, Download, Maximize2, Package, Megaphone, ExternalLink, Calendar, Coins, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { decryptMessage, encryptMessage, formatDate, getStatusBadge, getTypeBadge } from '../utils/crypto';
+import AnakAsuhBiodataTab from './AnakAsuhBiodataTab';
 
 interface AnakAsuhDashboardProps {
   currentUser: User;
@@ -19,6 +20,7 @@ interface AnakAsuhDashboardProps {
   }) => void;
   onAddReply: (reportId: string, replyContent: string) => void;
   onSendChatMessage: (receiverId: string, content: string) => void;
+  onUpdateBiodata?: (childId: string, updatedFields: Partial<User>) => Promise<void> | void;
 }
 
 
@@ -44,14 +46,15 @@ export default function AnakAsuhDashboard({
   chatMessages,
   onSubmitReport,
   onAddReply,
-  onSendChatMessage
+  onSendChatMessage,
+  onUpdateBiodata
 }: AnakAsuhDashboardProps) {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [reportType, setReportType] = useState<ReportType>('pengaduan');
   const [photoUrl, setPhotoUrl] = useState<string>('');
   const [customPhotoName, setCustomPhotoName] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'form' | 'history' | 'tabungan' | 'chat'>('form');
+  const [activeTab, setActiveTab] = useState<'form' | 'history' | 'tabungan' | 'chat' | 'biodata'>('form');
   const [chatInputText, setChatInputText] = useState('');
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -315,6 +318,16 @@ export default function AnakAsuhDashboard({
           }`}
         >
           💬 Chat Wali Asuh
+        </button>
+        <button
+          onClick={() => setActiveTab('biodata')}
+          className={`px-5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+            activeTab === 'biodata' 
+              ? 'bg-white text-indigo-600 shadow-sm' 
+              : 'text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          📋 Biodata & Portofolio
         </button>
       </div>
 
@@ -1038,7 +1051,7 @@ export default function AnakAsuhDashboard({
               </div>
             </div>
           </div>
-        ) : (
+        ) : activeTab === 'chat' ? (
           /* CHAT VIEW */
           <div className="lg:col-span-12 space-y-4 text-left">
             <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm flex flex-col h-[550px] text-left">
@@ -1152,6 +1165,12 @@ export default function AnakAsuhDashboard({
               )}
             </div>
           </div>
+        ) : (
+          /* BIODATA & PORTOFOLIO VIEW */
+          <AnakAsuhBiodataTab
+            currentUser={currentUser}
+            onUpdateBiodata={onUpdateBiodata}
+          />
         )}
 
       </div>

@@ -23,6 +23,7 @@ export default function OrangTuaDashboard({
   const [replyText, setReplyText] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [showSavingsHistory, setShowSavingsHistory] = useState(false);
+  const [showChildDetail, setShowChildDetail] = useState(false);
 
   // Find the child linked to this Parent account
   const myChild = users.find(u => u.id === currentUser.anakAsuhId && u.role === 'anak_asuh');
@@ -146,6 +147,87 @@ export default function OrangTuaDashboard({
                             );
                           })
                       )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-2 border-t border-slate-150">
+                  <button
+                    type="button"
+                    onClick={() => setShowChildDetail(!showChildDetail)}
+                    className="w-full flex items-center justify-between text-[11px] font-extrabold text-slate-600 hover:text-slate-800 cursor-pointer mt-1 bg-violet-50/50 hover:bg-violet-50 p-2 rounded-xl transition-all border border-violet-100/30"
+                  >
+                    <span className="flex items-center gap-1.5 text-violet-700">
+                      <UserIcon className="w-4 h-4" />
+                      Biodata & Portofolio Anak
+                    </span>
+                    <span className="text-[10px] text-violet-600 underline">
+                      {showChildDetail ? 'Sembunyikan' : 'Lihat Detail'}
+                    </span>
+                  </button>
+
+                  {showChildDetail && (
+                    <div className="mt-3.5 pt-3.5 border-t border-slate-100 space-y-4 max-h-[350px] overflow-y-auto pr-1">
+                      {/* Avatar & Basic details */}
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-xl bg-violet-50 overflow-hidden shrink-0 border border-violet-100 flex items-center justify-center">
+                          {myChild.fotoUrl ? (
+                            <img src={myChild.fotoUrl} alt={myChild.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                          ) : (
+                            <span className="text-xl font-black text-violet-700 uppercase">{myChild.name.charAt(0)}</span>
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-xs font-black text-slate-800">{myChild.name}</p>
+                          <span className="text-[9px] font-mono text-slate-400">Username: @{myChild.username}</span>
+                        </div>
+                      </div>
+
+                      {/* Detail fields */}
+                      <div className="space-y-2 text-xs">
+                        <div className="p-3 bg-slate-50/50 rounded-xl border border-slate-100">
+                          <span className="text-[8px] font-black text-slate-400 uppercase block">Nomor NIK</span>
+                          <span className="font-mono font-bold text-slate-700">{myChild.nik || "Belum diisi"}</span>
+                        </div>
+                        <div className="p-3 bg-slate-50/50 rounded-xl border border-slate-100">
+                          <span className="text-[8px] font-black text-slate-400 uppercase block">Nomor KK</span>
+                          <span className="font-mono font-bold text-slate-700">{myChild.kk || "Belum diisi"}</span>
+                        </div>
+                        <div className="p-3 bg-slate-50/50 rounded-xl border border-slate-100">
+                          <span className="text-[8px] font-black text-slate-400 uppercase block">Email Aktif</span>
+                          <span className="font-semibold text-slate-700">{myChild.email || "Belum diisi"}</span>
+                        </div>
+                        <div className="p-3 bg-slate-50/50 rounded-xl border border-slate-100">
+                          <span className="text-[8px] font-black text-slate-400 uppercase block">Alamat Rumah</span>
+                          <span className="font-medium text-slate-600 leading-relaxed block mt-0.5">{myChild.alamat || "Belum diisi"}</span>
+                        </div>
+                      </div>
+
+                      {/* Portfolio Timeline */}
+                      <div className="pt-3 border-t border-slate-100">
+                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Prestasi & Milestones Anak</h4>
+                        {!myChild.portfolio || myChild.portfolio.length === 0 ? (
+                          <p className="text-[10px] text-slate-450 italic py-2 text-center">Belum ada catatan portofolio dari asrama.</p>
+                        ) : (
+                          <div className="space-y-3 relative before:absolute before:left-2 before:top-2 before:bottom-2 before:w-[1.5px] before:bg-slate-100 pl-1">
+                            {myChild.portfolio.map(item => (
+                              <div key={item.id} className="relative pl-5 text-[11px] text-left">
+                                <div className="absolute left-[2.5px] top-1.5 w-2 h-2 rounded-full bg-white border-2 border-violet-500 z-10" />
+                                <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <span className="px-1.5 py-0.5 bg-amber-50 text-amber-700 border border-amber-100 rounded text-[7px] font-black uppercase">
+                                      {item.category || "Umum"}
+                                    </span>
+                                    <span className="text-[8px] font-mono text-slate-400 font-semibold">{item.date}</span>
+                                  </div>
+                                  <h5 className="font-bold text-slate-800 mt-1">{item.title}</h5>
+                                  <p className="text-[10px] text-slate-500 mt-0.5 leading-normal">{item.description}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>

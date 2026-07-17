@@ -1,6 +1,6 @@
 import React from 'react';
 import { User, Report } from '../types';
-import { User as UserIcon, Tag, MoreVertical, Check, Plus, ShieldAlert } from 'lucide-react';
+import { User as UserIcon, Tag, MoreVertical, Check, Plus, ShieldAlert, Eye } from 'lucide-react';
 
 interface AnakAsuhListProps {
   myChildren: User[];
@@ -17,6 +17,7 @@ interface AnakAsuhListProps {
   setCustomCategoryInput: (val: string) => void;
   onUpdateChildCategory: (childId: string, category: string) => Promise<void>;
   onToggleUserSuspension?: (userId: string, isSuspended: boolean) => Promise<void> | void;
+  onSelectChildForDetail?: (child: User) => void;
 }
 
 export const AnakAsuhList: React.FC<AnakAsuhListProps> = ({
@@ -34,6 +35,7 @@ export const AnakAsuhList: React.FC<AnakAsuhListProps> = ({
   setCustomCategoryInput,
   onUpdateChildCategory,
   onToggleUserSuspension,
+  onSelectChildForDetail,
 }) => {
   const filteredChildren = myChildren.filter(c => {
     if (selectedCategoryFilter === 'all') return true;
@@ -141,7 +143,20 @@ export const AnakAsuhList: React.FC<AnakAsuhListProps> = ({
                     </div>
 
                     <div className="flex items-center gap-1.5 shrink-0 relative">
-                      <span className="text-[10px] font-bold px-2 py-0.5 bg-violet-50 text-violet-700 rounded-full border border-violet-100/40">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (onSelectChildForDetail) onSelectChildForDetail(c);
+                        }}
+                        className="p-1 bg-violet-50 hover:bg-violet-100 text-violet-700 hover:text-violet-900 rounded-lg transition-all cursor-pointer flex items-center gap-1"
+                        title="Lihat Biodata & Portofolio"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        <span className="text-[9px] font-bold hidden sm:inline">Biodata</span>
+                      </button>
+
+                      <span className="text-[10px] font-bold px-2 py-0.5 bg-slate-100 text-slate-700 rounded-full border border-slate-200">
                         {childReportCount} Lap
                       </span>
 
