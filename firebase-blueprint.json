@@ -42,6 +42,14 @@
           "type": "string",
           "description": "URL Foto profil / foto anak asuh"
         },
+        "fotoKkUrl": {
+          "type": "string",
+          "description": "URL Foto / Scan Kartu Keluarga"
+        },
+        "fotoBpjsUrl": {
+          "type": "string",
+          "description": "URL Foto / Scan Kartu BPJS Kesehatan"
+        },
         "alamat": {
           "type": "string",
           "description": "Alamat tempat tinggal asal"

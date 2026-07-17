@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { User, Report, Reply, SavingsTransaction } from '../types';
-import { Heart, Lock, Calendar, MessageSquare, Send, CheckCircle2, User as UserIcon, ShieldCheck, Mail, RefreshCw, Coins, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
+import { Heart, Lock, Calendar, MessageSquare, Send, CheckCircle2, User as UserIcon, ShieldCheck, Mail, RefreshCw, Coins, ArrowUpRight, ArrowDownLeft, Eye, FileText, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { decryptMessage, formatDate } from '../utils/crypto';
 
@@ -24,6 +24,7 @@ export default function OrangTuaDashboard({
   const [successMsg, setSuccessMsg] = useState('');
   const [showSavingsHistory, setShowSavingsHistory] = useState(false);
   const [showChildDetail, setShowChildDetail] = useState(false);
+  const [zoomImage, setZoomImage] = useState<string | null>(null);
 
   // Find the child linked to this Parent account
   const myChild = users.find(u => u.id === currentUser.anakAsuhId && u.role === 'anak_asuh');
@@ -201,6 +202,65 @@ export default function OrangTuaDashboard({
                           <span className="text-[8px] font-black text-slate-400 uppercase block">Alamat Rumah</span>
                           <span className="font-medium text-slate-600 leading-relaxed block mt-0.5">{myChild.alamat || "Belum diisi"}</span>
                         </div>
+
+                        {/* Foto KK & BPJS */}
+                        <div className="pt-2.5 border-t border-slate-100">
+                          <span className="text-[8.5px] font-black text-slate-400 uppercase tracking-wider block mb-2">Berkas Dokumen Legalitas Anak</span>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="bg-white p-2.5 rounded-xl border border-slate-150 flex flex-col justify-between gap-2.5">
+                              <span className="text-[8px] font-black text-slate-500 uppercase block leading-none">Kartu Keluarga</span>
+                              <div className="w-full h-20 rounded-lg bg-slate-50 overflow-hidden border border-slate-100 relative flex items-center justify-center group">
+                                {myChild.fotoKkUrl ? (
+                                  <>
+                                    <img src={myChild.fotoKkUrl} className="w-full h-full object-cover" alt="Kartu Keluarga" referrerPolicy="no-referrer" />
+                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
+                                      <button
+                                        type="button"
+                                        onClick={() => setZoomImage(myChild.fotoKkUrl || null)}
+                                        className="px-2 py-1 bg-white text-slate-800 font-extrabold text-[8px] rounded-md shadow-xs hover:bg-slate-50 transition-all flex items-center gap-1 cursor-pointer"
+                                      >
+                                        <Eye className="w-2.5 h-2.5 text-indigo-600" />
+                                        Lihat
+                                      </button>
+                                    </div>
+                                  </>
+                                ) : (
+                                  <div className="flex flex-col items-center justify-center p-2 text-slate-400 italic">
+                                    <FileText className="w-5 h-5 text-slate-300 mb-0.5" />
+                                    <span className="text-[8px]">Belum ada</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="bg-white p-2.5 rounded-xl border border-slate-150 flex flex-col justify-between gap-2.5">
+                              <span className="text-[8px] font-black text-slate-500 uppercase block leading-none">BPJS Kesehatan</span>
+                              <div className="w-full h-20 rounded-lg bg-slate-50 overflow-hidden border border-slate-100 relative flex items-center justify-center group">
+                                {myChild.fotoBpjsUrl ? (
+                                  <>
+                                    <img src={myChild.fotoBpjsUrl} className="w-full h-full object-cover" alt="BPJS" referrerPolicy="no-referrer" />
+                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
+                                      <button
+                                        type="button"
+                                        onClick={() => setZoomImage(myChild.fotoBpjsUrl || null)}
+                                        className="px-2 py-1 bg-white text-slate-800 font-extrabold text-[8px] rounded-md shadow-xs hover:bg-slate-50 transition-all flex items-center gap-1 cursor-pointer"
+                                      >
+                                        <Eye className="w-2.5 h-2.5 text-emerald-600" />
+                                        Lihat
+                                      </button>
+                                    </div>
+                                  </>
+                                ) : (
+                                  <div className="flex flex-col items-center justify-center p-2 text-slate-400 italic">
+                                    <FileText className="w-5 h-5 text-slate-300 mb-0.5" />
+                                    <span className="text-[8px]">Belum ada</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
                       </div>
 
                       {/* Portfolio Timeline */}
@@ -439,6 +499,27 @@ export default function OrangTuaDashboard({
         </div>
 
       </div>
+
+      {/* DOCUMENT ZOOM MODAL */}
+      {zoomImage && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-xs z-55 flex items-center justify-center p-4">
+          <div className="relative max-w-4xl max-h-full overflow-hidden bg-slate-900 rounded-2xl p-2 flex flex-col items-center">
+            <button
+              type="button"
+              onClick={() => setZoomImage(null)}
+              className="absolute top-4 right-4 bg-black/60 hover:bg-black text-white rounded-full p-2.5 transition-all z-10 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <div className="overflow-auto max-h-[80vh] flex items-center justify-center p-2">
+              <img src={zoomImage} className="max-w-full max-h-full object-contain rounded-lg" alt="Zoom Dokumen" referrerPolicy="no-referrer" />
+            </div>
+            <div className="p-3 text-center text-xs text-slate-400 font-medium font-mono">
+              Pratinjau Berkas Dokumen Resmi WaliAsuhku
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

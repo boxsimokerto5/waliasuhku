@@ -19,6 +19,8 @@ export interface User {
   
   // Biodata & Portofolio Fields
   fotoUrl?: string; // Foto profil / siswa
+  fotoKkUrl?: string; // Foto / Scan Kartu Keluarga
+  fotoBpjsUrl?: string; // Foto / Scan Kartu BPJS Kesehatan
   alamat?: string; // Alamat asal
   nik?: string; // Nomor Induk Kependudukan
   kk?: string; // Nomor Kartu Keluarga

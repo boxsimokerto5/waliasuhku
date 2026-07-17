@@ -105,9 +105,9 @@ export default function PWAInstallWidget() {
       <div className="fixed bottom-4 right-4 z-40">
         <button
           onClick={() => setShowBanner(true)}
-          className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-indigo-600 to-pink-600 text-white font-extrabold text-[10px] rounded-full shadow-lg hover:scale-105 transition-all cursor-pointer border border-white/20 uppercase tracking-wider"
+          className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white font-extrabold text-[10px] rounded-full shadow-lg hover:scale-105 active:scale-95 transition-all cursor-pointer border border-white/20 uppercase tracking-wider"
         >
-          <Download className="w-3.5 h-3.5 animate-bounce" />
+          <Download className="w-3 h-3 animate-bounce" />
           <span>Instal Aplikasi</span>
         </button>
       </div>
@@ -117,139 +117,102 @@ export default function PWAInstallWidget() {
   return (
     <AnimatePresence>
       <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -20 }}
-        className="max-w-7xl mx-auto w-full px-4 pt-3 pb-1"
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+        className="fixed bottom-4 right-4 z-40 max-w-[320px] w-[calc(100vw-32px)] text-left"
       >
-        <div className="bg-gradient-to-r from-indigo-600 via-violet-600 to-pink-600 rounded-3xl p-5 md:p-6 text-white shadow-xl relative overflow-hidden border border-indigo-400/30 text-left">
+        <div className="bg-slate-900/95 backdrop-blur-md text-white rounded-2xl p-4 shadow-2xl border border-slate-800 relative overflow-hidden">
           
           {/* Subtle background glow graphics */}
-          <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 rounded-full bg-pink-500/20 blur-2xl pointer-events-none" />
-          <div className="absolute bottom-0 left-10 -mb-10 w-40 h-40 rounded-full bg-indigo-500/20 blur-2xl pointer-events-none" />
+          <div className="absolute top-0 right-0 -mt-8 -mr-8 w-24 h-24 rounded-full bg-pink-500/20 blur-xl pointer-events-none" />
+          <div className="absolute bottom-0 left-6 -mb-8 w-24 h-24 rounded-full bg-indigo-500/20 blur-xl pointer-events-none" />
 
           {/* Dismiss button */}
           <button
             onClick={() => setShowBanner(false)}
-            className="absolute top-4 right-4 p-1.5 hover:bg-white/10 rounded-xl transition-all text-white/80 hover:text-white cursor-pointer"
-            title="Sembunyikan Banner"
+            className="absolute top-3 right-3 p-1 hover:bg-white/15 rounded-lg transition-all text-slate-400 hover:text-white cursor-pointer"
+            title="Sembunyikan"
           >
-            <X className="w-4.5 h-4.5" />
+            <X className="w-4 h-4" />
           </button>
 
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 relative z-10">
-            {/* Left Content */}
-            <div className="flex-1 space-y-2 max-w-3xl">
-              <div className="flex items-center gap-2">
-                <span className="bg-white/20 text-white font-extrabold text-[8px] uppercase tracking-wider px-2 py-0.5 rounded-full border border-white/15 flex items-center gap-1">
-                  <Sparkles className="w-2.5 h-2.5 text-pink-300 animate-spin-slow" />
-                  Fitur PWA WaliAsuhku
-                </span>
-                {isIframe && (
-                  <span className="bg-amber-500/30 text-amber-200 font-bold text-[8px] uppercase tracking-wider px-2 py-0.5 rounded-full border border-amber-400/20">
-                    Mode Preview IFrame
-                  </span>
-                )}
-              </div>
-              
-              <h2 className="text-sm md:text-base font-black tracking-tight leading-snug">
-                Instal Aplikasi WaliAsuhku Langsung di Perangkat Anda!
-              </h2>
-              
-              <p className="text-[11px] text-white/95 leading-relaxed font-medium">
-                Nikmati akses instan penuh tanpa browser, notifikasi dorong real-time, loading ultra-cepat, dan perlindungan privasi enkripsi end-to-end yang lebih stabil.
-              </p>
-
-              {/* Contextual Guides if not installable directly */}
-              {!isInstallable && !isIframe && (
-                <div className="pt-2">
-                  {platform === 'ios' ? (
-                    <div className="bg-white/10 rounded-2xl p-3 border border-white/10 text-[10px] space-y-1.5">
-                      <p className="font-bold text-pink-200 flex items-center gap-1">
-                        <Smartphone className="w-3.5 h-3.5" />
-                        Panduan Khusus iOS (Safari):
-                      </p>
-                      <ol className="list-decimal list-inside space-y-1 text-white/90 font-medium">
-                        <li>Ketuk tombol <span className="bg-white/20 px-1.5 py-0.5 rounded font-extrabold inline-flex items-center gap-1"><Share className="w-3 h-3 inline" /> "Bagikan" (Share)</span> di bagian bawah layar Safari.</li>
-                        <li>Gulir ke bawah dan ketuk pilihan <span className="bg-white/20 px-1.5 py-0.5 rounded font-extrabold inline-flex items-center gap-1"><Plus className="w-3 h-3 inline" /> "Tambahkan ke Layar Utama" (Add to Home Screen)</span>.</li>
-                        <li>Ketuk <span className="font-bold text-pink-300">"Tambah"</span> di pojok kanan atas untuk menyelesaikan instalasi.</li>
-                      </ol>
-                    </div>
-                  ) : (
-                    <div className="bg-white/10 rounded-2xl p-3 border border-white/10 text-[10px] space-y-1">
-                      <p className="font-bold text-indigo-200 flex items-center gap-1">
-                        <HelpCircle className="w-3.5 h-3.5" />
-                        Bagaimana cara menginstalnya?
-                      </p>
-                      <p className="text-white/80 leading-normal">
-                        Buka menu setelan browser Anda (tanda titik tiga di pojok kanan atas) lalu pilih <span className="font-bold text-white">"Instal aplikasi"</span> atau <span className="font-bold text-white">"Tambahkan ke Layar Utama"</span> untuk memasang WaliAsuhku.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-
+          <div className="space-y-3 relative z-10">
+            {/* Header */}
+            <div className="flex items-center gap-2">
+              <span className="bg-gradient-to-r from-indigo-500 to-pink-500 text-white font-extrabold text-[8px] uppercase tracking-wider px-2 py-0.5 rounded-full border border-white/15 flex items-center gap-1">
+                <Sparkles className="w-2.5 h-2.5 text-pink-200" />
+                PWA
+              </span>
               {isIframe && (
-                <div className="bg-amber-500/20 rounded-2xl p-3 border border-amber-500/30 text-[10px] space-y-1">
-                  <p className="font-bold text-amber-200 flex items-center gap-1">
-                    <HelpCircle className="w-3.5 h-3.5" />
-                    Kendala IFrame Terdeteksi:
-                  </p>
-                  <p className="text-white/90 leading-normal">
-                    Browser memblokir instalasi PWA di dalam panel pratinjau (iframe). Klik tombol <span className="font-bold text-amber-200">"Buka di Tab Baru"</span> untuk melepas batasan dan langsung menginstal dalam 1 klik!
-                  </p>
-                </div>
+                <span className="bg-amber-500/20 text-amber-300 font-bold text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-full border border-amber-500/15">
+                  IFrame
+                </span>
               )}
             </div>
 
-            {/* Right Action buttons */}
-            <div className="flex flex-col sm:flex-row lg:flex-col gap-2.5 shrink-0 self-start lg:self-center w-full sm:w-auto">
-              {/* Trigger Direct Native Installation if installable */}
-              {isInstallable && !isIframe && (
+            <h3 className="text-xs font-extrabold tracking-tight leading-snug">
+              Instal Aplikasi WaliAsuhku
+            </h3>
+
+            <p className="text-[10px] text-slate-300 leading-relaxed">
+              Dapatkan akses instan penuh tanpa browser, notifikasi dorong real-time, dan loading ultra-cepat.
+            </p>
+
+            {/* Contextual Instructions or Buttons */}
+            <div className="pt-1">
+              {isIframe ? (
+                <div className="space-y-2">
+                  <p className="text-[9px] text-amber-200 bg-amber-500/10 border border-amber-500/20 rounded-xl p-2 leading-relaxed">
+                    Browser membatasi instalasi di dalam preview. Buka di tab baru untuk menginstal dalam 1-klik!
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleOpenInNewTab}
+                    className="w-full py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-[10px] rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md shadow-amber-500/10 active:scale-95"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>BUKA DI TAB BARU</span>
+                  </button>
+                </div>
+              ) : isInstallable ? (
                 <button
                   type="button"
                   onClick={handleInstallClick}
-                  className="w-full sm:w-auto px-5 py-3 bg-white hover:bg-indigo-50 text-indigo-950 font-black text-xs rounded-2xl flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg shadow-black/15 hover:scale-[1.02] active:scale-95 text-center"
+                  className="w-full py-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-black text-[10px] rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-indigo-500/15 active:scale-95"
                 >
-                  <Download className="w-4 h-4 text-indigo-600 animate-bounce" />
-                  <span>INSTAL SEKARANG JUGA</span>
+                  <Download className="w-3.5 h-3.5 animate-bounce" />
+                  <span>INSTAL SEKARANG</span>
                 </button>
-              )}
-
-              {/* Breakout of iframe button */}
-              {isIframe && (
-                <button
-                  type="button"
-                  onClick={handleOpenInNewTab}
-                  className="w-full sm:w-auto px-5 py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-2xl flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg shadow-amber-500/10 hover:scale-[1.02] active:scale-95 text-center"
-                >
-                  <ExternalLink className="w-4 h-4" />
-                  <span>BUKA DI TAB BARU</span>
-                </button>
-              )}
-
-              {/* Standard info feedback if neither iframe nor installable prompt is available (e.g. desktop manual or already installed) */}
-              {!isInstallable && !isIframe && (
-                <div className="flex flex-col gap-2 w-full">
-                  <div className="px-4 py-2 bg-white/10 border border-white/10 text-white/90 rounded-2xl text-[10px] font-bold flex items-center gap-1.5 justify-center">
-                    <Laptop className="w-3.5 h-3.5" />
-                    <span>Mendukung Android, iOS, Windows, macOS</span>
-                  </div>
+              ) : platform === 'ios' ? (
+                <div className="bg-white/5 rounded-xl p-2.5 border border-white/5 text-[9px] space-y-1">
+                  <p className="font-bold text-pink-300 flex items-center gap-1">
+                    <Smartphone className="w-3 h-3" />
+                    Langkah Safari (iOS):
+                  </p>
+                  <ol className="list-decimal list-inside space-y-0.5 text-slate-300 leading-normal">
+                    <li>Ketuk tombol <Share className="w-2.5 h-2.5 inline" /> Bagikan</li>
+                    <li>Pilih <Plus className="w-2.5 h-2.5 inline" /> Tambah ke Layar Utama</li>
+                  </ol>
+                </div>
+              ) : (
+                <div className="bg-white/5 rounded-xl p-2.5 border border-white/5 text-[9px] text-slate-300 leading-normal">
+                  Buka menu setelan browser Anda, lalu pilih <span className="font-bold text-white">"Instal"</span> atau <span className="font-bold text-white">"Tambahkan ke Layar Utama"</span>.
                 </div>
               )}
-
-              {/* Install Success Overlay State */}
-              {installSuccess && (
-                <motion.div
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  className="bg-emerald-500 text-white p-3 rounded-2xl text-xs font-bold flex items-center gap-2 shadow-lg"
-                >
-                  <Check className="w-4 h-4 shrink-0 bg-white/20 p-0.5 rounded-full" />
-                  <span>Aplikasi berhasil diinstal!</span>
-                </motion.div>
-              )}
             </div>
+
+            {/* Success Overlay state */}
+            {installSuccess && (
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="bg-emerald-600 text-white p-2 rounded-xl text-[10px] font-bold flex items-center gap-1.5 shadow-lg"
+              >
+                <Check className="w-3.5 h-3.5 shrink-0 bg-white/20 p-0.5 rounded-full" />
+                <span>Instalasi PWA Berhasil!</span>
+              </motion.div>
+            )}
 
           </div>
 

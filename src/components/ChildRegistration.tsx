@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, MapPin, CreditCard, Phone, Mail, Camera, Eye, EyeOff } from 'lucide-react';
+import { User, MapPin, CreditCard, Phone, Mail, Camera, Eye, EyeOff, FileText, Upload } from 'lucide-react';
 
 interface ChildRegistrationProps {
   newName: string;
@@ -10,6 +10,8 @@ interface ChildRegistrationProps {
   success: string;
   onSubmit: (e: React.FormEvent, additionalData: {
     fotoUrl?: string;
+    fotoKkUrl?: string;
+    fotoBpjsUrl?: string;
     alamat?: string;
     nik?: string;
     kk?: string;
@@ -28,12 +30,16 @@ export const ChildRegistration: React.FC<ChildRegistrationProps> = ({
   onSubmit,
 }) => {
   const [fotoUrl, setFotoUrl] = useState('');
+  const [fotoKkUrl, setFotoKkUrl] = useState('');
+  const [fotoBpjsUrl, setFotoBpjsUrl] = useState('');
   const [alamat, setAlamat] = useState('');
   const [nik, setNik] = useState('');
   const [kk, setKk] = useState('');
   const [parentPhone, setParentPhone] = useState('');
   const [email, setEmail] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [kkPreview, setKkPreview] = useState<string | null>(null);
+  const [bpjsPreview, setBpjsPreview] = useState<string | null>(null);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -52,10 +58,46 @@ export const ChildRegistration: React.FC<ChildRegistrationProps> = ({
     }
   };
 
+  const handleKkChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        alert("Ukuran file foto KK maksimal 2MB");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        setKkPreview(base64String);
+        setFotoKkUrl(base64String);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleBpjsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        alert("Ukuran file foto BPJS maksimal 2MB");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        setBpjsPreview(base64String);
+        setFotoBpjsUrl(base64String);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(e, {
       fotoUrl,
+      fotoKkUrl,
+      fotoBpjsUrl,
       alamat,
       nik,
       kk,
@@ -66,12 +108,16 @@ export const ChildRegistration: React.FC<ChildRegistrationProps> = ({
     // Clear local fields on success (the parent component will clear name/username)
     if (!error) {
       setFotoUrl('');
+      setFotoKkUrl('');
+      setFotoBpjsUrl('');
       setAlamat('');
       setNik('');
       setKk('');
       setParentPhone('');
       setEmail('');
       setImagePreview(null);
+      setKkPreview(null);
+      setBpjsPreview(null);
     }
   };
 
@@ -289,6 +335,66 @@ export const ChildRegistration: React.FC<ChildRegistrationProps> = ({
                 <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
               </div>
             </div>
+
+            {/* FOTO DOKUMEN KK & BPJS */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
+              {/* Upload KK */}
+              <div className="space-y-2">
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                  Foto / Scan Kartu Keluarga (KK)
+                </label>
+                <div className="border-2 border-dashed border-slate-200 rounded-2xl p-3 flex flex-col items-center justify-center bg-slate-50 hover:bg-slate-100/50 transition-all text-center relative overflow-hidden min-h-[110px]">
+                  {kkPreview ? (
+                    <div className="absolute inset-0 w-full h-full">
+                      <img src={kkPreview} className="w-full h-full object-cover" alt="Scan KK" referrerPolicy="no-referrer" />
+                      <button
+                        type="button"
+                        onClick={() => { setKkPreview(null); setFotoKkUrl(''); }}
+                        className="absolute top-1 right-1 bg-rose-600 text-white rounded-full p-1 text-[9px] font-bold"
+                      >
+                        Hapus
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="cursor-pointer flex flex-col items-center justify-center p-2 w-full h-full">
+                      <Upload className="w-5 h-5 text-indigo-500 mb-1" />
+                      <span className="text-[10px] font-bold text-indigo-700">Pilih Foto KK</span>
+                      <span className="text-[8px] text-slate-400 mt-0.5">Maks 2MB</span>
+                      <input type="file" accept="image/*" onChange={handleKkChange} className="hidden" />
+                    </label>
+                  )}
+                </div>
+              </div>
+
+              {/* Upload BPJS */}
+              <div className="space-y-2">
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                  Foto / Scan Kartu BPJS Kesehatan
+                </label>
+                <div className="border-2 border-dashed border-slate-200 rounded-2xl p-3 flex flex-col items-center justify-center bg-slate-50 hover:bg-slate-100/50 transition-all text-center relative overflow-hidden min-h-[110px]">
+                  {bpjsPreview ? (
+                    <div className="absolute inset-0 w-full h-full">
+                      <img src={bpjsPreview} className="w-full h-full object-cover" alt="Scan BPJS" referrerPolicy="no-referrer" />
+                      <button
+                        type="button"
+                        onClick={() => { setBpjsPreview(null); setFotoBpjsUrl(''); }}
+                        className="absolute top-1 right-1 bg-rose-600 text-white rounded-full p-1 text-[9px] font-bold"
+                      >
+                        Hapus
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="cursor-pointer flex flex-col items-center justify-center p-2 w-full h-full">
+                      <Upload className="w-5 h-5 text-emerald-500 mb-1" />
+                      <span className="text-[10px] font-bold text-emerald-700">Pilih Foto BPJS</span>
+                      <span className="text-[8px] text-slate-400 mt-0.5">Maks 2MB</span>
+                      <input type="file" accept="image/*" onChange={handleBpjsChange} className="hidden" />
+                    </label>
+                  )}
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
 

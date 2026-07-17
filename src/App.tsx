@@ -192,6 +192,8 @@ export default function App() {
     waliAsuhId: string, 
     additionalData?: {
       fotoUrl?: string;
+      fotoKkUrl?: string;
+      fotoBpjsUrl?: string;
       alamat?: string;
       nik?: string;
       kk?: string;
@@ -848,9 +850,6 @@ export default function App() {
             onOpenNotifications={() => setIsNotificationOpen(true)}
           />
 
-          {/* PWA Installation Assistant Widget */}
-          <PWAInstallWidget />
-
           {/* VP Toggles & Layout Options */}
           <div className="max-w-7xl mx-auto w-full px-4 pt-4 flex justify-between items-center text-slate-400">
             <span className="text-xs font-medium flex items-center gap-1.5 bg-emerald-50 text-emerald-800 border border-emerald-100 px-3 py-1 rounded-full">
@@ -921,7 +920,7 @@ export default function App() {
         </div>
       ) : (
         /* Login screen */
-        <div className="min-h-screen flex items-center justify-center py-12">
+        <div className="min-h-screen flex items-center justify-center py-12 relative">
           <LoginScreen
             users={users}
             onLogin={(user) => {
@@ -929,6 +928,8 @@ export default function App() {
               showToast("Selamat Datang!", `Berhasil masuk sebagai ${user.name}`);
             }}
           />
+          {/* Compact floating PWA installation assistant */}
+          <PWAInstallWidget />
         </div>
       )}
 
