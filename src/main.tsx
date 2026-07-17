@@ -27,6 +27,24 @@ if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
   });
 }
 
+// Global PWA Installation Capture
+window.addEventListener('beforeinstallprompt', (e) => {
+  // Prevent Chrome 67 and earlier from automatically showing the prompt
+  e.preventDefault();
+  // Stash the event so it can be triggered later.
+  (window as any).deferredPrompt = e;
+  // Dispatch a custom event to notify React components that prompt is ready
+  window.dispatchEvent(new CustomEvent('pwa-prompt-available'));
+  console.log('PWA installation prompt captured and stashed.');
+});
+
+window.addEventListener('appinstalled', () => {
+  // Clear the deferredPrompt so it can't be used again
+  (window as any).deferredPrompt = null;
+  window.dispatchEvent(new CustomEvent('pwa-app-installed'));
+  console.log('PWA WaliAsuhku telah sukses diinstal pada sistem.');
+});
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />

@@ -8,6 +8,7 @@ import WaliAsuhDashboard from './components/WaliAsuhDashboard';
 import AnakAsuhDashboard from './components/AnakAsuhDashboard';
 import OrangTuaDashboard from './components/OrangTuaDashboard';
 import NotificationCenter from './components/NotificationCenter';
+import PWAInstallWidget from './components/PWAInstallWidget';
 import { encryptMessage } from './utils/crypto';
 import { Bell, Lock, ShieldAlert, Monitor, Phone, HeartHandshake } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -779,6 +780,9 @@ export default function App() {
             notifications={notifications}
             onOpenNotifications={() => setIsNotificationOpen(true)}
           />
+
+          {/* PWA Installation Assistant Widget */}
+          <PWAInstallWidget />
 
           {/* VP Toggles & Layout Options */}
           <div className="max-w-7xl mx-auto w-full px-4 pt-4 flex justify-between items-center text-slate-400">
