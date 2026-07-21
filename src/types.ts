@@ -26,6 +26,7 @@ export interface User {
   kk?: string; // Nomor Kartu Keluarga
   parentPhone?: string; // Nomor HP Orang Tua
   email?: string; // Alamat Email
+  initialAssessment?: InitialAssessment;
   portfolio?: {
     id: string;
     title: string;
@@ -136,5 +137,66 @@ export interface ActivityChecklist {
   students: ChecklistStudentStatus[];
   createdAt: string;
 }
+
+export interface InitialAssessment {
+  // KATEGORI A: IDENTITAS & PROFIL KELUARGA
+  namaLengkap: string;
+  namaPanggilan: string;
+  anakKe: string;
+  dariBersaudara: string;
+  saudaraDetail: string;
+  statusOrangTua: string;
+  pengasuhanSebelumnya: string;
+  pekerjaanAyah: string;
+  pekerjaanIbu: string;
+  bantuanPemerintah: string[];
+
+  // KATEGORI B: RIWAYAT KESEHATAN & KEBUTUHAN FISIK
+  alergiMakanan: string;
+  alergiObat: string;
+  alergiLainnya: string;
+  riwayatPenyakit: string[];
+  riwayatPenyakitLainnya: string;
+  pengobatanRutin: string;
+  polaTidur: string[];
+  polaTidurKhusus: string;
+  makananDisukai: string;
+  makananTidakDisukai: string;
+  kebiasaanMakan: string;
+
+  // KATEGORI C: KEMANDIRIAN & KEBIASAAN SEHARI-HARI
+  kemandirianMandi: string;
+  kemandirianTempatTidur: string;
+  kemandirianCuciBaju: string;
+  kemampuanMengaji: string;
+  kemampuanMengajiDetail: string;
+  hafalanMilik: string;
+  kedisiplinanShalat: string;
+
+  // KATEGORI D: KARAKTER, EMOSI & SOSIALISASI
+  sifatUtama: string[];
+  pemicuEmosi: string;
+  reaksiMarah: string;
+  caraMenangani: string;
+  riwayatTrauma: string;
+
+  // KATEGORI E: AKADEMIK, MINAT & HOBI
+  mapelDisukai: string;
+  mapelDitakuti: string;
+  hobiKegemaran: string;
+  bakatMenonjol: string;
+
+  // KATEGORI F: HARAPAN ORANG TUA & KONTAK DARURAT
+  harapan1: string;
+  harapan2: string;
+  harapan3: string;
+  namaKontakAlternatif: string;
+  hubunganKontakAlternatif: string;
+  noHpKontakAlternatif: string;
+  
+  updatedAt?: string;
+  filledBy?: string;
+}
+
 
 

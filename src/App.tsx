@@ -816,6 +816,7 @@ export default function App() {
             reports={reports}
             savingsTransactions={savingsTransactions}
             onAddReply={handleAddReply}
+            onUpdateChildBiodata={handleUpdateChildBiodata}
           />
         );
       default:

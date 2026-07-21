@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Mail, Phone, MapPin, CreditCard, Camera, Sparkles, Award, Trash2, Plus, Edit2, Check, ExternalLink, Upload, FileText, Eye, Heart, ImageIcon } from 'lucide-react';
+import { X, Mail, Phone, MapPin, CreditCard, Camera, Sparkles, Award, Trash2, Plus, Edit2, Check, ExternalLink, Upload, FileText, Eye, Heart, ImageIcon, ClipboardList, Shield, Smile, BookOpen, PhoneCall } from 'lucide-react';
 import { User } from '../types';
 import { generateStudentPortfolioPDF, generateStudentMonthlyReportPDF } from '../utils/pdfGenerator';
 
@@ -21,7 +21,7 @@ export default function BiodataDetailModal({
   onDeletePortfolio,
   users = [],
 }: BiodataDetailModalProps) {
-  const [activeTab, setActiveTab] = useState<'biodata' | 'portofolio' | 'laporan' | 'galeri'>('biodata');
+  const [activeTab, setActiveTab] = useState<'biodata' | 'portofolio' | 'laporan' | 'galeri' | 'asesmen'>('biodata');
   
   // Laporan Bulanan States
   const [healthStatus, setHealthStatus] = useState<string>(child.healthStatus || 'Sangat Sehat');
@@ -70,6 +70,7 @@ export default function BiodataDetailModal({
   const [pdfIncludeAddress, setPdfIncludeAddress] = useState(true);
   const [pdfIncludeKkNik, setPdfIncludeKkNik] = useState(true);
   const [pdfIncludeDocPhotos, setPdfIncludeDocPhotos] = useState(false);
+  const [pdfIncludeAssessment, setPdfIncludeAssessment] = useState(true);
   const [showPdfOptions, setShowPdfOptions] = useState(false);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -271,6 +272,16 @@ export default function BiodataDetailModal({
               <ImageIcon className="w-3.5 h-3.5 text-blue-500" />
               <span>Galeri Kegiatan</span>
             </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('asesmen')}
+              className={`py-3.5 px-4 font-black text-xs uppercase tracking-wider transition-all border-b-2 -mb-[2px] cursor-pointer flex items-center gap-1.5 ${
+                activeTab === 'asesmen' ? 'border-violet-600 text-violet-700' : 'border-transparent text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              <FileText className="w-3.5 h-3.5 text-amber-500" />
+              <span>Asesmen Awal {child.initialAssessment ? '(Ada)' : '(Kosong)'}</span>
+            </button>
           </div>
 
           {activeTab !== 'galeri' && (
@@ -298,7 +309,8 @@ export default function BiodataDetailModal({
                       includePhoto: pdfIncludePhoto,
                       includeAddress: pdfIncludeAddress,
                       includeKkNik: pdfIncludeKkNik,
-                      includeDocPhotos: pdfIncludeDocPhotos
+                      includeDocPhotos: pdfIncludeDocPhotos,
+                      includeInitialAssessment: pdfIncludeAssessment
                     };
                     if (activeTab === 'laporan') {
                       await generateStudentMonthlyReportPDF(child, users, pdfOptions);
@@ -409,6 +421,15 @@ export default function BiodataDetailModal({
                         className="w-3.5 h-3.5 text-violet-600 border-slate-300 rounded focus:ring-violet-500 cursor-pointer"
                       />
                       <span className="font-semibold text-violet-700">Foto Berkas Fisik</span>
+                    </label>
+                    <label className="flex items-center gap-2 text-[11px] font-medium text-slate-600 cursor-pointer select-none" title="Lampirkan Data Hasil Asesmen Awal dari Orang Tua">
+                      <input
+                        type="checkbox"
+                        checked={pdfIncludeAssessment}
+                        onChange={(e) => setPdfIncludeAssessment(e.target.checked)}
+                        className="w-3.5 h-3.5 text-amber-600 border-slate-300 rounded focus:ring-amber-500 cursor-pointer"
+                      />
+                      <span className="font-semibold text-amber-800">Asesmen Awal Ortu</span>
                     </label>
                   </div>
                 </div>
@@ -782,6 +803,330 @@ export default function BiodataDetailModal({
                     </div>
                   </div>
 
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'asesmen' && (
+            <div className="space-y-6 text-left">
+              {child.initialAssessment ? (
+                <div className="space-y-6">
+                  {/* Banner Info */}
+                  <div className="bg-amber-50 border border-amber-100/50 rounded-2xl p-4 flex items-start gap-3">
+                    <ClipboardList className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="text-xs font-black text-amber-900 uppercase tracking-wider">Asesmen Awal diisi oleh Orang Tua / Wali</h4>
+                      <p className="text-[10.5px] text-amber-800/90 leading-relaxed mt-0.5">
+                        Disimpan dengan aman demi keselamatan, kecocokan menu makan, penanganan emosi, serta keselarasan program ibadah/akademik ananda selama di asrama.
+                      </p>
+                      {child.initialAssessment.updatedAt && (
+                        <span className="inline-block mt-2 text-[9px] font-mono font-bold text-amber-700 bg-amber-100/40 px-2 py-0.5 rounded-md">
+                          Terakhir Diperbarui: {new Date(child.initialAssessment.updatedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })} WIB
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Category Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {/* KATEGORI A */}
+                    <div className="bg-white border border-slate-100 rounded-2xl p-4 space-y-3.5 shadow-xs">
+                      <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
+                        <div className="p-1 bg-amber-50 text-amber-600 rounded-lg">
+                          <Shield className="w-4 h-4" />
+                        </div>
+                        <h5 className="text-[11px] font-black text-slate-800 uppercase tracking-wider">A. Profil & Struktur Keluarga</h5>
+                      </div>
+                      <div className="space-y-2.5 text-xs">
+                        <div>
+                          <span className="text-[9px] font-black text-slate-400 uppercase block">Nama Panggilan</span>
+                          <span className="font-semibold text-slate-700">{child.initialAssessment.namaPanggilan || '-'}</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <span className="text-[9px] font-black text-slate-400 uppercase block">Anak Ke-</span>
+                            <span className="font-semibold text-slate-700">{child.initialAssessment.anakKe || '-'}</span>
+                          </div>
+                          <div>
+                            <span className="text-[9px] font-black text-slate-400 uppercase block">Dari Bersaudara</span>
+                            <span className="font-semibold text-slate-700">{child.initialAssessment.dariBersaudara || '-'}</span>
+                          </div>
+                        </div>
+                        {child.initialAssessment.saudaraDetail && (
+                          <div>
+                            <span className="text-[9px] font-black text-slate-400 uppercase block">Daftar Saudara Kandung / Tiri</span>
+                            <p className="text-slate-600 leading-relaxed font-medium bg-slate-50 p-2 rounded-xl mt-0.5 whitespace-pre-line">{child.initialAssessment.saudaraDetail}</p>
+                          </div>
+                        )}
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <span className="text-[9px] font-black text-slate-400 uppercase block">Status Orang Tua</span>
+                            <span className="font-semibold text-slate-700">{child.initialAssessment.statusOrangTua || '-'}</span>
+                          </div>
+                          <div>
+                            <span className="text-[9px] font-black text-slate-400 uppercase block">Asuhan Sebelumnya</span>
+                            <span className="font-semibold text-slate-700">{child.initialAssessment.pengasuhanSebelumnya || '-'}</span>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <span className="text-[9px] font-black text-slate-400 uppercase block">Pekerjaan Ayah</span>
+                            <span className="font-semibold text-slate-700">{child.initialAssessment.pekerjaanAyah || '-'}</span>
+                          </div>
+                          <div>
+                            <span className="text-[9px] font-black text-slate-400 uppercase block">Pekerjaan Ibu</span>
+                            <span className="font-semibold text-slate-700">{child.initialAssessment.pekerjaanIbu || '-'}</span>
+                          </div>
+                        </div>
+                        {child.initialAssessment.bantuanPemerintah && child.initialAssessment.bantuanPemerintah.length > 0 && (
+                          <div>
+                            <span className="text-[9px] font-black text-slate-400 uppercase block mb-1">Kepemilikan Bantuan Pemerintah</span>
+                            <div className="flex flex-wrap gap-1">
+                              {child.initialAssessment.bantuanPemerintah.map(b => (
+                                <span key={b} className="text-[9px] font-bold bg-amber-50 text-amber-800 border border-amber-200/50 px-2 py-0.5 rounded-lg">{b}</span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* KATEGORI B */}
+                    <div className="bg-white border border-slate-100 rounded-2xl p-4 space-y-3.5 shadow-xs">
+                      <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
+                        <div className="p-1 bg-rose-50 text-rose-600 rounded-lg">
+                          <Heart className="w-4 h-4" />
+                        </div>
+                        <h5 className="text-[11px] font-black text-slate-800 uppercase tracking-wider">B. Kesehatan & Kebutuhan Fisik</h5>
+                      </div>
+                      <div className="space-y-2.5 text-xs">
+                        <div className="grid grid-cols-3 gap-2">
+                          <div>
+                            <span className="text-[9px] font-black text-slate-400 uppercase block">Alergi Makanan</span>
+                            <span className="font-semibold text-slate-700">{child.initialAssessment.alergiMakanan || 'Tidak ada'}</span>
+                          </div>
+                          <div>
+                            <span className="text-[9px] font-black text-slate-400 uppercase block">Alergi Obat</span>
+                            <span className="font-semibold text-slate-700">{child.initialAssessment.alergiObat || 'Tidak ada'}</span>
+                          </div>
+                          <div>
+                            <span className="text-[9px] font-black text-slate-400 uppercase block">Alergi Lainnya</span>
+                            <span className="font-semibold text-slate-700">{child.initialAssessment.alergiLainnya || 'Tidak ada'}</span>
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-[9px] font-black text-slate-400 uppercase block">Riwayat Penyakit</span>
+                          <span className="font-semibold text-slate-700">
+                            {child.initialAssessment.riwayatPenyakit && child.initialAssessment.riwayatPenyakit.length > 0
+                              ? child.initialAssessment.riwayatPenyakit.join(', ')
+                              : 'Tidak ada'}
+                          </span>
+                          {child.initialAssessment.riwayatPenyakitLainnya && (
+                            <p className="text-[10px] text-slate-500 mt-1 italic">Lainnya: {child.initialAssessment.riwayatPenyakitLainnya}</p>
+                          )}
+                        </div>
+                        {child.initialAssessment.pengobatanRutin && (
+                          <div>
+                            <span className="text-[9px] font-black text-slate-400 uppercase block">Pengobatan Rutin</span>
+                            <p className="text-slate-600 font-medium">{child.initialAssessment.pengobatanRutin}</p>
+                          </div>
+                        )}
+                        <div>
+                          <span className="text-[9px] font-black text-slate-400 uppercase block">Pola Tidur Malam</span>
+                          <span className="font-semibold text-slate-700">
+                            {child.initialAssessment.polaTidur && child.initialAssessment.polaTidur.length > 0
+                              ? child.initialAssessment.polaTidur.join(', ')
+                              : 'Sangat Baik'}
+                          </span>
+                          {child.initialAssessment.polaTidurKhusus && (
+                            <p className="text-[10px] text-slate-500 mt-1 italic">Catatan tidur: {child.initialAssessment.polaTidurKhusus}</p>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 bg-rose-50/25 p-2 rounded-xl border border-rose-100/20">
+                          <div>
+                            <span className="text-[9px] font-black text-rose-500 uppercase block">Sangat Disukai</span>
+                            <span className="font-bold text-slate-700 text-[11px]">{child.initialAssessment.makananDisukai || '-'}</span>
+                          </div>
+                          <div>
+                            <span className="text-[9px] font-black text-rose-500 uppercase block">Pantangan / Tidak Disukai</span>
+                            <span className="font-bold text-slate-700 text-[11px]">{child.initialAssessment.makananTidakDisukai || '-'}</span>
+                          </div>
+                        </div>
+                        {child.initialAssessment.kebiasaanMakan && (
+                          <div>
+                            <span className="text-[9px] font-black text-slate-400 uppercase block">Kebiasaan Makan</span>
+                            <span className="font-semibold text-slate-600">{child.initialAssessment.kebiasaanMakan}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* KATEGORI C */}
+                    <div className="bg-white border border-slate-100 rounded-2xl p-4 space-y-3.5 shadow-xs">
+                      <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
+                        <div className="p-1 bg-emerald-50 text-emerald-600 rounded-lg">
+                          <Sparkles className="w-4 h-4" />
+                        </div>
+                        <h5 className="text-[11px] font-black text-slate-800 uppercase tracking-wider">C. Kemandirian & Ibadah</h5>
+                      </div>
+                      <div className="space-y-2.5 text-xs">
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="bg-slate-50 p-2 rounded-xl text-center">
+                            <span className="text-[8px] text-slate-400 font-bold block uppercase">Mandi</span>
+                            <span className="font-bold text-emerald-700 text-[10.5px]">{child.initialAssessment.kemandirianMandi || '-'}</span>
+                          </div>
+                          <div className="bg-slate-50 p-2 rounded-xl text-center">
+                            <span className="text-[8px] text-slate-400 font-bold block uppercase">Tempat Tidur</span>
+                            <span className="font-bold text-emerald-700 text-[10.5px]">{child.initialAssessment.kemandirianTempatTidur || '-'}</span>
+                          </div>
+                          <div className="bg-slate-50 p-2 rounded-xl text-center">
+                            <span className="text-[8px] text-slate-400 font-bold block uppercase">Cuci Baju</span>
+                            <span className="font-bold text-emerald-700 text-[10.5px]">{child.initialAssessment.kemandirianCuciBaju || '-'}</span>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <span className="text-[9px] font-black text-slate-400 uppercase block">Kemampuan Mengaji</span>
+                            <span className="font-semibold text-slate-700">{child.initialAssessment.kemampuanMengaji || '-'}</span>
+                          </div>
+                          <div>
+                            <span className="text-[9px] font-black text-slate-400 uppercase block">Keterangan Jilid / Juz</span>
+                            <span className="font-semibold text-slate-700">{child.initialAssessment.kemampuanMengajiDetail || '-'}</span>
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-[9px] font-black text-slate-400 uppercase block">Hafalan yang Dimiliki</span>
+                          <span className="font-semibold text-slate-700">{child.initialAssessment.hafalanMilik || '-'}</span>
+                        </div>
+                        <div>
+                          <span className="text-[9px] font-black text-slate-400 uppercase block">Kedisiplinan Shalat</span>
+                          <span className="font-bold text-slate-800">{child.initialAssessment.kedisiplinanShalat || '-'}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* KATEGORI D */}
+                    <div className="bg-white border border-slate-100 rounded-2xl p-4 space-y-3.5 shadow-xs">
+                      <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
+                        <div className="p-1 bg-sky-50 text-sky-600 rounded-lg">
+                          <Smile className="w-4 h-4" />
+                        </div>
+                        <h5 className="text-[11px] font-black text-slate-800 uppercase tracking-wider">D. Karakter & Emosi Dominan</h5>
+                      </div>
+                      <div className="space-y-2.5 text-xs">
+                        <div>
+                          <span className="text-[9px] font-black text-slate-400 uppercase block mb-1">Karakter Utama Dominan</span>
+                          <div className="flex flex-wrap gap-1">
+                            {child.initialAssessment.sifatUtama && child.initialAssessment.sifatUtama.length > 0 ? (
+                              child.initialAssessment.sifatUtama.map(s => (
+                                <span key={s} className="text-[9px] font-bold bg-sky-50 text-sky-800 border border-sky-200/50 px-2 py-0.5 rounded-lg">{s}</span>
+                              ))
+                            ) : (
+                              <span className="text-slate-400 italic">Belum dipilih</span>
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-[9px] font-black text-slate-400 uppercase block">Pemicu Amarah / Kesedihan (Trigger)</span>
+                          <p className="text-slate-600 leading-normal font-medium bg-slate-50 p-2 rounded-xl mt-0.5 whitespace-pre-line">{child.initialAssessment.pemicuEmosi || '-'}</p>
+                        </div>
+                        <div>
+                          <span className="text-[9px] font-black text-slate-400 uppercase block">Reaksi Saat Marah / Sedih</span>
+                          <p className="text-slate-600 leading-normal font-medium bg-slate-50 p-2 rounded-xl mt-0.5 whitespace-pre-line">{child.initialAssessment.reaksiMarah || '-'}</p>
+                        </div>
+                        <div>
+                          <span className="text-[9px] font-black text-slate-400 uppercase block">Cara Efektif Menenangkan</span>
+                          <p className="text-slate-600 leading-normal font-medium bg-slate-50 p-2 rounded-xl mt-0.5 whitespace-pre-line">{child.initialAssessment.caraMenangani || '-'}</p>
+                        </div>
+                        {child.initialAssessment.riwayatTrauma && (
+                          <div>
+                            <span className="text-[9px] font-black text-slate-400 uppercase block">Riwayat Trauma / Pengalaman Khusus</span>
+                            <p className="text-rose-700 bg-rose-50/55 p-2 rounded-xl mt-0.5 whitespace-pre-line leading-normal font-medium border border-rose-100/30">{child.initialAssessment.riwayatTrauma}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* KATEGORI E */}
+                    <div className="bg-white border border-slate-100 rounded-2xl p-4 space-y-3.5 shadow-xs">
+                      <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
+                        <div className="p-1 bg-violet-50 text-violet-600 rounded-lg">
+                          <BookOpen className="w-4 h-4" />
+                        </div>
+                        <h5 className="text-[11px] font-black text-slate-800 uppercase tracking-wider">E. Akademik, Minat & Hobi</h5>
+                      </div>
+                      <div className="space-y-2.5 text-xs">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <span className="text-[9px] font-black text-emerald-500 uppercase block">Mapel Disukai</span>
+                            <span className="font-bold text-slate-700">{child.initialAssessment.mapelDisukai || '-'}</span>
+                          </div>
+                          <div>
+                            <span className="text-[9px] font-black text-rose-500 uppercase block">Mapel Ditakuti</span>
+                            <span className="font-bold text-slate-700">{child.initialAssessment.mapelDitakuti || '-'}</span>
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-[9px] font-black text-slate-400 uppercase block">Hobi / Kegiatan Kegemaran</span>
+                          <span className="font-semibold text-slate-700 block bg-slate-50 p-2 rounded-xl mt-0.5">{child.initialAssessment.hobiKegemaran || '-'}</span>
+                        </div>
+                        <div>
+                          <span className="text-[9px] font-black text-slate-400 uppercase block">Bakat Khusus Menonjol</span>
+                          <span className="font-semibold text-slate-700 block bg-slate-50 p-2 rounded-xl mt-0.5">{child.initialAssessment.bakatMenonjol || '-'}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* KATEGORI F */}
+                    <div className="bg-white border border-slate-100 rounded-2xl p-4 space-y-3.5 shadow-xs">
+                      <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
+                        <div className="p-1 bg-indigo-50 text-indigo-600 rounded-lg">
+                          <PhoneCall className="w-4 h-4" />
+                        </div>
+                        <h5 className="text-[11px] font-black text-slate-800 uppercase tracking-wider">F. Harapan & Kontak Darurat</h5>
+                      </div>
+                      <div className="space-y-2.5 text-xs">
+                        <div>
+                          <span className="text-[9px] font-black text-slate-400 uppercase block mb-1">3 Harapan Utama Orang Tua</span>
+                          <ol className="list-decimal pl-4 space-y-1.5 font-semibold text-slate-700 leading-normal">
+                            <li>{child.initialAssessment.harapan1}</li>
+                            <li>{child.initialAssessment.harapan2}</li>
+                            <li>{child.initialAssessment.harapan3}</li>
+                          </ol>
+                        </div>
+                        <div className="bg-slate-50 p-3 rounded-xl border border-slate-100/50 space-y-2">
+                          <span className="text-[9px] font-black text-indigo-700 uppercase block">Kontak Cadangan Darurat</span>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <span className="text-[8px] font-bold text-slate-400 uppercase block">Nama</span>
+                              <span className="font-bold text-slate-700">{child.initialAssessment.namaKontakAlternatif || '-'}</span>
+                            </div>
+                            <div>
+                              <span className="text-[8px] font-bold text-slate-400 uppercase block">Hubungan</span>
+                              <span className="font-bold text-slate-700">{child.initialAssessment.hubunganKontakAlternatif || '-'}</span>
+                            </div>
+                            <div className="col-span-2">
+                              <span className="text-[8px] font-bold text-slate-400 uppercase block">No. HP / WA</span>
+                              <span className="font-bold font-mono text-slate-800">{child.initialAssessment.noHpKontakAlternatif || '-'}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-white border border-slate-50 rounded-3xl p-12 text-center text-slate-400 flex flex-col items-center justify-center gap-3">
+                  <div className="p-3 bg-amber-50 text-amber-500 rounded-2xl">
+                    <ClipboardList className="w-8 h-8" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-extrabold text-slate-800">Data Asesmen Kosong</h4>
+                    <p className="text-[10px] text-slate-400 max-w-[280px] mx-auto mt-1 leading-normal">
+                      Orang tua belum mengisi Formulir Asesmen Awal untuk ananda {child.name}. Silakan infokan ke orang tua siswa untuk melengkapinya lewat Akun Orang Tua.
+                    </p>
+                  </div>
                 </div>
               )}
             </div>

@@ -320,6 +320,7 @@ export interface PDFExportOptions {
   includeAddress?: boolean;
   includeKkNik?: boolean;
   includeDocPhotos?: boolean;
+  includeInitialAssessment?: boolean;
 }
 
 /**
@@ -332,6 +333,7 @@ export const generateStudentPortfolioPDF = async (student: User, users: User[], 
     includeAddress = true,
     includeKkNik = true,
     includeDocPhotos = false,
+    includeInitialAssessment = true,
   } = options || {};
 
   const isF4 = paperSize === 'f4';
@@ -713,6 +715,169 @@ export const generateStudentPortfolioPDF = async (student: User, users: User[], 
         console.warn('Failed to render BPJS document page:', e);
       }
     }
+  }
+
+  // APPEND INITIAL ASSESSMENT IF REQUESTED
+  if (includeInitialAssessment && student.initialAssessment) {
+    const assess = student.initialAssessment;
+    const sections = [
+      {
+        title: 'KATEGORI A: IDENTITAS & PROFIL KELUARGA',
+        items: [
+          { label: 'Nama Lengkap', value: assess.namaLengkap },
+          { label: 'Nama Panggilan', value: assess.namaPanggilan },
+          { label: 'Anak Ke', value: `${assess.anakKe || '-'} dari ${assess.dariBersaudara || '-'} bersaudara` },
+          { label: 'Saudara Kandung/Tiri', value: assess.saudaraDetail },
+          { label: 'Status Orang Tua', value: assess.statusOrangTua },
+          { label: 'Pengasuhan Sebelumnya', value: assess.pengasuhanSebelumnya },
+          { label: 'Pekerjaan Ayah', value: assess.pekerjaanAyah },
+          { label: 'Pekerjaan Ibu', value: assess.pekerjaanIbu },
+          { label: 'Bantuan Pemerintah', value: Array.isArray(assess.bantuanPemerintah) ? assess.bantuanPemerintah.join(', ') : assess.bantuanPemerintah || '-' },
+        ]
+      },
+      {
+        title: 'KATEGORI B: RIWAYAT KESEHATAN & KEBUTUHAN FISIK',
+        items: [
+          { label: 'Alergi Makanan', value: assess.alergiMakanan },
+          { label: 'Alergi Obat', value: assess.alergiObat },
+          { label: 'Alergi Lainnya', value: assess.alergiLainnya },
+          { label: 'Riwayat Penyakit', value: Array.isArray(assess.riwayatPenyakit) ? assess.riwayatPenyakit.join(', ') : assess.riwayatPenyakit || '-' },
+          { label: 'Keterangan Riwayat Penyakit Lainnya', value: assess.riwayatPenyakitLainnya },
+          { label: 'Pengobatan Rutin', value: assess.pengobatanRutin },
+          { label: 'Pola Tidur', value: Array.isArray(assess.polaTidur) ? assess.polaTidur.join(', ') : assess.polaTidur || '-' },
+          { label: 'Pola Tidur Khusus', value: assess.polaTidurKhusus },
+          { label: 'Makanan Disukai', value: assess.makananDisukai },
+          { label: 'Makanan Tidak Disukai', value: assess.makananTidakDisukai },
+          { label: 'Kebiasaan Makan', value: assess.kebiasaanMakan },
+        ]
+      },
+      {
+        title: 'KATEGORI C: KEMANDIRIAN & KEBIASAAN SEHARI-HARI',
+        items: [
+          { label: 'Kemandirian Mandi', value: assess.kemandirianMandi },
+          { label: 'Kemandirian Merapikan Tempat Tidur', value: assess.kemandirianTempatTidur },
+          { label: 'Kemandirian Mencuci Baju', value: assess.kemandirianCuciBaju },
+          { label: 'Kemampuan Mengaji', value: assess.kemampuanMengaji },
+          { label: 'Detail Kemampuan Mengaji', value: assess.kemampuanMengajiDetail },
+          { label: 'Hafalan yang Dimiliki', value: assess.hafalanMilik },
+          { label: 'Kedisiplinan Shalat', value: assess.kedisiplinanShalat },
+        ]
+      },
+      {
+        title: 'KATEGORI D: KARAKTER, EMOSI & SOSIALISASI',
+        items: [
+          { label: 'Sifat Utama', value: Array.isArray(assess.sifatUtama) ? assess.sifatUtama.join(', ') : assess.sifatUtama || '-' },
+          { label: 'Pemicu Emosi', value: assess.pemicuEmosi },
+          { label: 'Reaksi Marah', value: assess.reaksiMarah },
+          { label: 'Cara Menangani', value: assess.caraMenangani },
+          { label: 'Riwayat Trauma', value: assess.riwayatTrauma },
+        ]
+      },
+      {
+        title: 'KATEGORI E: AKADEMIK, MINAT & HOBI',
+        items: [
+          { label: 'Mata Pelajaran Disukai', value: assess.mapelDisukai },
+          { label: 'Mata Pelajaran Ditakuti', value: assess.mapelDitakuti },
+          { label: 'Hobi / Kegemaran', value: assess.hobiKegemaran },
+          { label: 'Bakat / Potensi Menonjol', value: assess.bakatMenonjol },
+        ]
+      },
+      {
+        title: 'KATEGORI F: HARAPAN ORANG TUA & KONTAK DARURAT',
+        items: [
+          { label: 'Harapan 1 (Spritual/Karakter)', value: assess.harapan1 },
+          { label: 'Harapan 2 (Akademik/Bakat)', value: assess.harapan2 },
+          { label: 'Harapan 3 (Kemampuan Hidup)', value: assess.harapan3 },
+          { label: 'Nama Kontak Alternatif', value: assess.namaKontakAlternatif },
+          { label: 'Hubungan dengan Kontak', value: assess.hubunganKontakAlternatif },
+          { label: 'No HP Kontak Alternatif', value: assess.noHpKontakAlternatif },
+        ]
+      }
+    ];
+
+    doc.addPage();
+    drawHeaderBlock(doc.getNumberOfPages());
+    
+    doc.setTextColor(15, 23, 42); // Slate 900
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.text('LAMPIRAN: HASIL ASESMEN AWAL PESERTA DIDIK', 15, 33);
+    doc.setDrawColor(226, 232, 240);
+    doc.line(15, 35, width - 15, 35);
+    
+    let currentY = 41;
+    
+    sections.forEach((sec) => {
+      const bannerHeight = 8;
+      if (currentY + bannerHeight + 15 > height - 25) {
+        doc.addPage();
+        drawHeaderBlock(doc.getNumberOfPages());
+        currentY = 33;
+      }
+      
+      doc.setFillColor(241, 245, 249); // Slate 100
+      doc.roundedRect(15, currentY, width - 30, bannerHeight, 1.5, 1.5, 'F');
+      
+      doc.setFontSize(8);
+      doc.setTextColor(30, 41, 59); // Slate 800
+      doc.setFont('Helvetica', 'bold');
+      doc.text(sec.title, 19, currentY + bannerHeight / 2 + 1);
+      
+      currentY += bannerHeight + 4;
+      
+      sec.items.forEach((item) => {
+        const valStr = item.value || 'Belum diisi / Tidak ada';
+        const itemWidth = width - 30;
+        
+        doc.setFont('Helvetica', 'bold');
+        doc.setFontSize(7.5);
+        const labelLines = doc.splitTextToSize(item.label.toUpperCase(), itemWidth);
+        
+        doc.setFont('Helvetica', 'normal');
+        doc.setFontSize(8.5);
+        const valLines = doc.splitTextToSize(valStr, itemWidth - 8);
+        
+        const labelHeight = labelLines.length * 4;
+        const valHeight = valLines.length * 4;
+        const itemHeight = labelHeight + valHeight + 6;
+        
+        if (currentY + itemHeight > height - 25) {
+          doc.addPage();
+          drawHeaderBlock(doc.getNumberOfPages());
+          currentY = 33;
+          
+          doc.setFillColor(241, 245, 249);
+          doc.roundedRect(15, currentY, width - 30, bannerHeight, 1.5, 1.5, 'F');
+          doc.setFontSize(8);
+          doc.setTextColor(30, 41, 59);
+          doc.setFont('Helvetica', 'bold');
+          doc.text(`${sec.title} (Sambungan)`, 19, currentY + bannerHeight / 2 + 1);
+          currentY += bannerHeight + 4;
+        }
+        
+        doc.setFillColor(252, 253, 255);
+        doc.setDrawColor(241, 245, 249);
+        doc.roundedRect(15, currentY, itemWidth, itemHeight - 2, 1.5, 1.5, 'FD');
+        
+        doc.setFontSize(6.5);
+        doc.setTextColor(100, 116, 139); // Slate 500
+        doc.setFont('Helvetica', 'bold');
+        labelLines.forEach((line: string, idx: number) => {
+          doc.text(line, 19, currentY + 3.5 + idx * 3.5);
+        });
+        
+        doc.setFontSize(8);
+        doc.setTextColor(51, 65, 85); // Slate 700
+        doc.setFont('Helvetica', 'normal');
+        valLines.forEach((line: string, idx: number) => {
+          doc.text(line, 19, currentY + labelHeight + 3 + idx * 3.8);
+        });
+        
+        currentY += itemHeight;
+      });
+      
+      currentY += 4;
+    });
   }
 
   const safeStudentNameFile = student.name.toLowerCase().replace(/[^a-z0-9]/g, '_');

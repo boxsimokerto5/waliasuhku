@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { User, Report, Reply, SavingsTransaction } from '../types';
-import { Heart, Lock, Calendar, MessageSquare, Send, CheckCircle2, User as UserIcon, ShieldCheck, Mail, RefreshCw, Coins, ArrowUpRight, ArrowDownLeft, Eye, FileText, X, ImageIcon } from 'lucide-react';
+import { User, Report, Reply, SavingsTransaction, InitialAssessment } from '../types';
+import { Heart, Lock, Calendar, MessageSquare, Send, CheckCircle2, User as UserIcon, ShieldCheck, Mail, RefreshCw, Coins, ArrowUpRight, ArrowDownLeft, Eye, FileText, X, ImageIcon, ClipboardList, AlertCircle, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { decryptMessage, formatDate } from '../utils/crypto';
 import { generateStudentPortfolioPDF, generateStudentMonthlyReportPDF } from '../utils/pdfGenerator';
+import InitialAssessmentModal from './InitialAssessmentModal';
 
 interface OrangTuaDashboardProps {
   currentUser: User;
@@ -11,6 +12,7 @@ interface OrangTuaDashboardProps {
   reports: Report[];
   savingsTransactions: SavingsTransaction[];
   onAddReply: (reportId: string, replyContent: string) => void;
+  onUpdateChildBiodata?: (childId: string, updatedFields: Partial<User>) => void;
 }
 
 export default function OrangTuaDashboard({
@@ -18,13 +20,15 @@ export default function OrangTuaDashboard({
   users,
   reports,
   savingsTransactions,
-  onAddReply
+  onAddReply,
+  onUpdateChildBiodata
 }: OrangTuaDashboardProps) {
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [replyText, setReplyText] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [showSavingsHistory, setShowSavingsHistory] = useState(false);
   const [showChildDetail, setShowChildDetail] = useState(false);
+  const [showAssessmentModal, setShowAssessmentModal] = useState(false);
   const [zoomImage, setZoomImage] = useState<string | null>(null);
   const [isPrinting, setIsPrinting] = useState(false);
 
@@ -216,11 +220,11 @@ export default function OrangTuaDashboard({
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-slate-150">
+                <div className="pt-2 border-t border-slate-150 space-y-2">
                   <button
                     type="button"
                     onClick={() => setShowChildDetail(!showChildDetail)}
-                    className="w-full flex items-center justify-between text-[11px] font-extrabold text-slate-600 hover:text-slate-800 cursor-pointer mt-1 bg-violet-50/50 hover:bg-violet-50 p-2 rounded-xl transition-all border border-violet-100/30"
+                    className="w-full flex items-center justify-between text-[11px] font-extrabold text-slate-600 hover:text-slate-800 cursor-pointer bg-violet-50/50 hover:bg-violet-50 p-2.5 rounded-xl transition-all border border-violet-100/30"
                   >
                     <span className="flex items-center gap-1.5 text-violet-700">
                       <UserIcon className="w-4 h-4" />
@@ -228,6 +232,25 @@ export default function OrangTuaDashboard({
                     </span>
                     <span className="text-[10px] text-violet-600 underline">
                       {showChildDetail ? 'Sembunyikan' : 'Lihat Detail'}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowAssessmentModal(true)}
+                    className="w-full flex items-center justify-between text-[11px] font-extrabold text-slate-600 hover:text-slate-800 cursor-pointer bg-amber-50/50 hover:bg-amber-50 p-2.5 rounded-xl transition-all border border-amber-100/30"
+                  >
+                    <span className="flex items-center gap-1.5 text-amber-800">
+                      <ClipboardList className="w-4 h-4 text-amber-600" />
+                      <span>Formulir Asesmen Awal</span>
+                      {myChild.initialAssessment ? (
+                        <span className="bg-emerald-100 text-emerald-800 text-[8px] font-bold px-1.5 py-0.5 rounded-full ml-1">✓ Sudah Diisi</span>
+                      ) : (
+                        <span className="bg-rose-100 text-rose-800 text-[8px] font-bold px-1.5 py-0.5 rounded-full ml-1 animate-pulse">Belum Diisi</span>
+                      )}
+                    </span>
+                    <span className="text-[10px] text-amber-600 underline">
+                      {myChild.initialAssessment ? 'Ubah Respon' : 'Isi Sekarang'}
                     </span>
                   </button>
 
@@ -634,6 +657,21 @@ export default function OrangTuaDashboard({
           </div>
         </div>
       )}
+
+      {/* INITIAL ASSESSMENT FORM MODAL */}
+      <AnimatePresence>
+        {showAssessmentModal && myChild && (
+          <InitialAssessmentModal
+            child={myChild}
+            onClose={() => setShowAssessmentModal(false)}
+            onSave={async (childId, assessment) => {
+              if (onUpdateChildBiodata) {
+                await onUpdateChildBiodata(childId, { initialAssessment: assessment });
+              }
+            }}
+          />
+        )}
+      </AnimatePresence>
 
     </div>
   );
