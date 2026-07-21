@@ -1,6 +1,6 @@
 import React from 'react';
 import { User, Report } from '../types';
-import { User as UserIcon, Tag, MoreVertical, Check, Plus, ShieldAlert, Eye } from 'lucide-react';
+import { User as UserIcon, Tag, MoreVertical, Check, Plus, ShieldAlert, Eye, Trash2 } from 'lucide-react';
 
 interface AnakAsuhListProps {
   myChildren: User[];
@@ -18,6 +18,7 @@ interface AnakAsuhListProps {
   onUpdateChildCategory: (childId: string, category: string) => Promise<void>;
   onToggleUserSuspension?: (userId: string, isSuspended: boolean) => Promise<void> | void;
   onSelectChildForDetail?: (child: User) => void;
+  onDeleteAnakAsuh?: (childId: string) => Promise<void> | void;
 }
 
 export const AnakAsuhList: React.FC<AnakAsuhListProps> = ({
@@ -36,7 +37,10 @@ export const AnakAsuhList: React.FC<AnakAsuhListProps> = ({
   onUpdateChildCategory,
   onToggleUserSuspension,
   onSelectChildForDetail,
+  onDeleteAnakAsuh,
 }) => {
+  const [confirmDeleteId, setConfirmDeleteId] = React.useState<string | null>(null);
+
   const filteredChildren = myChildren.filter(c => {
     if (selectedCategoryFilter === 'all') return true;
     if (selectedCategoryFilter === 'uncategorized') return !c.category;
@@ -281,6 +285,51 @@ export const AnakAsuhList: React.FC<AnakAsuhListProps> = ({
                               <span>{c.isSuspended ? 'Aktifkan Akun' : 'Suspend Akun'}</span>
                             </button>
                           </div>
+
+                          {/* Delete Section */}
+                          {onDeleteAnakAsuh && (
+                            <div className="border-t border-slate-50 pt-1 mt-1">
+                              <div className="text-[9px] font-extrabold text-slate-400 px-2.5 py-1 uppercase tracking-wider">
+                                Tindakan Berbahaya
+                              </div>
+                              {confirmDeleteId === c.id ? (
+                                <div className="p-1 space-y-1">
+                                  <div className="text-[9px] text-rose-600 font-extrabold px-1 text-center leading-normal">
+                                    Hapus permanen data anak asuh?
+                                  </div>
+                                  <div className="flex gap-1">
+                                    <button
+                                      type="button"
+                                      onClick={async () => {
+                                        await onDeleteAnakAsuh(c.id);
+                                        setConfirmDeleteId(null);
+                                        setActiveMenuChildId(null);
+                                      }}
+                                      className="flex-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg py-1 text-[9px] font-extrabold text-center cursor-pointer"
+                                    >
+                                      Yakin
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setConfirmDeleteId(null)}
+                                      className="px-2 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-lg py-1 text-[9px] font-bold text-center cursor-pointer"
+                                    >
+                                      Batal
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => setConfirmDeleteId(c.id)}
+                                  className="w-full text-left px-2 py-1.5 rounded-xl text-[10px] font-bold text-rose-600 hover:bg-rose-50 transition-all cursor-pointer flex items-center gap-1.5"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5 text-rose-500" />
+                                  <span>Hapus Anak Asuh</span>
+                                </button>
+                              )}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

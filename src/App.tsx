@@ -255,6 +255,16 @@ export default function App() {
     }
   };
 
+  // Action: Delete Anak Asuh (Wali Asuh action)
+  const handleDeleteAnakAsuh = async (childId: string) => {
+    try {
+      await deleteDoc(doc(db, 'users', childId));
+      showToast('Anak Asuh Dihapus', 'Akun anak asuh berhasil dihapus secara permanen.');
+    } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, `users/${childId}`);
+    }
+  };
+
   // Action: Update Child Biodata (Wali Asuh action)
   const handleUpdateChildBiodata = async (childId: string, updatedFields: Partial<User>) => {
     try {
@@ -775,6 +785,7 @@ export default function App() {
             onDeleteBroadcast={handleDeleteBroadcast}
             onUpdateChildCategory={handleUpdateChildCategory}
             onToggleUserSuspension={handleToggleUserSuspension}
+            onDeleteAnakAsuh={handleDeleteAnakAsuh}
             onAddSavingsTransaction={handleCreateSavingsTransaction}
             onSendChatMessage={handleSendChatMessage}
             onUpdateChildBiodata={handleUpdateChildBiodata}

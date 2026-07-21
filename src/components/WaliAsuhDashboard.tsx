@@ -29,6 +29,7 @@ interface WaliAsuhDashboardProps {
   onDeleteBroadcast: (broadcastId: string) => void;
   onUpdateChildCategory: (childId: string, category: string) => void;
   onToggleUserSuspension?: (userId: string, isSuspended: boolean) => void;
+  onDeleteAnakAsuh?: (childId: string) => void | Promise<void>;
   onAddSavingsTransaction: (studentId: string, amount: number, type: 'setor' | 'tarik', description: string) => void;
   onSendChatMessage: (receiverId: string, content: string) => void;
   onUpdateChildBiodata?: (childId: string, updatedFields: Partial<User>) => Promise<void> | void;
@@ -53,6 +54,7 @@ export default function WaliAsuhDashboard({
   onDeleteBroadcast,
   onUpdateChildCategory,
   onToggleUserSuspension,
+  onDeleteAnakAsuh,
   onAddSavingsTransaction,
   onSendChatMessage,
   onUpdateChildBiodata,
@@ -61,6 +63,7 @@ export default function WaliAsuhDashboard({
 }: WaliAsuhDashboardProps) {
   const [newUsername, setNewUsername] = useState('');
   const [newName, setNewName] = useState('');
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -1032,6 +1035,40 @@ export default function WaliAsuhDashboard({
                         <ShieldAlert className="w-4 h-4 shrink-0" />
                         <span>{acc.isSuspended ? 'Aktifkan Akun' : 'Suspend Akun'}</span>
                       </button>
+
+                      {onDeleteAnakAsuh && acc.role === 'anak_asuh' && (
+                        confirmDeleteId === acc.id ? (
+                          <div className="flex items-center gap-1 bg-rose-50 border border-rose-100 p-1 rounded-xl shrink-0">
+                            <span className="text-[10px] text-rose-700 font-extrabold px-1">Yakin hapus?</span>
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                await onDeleteAnakAsuh(acc.id);
+                                setConfirmDeleteId(null);
+                              }}
+                              className="px-2 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-[10px] font-extrabold transition-all cursor-pointer"
+                            >
+                              Ya
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setConfirmDeleteId(null)}
+                              className="px-2 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-[10px] font-bold transition-all cursor-pointer"
+                            >
+                              Tidak
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setConfirmDeleteId(acc.id)}
+                            className="px-3 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
+                          >
+                            <Trash2 className="w-4 h-4 shrink-0" />
+                            <span>Hapus</span>
+                          </button>
+                        )
+                      )}
                     </div>
                   </div>
                 );
@@ -1112,6 +1149,7 @@ export default function WaliAsuhDashboard({
                 onUpdateChildCategory={onUpdateChildCategory}
                 onToggleUserSuspension={onToggleUserSuspension}
                 onSelectChildForDetail={setSelectedChildForDetail}
+                onDeleteAnakAsuh={onDeleteAnakAsuh}
               />
               <div className="hidden">
                 {/* List of My Children */}
