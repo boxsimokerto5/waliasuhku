@@ -314,14 +314,34 @@ export const generateAllCardsPDF = async (usersToPrint: User[], users: User[], t
   doc.save(`kumpulan_kartu_akses_${safeTabName}.pdf`);
 };
 
+export interface PDFExportOptions {
+  paperSize?: 'a4' | 'f4';
+  includePhoto?: boolean;
+  includeAddress?: boolean;
+  includeKkNik?: boolean;
+  includeDocPhotos?: boolean;
+}
+
 /**
- * Generate a beautiful A4 Student Portfolio PDF with photo, biodata, achievements, and caregiver info
+ * Generate a beautiful A4/F4 Student Portfolio PDF with photo, biodata, achievements, and caregiver info
  */
-export const generateStudentPortfolioPDF = async (student: User, users: User[]) => {
+export const generateStudentPortfolioPDF = async (student: User, users: User[], options?: PDFExportOptions) => {
+  const {
+    paperSize = 'f4',
+    includePhoto = true,
+    includeAddress = true,
+    includeKkNik = true,
+    includeDocPhotos = false,
+  } = options || {};
+
+  const isF4 = paperSize === 'f4';
+  const width = isF4 ? 215 : 210;
+  const height = isF4 ? 330 : 297;
+
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
-    format: 'a4'
+    format: isF4 ? [215, 330] : 'a4'
   });
 
   const imgData = student.fotoUrl ? await loadImage(student.fotoUrl) : '';
@@ -331,11 +351,11 @@ export const generateStudentPortfolioPDF = async (student: User, users: User[]) 
   const drawHeaderBlock = (pageNumber: number) => {
     // Top colored band
     doc.setFillColor(30, 41, 59); // Slate 800
-    doc.rect(0, 0, 210, 25, 'F');
+    doc.rect(0, 0, width, 25, 'F');
     
     // Header Accent Line
     doc.setFillColor(79, 70, 229); // Indigo 600
-    doc.rect(0, 25, 210, 2, 'F');
+    doc.rect(0, 25, width, 2, 'F');
 
     // Title & Subtitle
     doc.setTextColor(255, 255, 255);
@@ -351,50 +371,52 @@ export const generateStudentPortfolioPDF = async (student: User, users: User[]) 
     // Page indicator
     doc.setFontSize(7.5);
     doc.setTextColor(148, 163, 184);
-    doc.text(`Halaman ${pageNumber}`, 195, 12, { align: 'right' });
+    doc.text(`Halaman ${pageNumber}`, width - 15, 12, { align: 'right' });
   };
 
   // Page 1 Setup
   drawHeaderBlock(1);
 
   // Profile section layout
-  // 1. Photo Frame at x=155, y=35, w=40, h=45
-  const photoX = 155;
-  const photoY = 35;
   const photoW = 40;
   const photoH = 45;
+  const photoX = width - 55;
+  const photoY = 35;
 
-  doc.setDrawColor(226, 232, 240); // Slate 200
-  doc.setLineWidth(0.35);
-  doc.roundedRect(photoX, photoY, photoW, photoH, 2, 2, 'D');
+  // Metadata Panel Width changes dynamically depending on if photo is included
+  const metaW = includePhoto ? (width - 78) : (width - 30);
+  doc.setFillColor(248, 250, 252); // Slate 50
+  doc.roundedRect(15, 35, metaW, 45, 2, 2, 'F');
 
-  if (imgData) {
-    try {
-      let format = 'JPEG';
-      if (imgData.includes('image/png')) format = 'PNG';
-      else if (imgData.includes('image/webp')) format = 'WEBP';
-      doc.addImage(imgData, format, photoX + 0.5, photoY + 0.5, photoW - 1, photoH - 1);
-    } catch (e) {
-      console.warn('Portfolio photo render failed:', e);
+  if (includePhoto) {
+    doc.setDrawColor(226, 232, 240); // Slate 200
+    doc.setLineWidth(0.35);
+    doc.roundedRect(photoX, photoY, photoW, photoH, 2, 2, 'D');
+
+    if (imgData) {
+      try {
+        let format = 'JPEG';
+        if (imgData.includes('image/png')) format = 'PNG';
+        else if (imgData.includes('image/webp')) format = 'WEBP';
+        doc.addImage(imgData, format, photoX + 0.5, photoY + 0.5, photoW - 1, photoH - 1);
+      } catch (e) {
+        console.warn('Portfolio photo render failed:', e);
+        doc.setFillColor(241, 245, 249);
+        doc.roundedRect(photoX + 0.5, photoY + 0.5, photoW - 1, photoH - 1, 1.5, 1.5, 'F');
+        doc.setTextColor(148, 163, 184);
+        doc.setFont('Helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.text('FOTO', photoX + photoW / 2, photoY + photoH / 2 + 2, { align: 'center' });
+      }
+    } else {
       doc.setFillColor(241, 245, 249);
       doc.roundedRect(photoX + 0.5, photoY + 0.5, photoW - 1, photoH - 1, 1.5, 1.5, 'F');
       doc.setTextColor(148, 163, 184);
       doc.setFont('Helvetica', 'bold');
       doc.setFontSize(9);
-      doc.text('FOTO', photoX + photoW / 2, photoY + photoH / 2 + 2, { align: 'center' });
+      doc.text('FOTO SISWA', photoX + photoW / 2, photoY + photoH / 2 + 2, { align: 'center' });
     }
-  } else {
-    doc.setFillColor(241, 245, 249);
-    doc.roundedRect(photoX + 0.5, photoY + 0.5, photoW - 1, photoH - 1, 1.5, 1.5, 'F');
-    doc.setTextColor(148, 163, 184);
-    doc.setFont('Helvetica', 'bold');
-    doc.setFontSize(9);
-    doc.text('FOTO SISWA', photoX + photoW / 2, photoY + photoH / 2 + 2, { align: 'center' });
   }
-
-  // 2. Student Metadata Panel at x=15, y=35, w=132, h=45
-  doc.setFillColor(248, 250, 252); // Slate 50
-  doc.roundedRect(15, 35, 132, 45, 2, 2, 'F');
 
   // Let's draw fields
   // Left side info
@@ -405,7 +427,8 @@ export const generateStudentPortfolioPDF = async (student: User, users: User[]) 
   doc.setFontSize(10);
   doc.setTextColor(15, 23, 42); // Slate 900
   doc.setFont('Helvetica', 'bold');
-  const safeStudentName = student.name.length > 25 ? student.name.substring(0, 23) + '...' : student.name;
+  const nameMaxLen = includePhoto ? 25 : 45;
+  const safeStudentName = student.name.length > nameMaxLen ? student.name.substring(0, nameMaxLen - 2) + '...' : student.name;
   doc.text(safeStudentName, 20, 48.5);
 
   doc.setFontSize(7);
@@ -418,24 +441,26 @@ export const generateStudentPortfolioPDF = async (student: User, users: User[]) 
   doc.text(student.category || 'Umum', 20, 64);
 
   // Right side info
+  const rightColX = includePhoto ? 85 : 105;
   doc.setFontSize(7);
   doc.setTextColor(100, 116, 139);
   doc.setFont('Helvetica', 'normal');
-  doc.text('USERNAME / ID AKUN', 85, 43);
+  doc.text('USERNAME / ID AKUN', rightColX, 43);
   doc.setFontSize(9.5);
   doc.setTextColor(15, 23, 42);
   doc.setFont('Helvetica', 'bold');
-  doc.text(`@${student.username}`, 85, 48.5);
+  doc.text(`@${student.username}`, rightColX, 48.5);
 
   doc.setFontSize(7);
   doc.setTextColor(100, 116, 139);
   doc.setFont('Helvetica', 'normal');
-  doc.text('WALI ASUH PENDAMPING', 85, 59);
+  doc.text('WALI ASUH PENDAMPING', rightColX, 59);
   doc.setFontSize(9.5);
   doc.setTextColor(15, 23, 42);
   doc.setFont('Helvetica', 'bold');
-  const safeWaliAsuhName = waliAsuhName.length > 20 ? waliAsuhName.substring(0, 18) + '...' : waliAsuhName;
-  doc.text(safeWaliAsuhName, 85, 64);
+  const maxWaliAsuhLen = includePhoto ? 20 : 35;
+  const safeWaliAsuhName = waliAsuhName.length > maxWaliAsuhLen ? waliAsuhName.substring(0, maxWaliAsuhLen - 2) + '...' : waliAsuhName;
+  doc.text(safeWaliAsuhName, rightColX, 64);
 
   // Footer of metadata card
   doc.setFontSize(6.5);
@@ -452,16 +477,15 @@ export const generateStudentPortfolioPDF = async (student: User, users: User[]) 
 
   doc.setDrawColor(226, 232, 240); // Slate 200
   doc.setLineWidth(0.4);
-  doc.line(15, currentY + 3, 195, currentY + 3);
+  doc.line(15, currentY + 3, width - 15, currentY + 3);
 
   currentY += 9;
 
-  // Let's create an elegant grid layout of 6 boxes for details
-  // Grid layout config: 2 columns, 3 rows
-  const gridW = 87;
+  // Let's create an elegant grid layout dynamically for details
+  const gridW = (width - 36) / 2;
   const gridH = 13;
   const col1X = 15;
-  const col2X = 108;
+  const col2X = 15 + gridW + 6;
 
   const drawGridItem = (x: number, y: number, label: string, value: string) => {
     // Outer box
@@ -480,24 +504,39 @@ export const generateStudentPortfolioPDF = async (student: User, users: User[]) 
     doc.setFontSize(8.5);
     doc.setTextColor(51, 65, 85); // Slate 700
     doc.setFont('Helvetica', 'bold');
-    const safeVal = value.length > 42 ? value.substring(0, 39) + '...' : value;
+    const maxValLen = isF4 ? 46 : 42;
+    const safeVal = value.length > maxValLen ? value.substring(0, maxValLen - 3) + '...' : value;
     doc.text(safeVal, x + 4, y + 10);
   };
 
   const rupiahVal = `Rp ${(student.savingsBalance || 0).toLocaleString('id-ID')}`;
 
-  drawGridItem(col1X, currentY, 'Nomor Induk Kependudukan (NIK)', student.nik || 'Belum diisi');
-  drawGridItem(col2X, currentY, 'Nomor Kartu Keluarga (KK)', student.kk || 'Belum diisi');
-  
-  currentY += 17;
-  drawGridItem(col1X, currentY, 'Nomor HP Orang Tua', student.parentPhone || 'Belum diisi');
-  drawGridItem(col2X, currentY, 'Alamat Email', student.email || 'Belum diisi');
+  const gridItems: { label: string; value: string }[] = [];
 
-  currentY += 17;
-  drawGridItem(col1X, currentY, 'Alamat Rumah / Asal', student.alamat || 'Belum diisi');
-  drawGridItem(col2X, currentY, 'Saldo Tabungan Asrama', rupiahVal);
+  if (includeKkNik) {
+    gridItems.push({ label: 'Nomor Induk Kependudukan (NIK)', value: student.nik || 'Belum diisi' });
+    gridItems.push({ label: 'Nomor Kartu Keluarga (KK)', value: student.kk || 'Belum diisi' });
+  }
 
-  currentY += 21;
+  gridItems.push({ label: 'Nomor HP Orang Tua', value: student.parentPhone || 'Belum diisi' });
+  gridItems.push({ label: 'Alamat Email', value: student.email || 'Belum diisi' });
+
+  if (includeAddress) {
+    gridItems.push({ label: 'Alamat Rumah / Asal', value: student.alamat || 'Belum diisi' });
+  }
+  gridItems.push({ label: 'Saldo Tabungan Asrama', value: rupiahVal });
+
+  // Draw the grids in 2 columns
+  gridItems.forEach((item, idx) => {
+    const col = idx % 2;
+    const row = Math.floor(idx / 2);
+    const x = col === 0 ? col1X : col2X;
+    const y = currentY + (row * 17);
+    drawGridItem(x, y, item.label, item.value);
+  });
+
+  const numRows = Math.ceil(gridItems.length / 2);
+  currentY += (numRows * 17) + 4;
 
   // Section 2: REKAM PRESTASI & PORTOFOLIO SISWA
   doc.setTextColor(15, 23, 42); // Slate 900
@@ -507,7 +546,7 @@ export const generateStudentPortfolioPDF = async (student: User, users: User[]) 
 
   doc.setDrawColor(226, 232, 240); // Slate 200
   doc.setLineWidth(0.4);
-  doc.line(15, currentY + 3, 195, currentY + 3);
+  doc.line(15, currentY + 3, width - 15, currentY + 3);
 
   currentY += 10;
 
@@ -518,7 +557,7 @@ export const generateStudentPortfolioPDF = async (student: User, users: User[]) 
     doc.setFillColor(254, 243, 199); // Amber 100
     doc.setDrawColor(251, 191, 36); // Amber 400
     doc.setLineWidth(0.25);
-    doc.roundedRect(15, currentY, 180, 15, 2, 2, 'FD');
+    doc.roundedRect(15, currentY, width - 30, 15, 2, 2, 'FD');
 
     doc.setFontSize(8.5);
     doc.setTextColor(180, 83, 9); // Amber 800
@@ -530,27 +569,28 @@ export const generateStudentPortfolioPDF = async (student: User, users: User[]) 
   } else {
     // Draw table of portfolios
     portfolios.forEach((item) => {
-      const descLines = doc.splitTextToSize(item.description, 135);
+      const splitLimit = isF4 ? 140 : 135;
+      const descLines = doc.splitTextToSize(item.description, splitLimit);
       const itemHeight = 12 + (descLines.length * 4);
 
       // Check for page overflow
-      if (currentY + itemHeight > 260) {
+      if (currentY + itemHeight > height - 37) {
         doc.addPage();
-        drawHeaderBlock(2);
+        drawHeaderBlock(doc.getNumberOfPages());
         
         doc.setTextColor(15, 23, 42); // Slate 900
         doc.setFont('Helvetica', 'bold');
         doc.setFontSize(9);
         doc.text('II. REKAM PRESTASI & PORTOFOLIO SISWA (Sambungan)', 15, 33);
         doc.setDrawColor(226, 232, 240);
-        doc.line(15, 35, 195, 35);
+        doc.line(15, 35, width - 15, 35);
         currentY = 43;
       }
 
       // Draw item card wrapper background
       doc.setFillColor(252, 253, 255);
       doc.setDrawColor(241, 245, 249);
-      doc.roundedRect(15, currentY, 180, itemHeight - 2, 2, 2, 'FD');
+      doc.roundedRect(15, currentY, width - 30, itemHeight - 2, 2, 2, 'FD');
 
       // Date column (Left) at x=20
       doc.setFontSize(7.5);
@@ -584,18 +624,18 @@ export const generateStudentPortfolioPDF = async (student: User, users: User[]) 
   }
 
   // Check overflow for signature block
-  if (currentY + 35 > 280) {
+  if (currentY + 35 > height - 17) {
     doc.addPage();
-    drawHeaderBlock(3);
+    drawHeaderBlock(doc.getNumberOfPages());
     currentY = 40;
   } else {
-    currentY = Math.max(currentY + 10, 240); // Push signature block to bottom of the page
+    currentY = Math.max(currentY + 10, height - 57); // Push signature block to bottom of the page
   }
 
   // Draw signature line and details
   doc.setDrawColor(226, 232, 240);
   doc.setLineWidth(0.3);
-  doc.line(15, currentY - 5, 195, currentY - 5);
+  doc.line(15, currentY - 5, width - 15, currentY - 5);
 
   doc.setFontSize(7.5);
   doc.setTextColor(148, 163, 184);
@@ -614,25 +654,92 @@ export const generateStudentPortfolioPDF = async (student: User, users: User[]) 
 
   // Right Signee: Wali Asuh
   doc.setFont('Helvetica', 'normal');
-  doc.text('Tertanda,', 140, currentY + 5);
-  doc.text('Wali Asuh Pendamping', 140, currentY + 9);
-  doc.line(140, currentY + 28, 190, currentY + 28);
+  doc.text('Tertanda,', width - 70, currentY + 5);
+  doc.text('Wali Asuh Pendamping', width - 70, currentY + 9);
+  doc.line(width - 70, currentY + 28, width - 20, currentY + 28);
   doc.setFont('Helvetica', 'bold');
-  doc.text(waliAsuhName, 140, currentY + 32);
+  doc.text(waliAsuhName, width - 70, currentY + 32);
+
+  // APPEND DOCUMENT PHOTOS IF REQUESTED
+  if (includeDocPhotos) {
+    if (student.fotoKkUrl) {
+      doc.addPage();
+      drawHeaderBlock(doc.getNumberOfPages());
+      
+      doc.setTextColor(15, 23, 42);
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.text('LAMPIRAN: FOTO KARTU KELUARGA (KK)', 15, 33);
+      doc.setDrawColor(226, 232, 240);
+      doc.line(15, 35, width - 15, 35);
+      
+      try {
+        const kkImgData = await loadImage(student.fotoKkUrl);
+        if (kkImgData) {
+          let format = 'JPEG';
+          if (kkImgData.includes('image/png')) format = 'PNG';
+          else if (kkImgData.includes('image/webp')) format = 'WEBP';
+          
+          doc.roundedRect(15, 42, width - 30, height - 70, 3, 3, 'D');
+          doc.addImage(kkImgData, format, 16, 43, width - 32, height - 72);
+        }
+      } catch (e) {
+        console.warn('Failed to render KK document page:', e);
+      }
+    }
+    
+    if (student.fotoBpjsUrl) {
+      doc.addPage();
+      drawHeaderBlock(doc.getNumberOfPages());
+      
+      doc.setTextColor(15, 23, 42);
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.text('LAMPIRAN: FOTO KARTU BPJS KESEHATAN', 15, 33);
+      doc.setDrawColor(226, 232, 240);
+      doc.line(15, 35, width - 15, 35);
+      
+      try {
+        const bpjsImgData = await loadImage(student.fotoBpjsUrl);
+        if (bpjsImgData) {
+          let format = 'JPEG';
+          if (bpjsImgData.includes('image/png')) format = 'PNG';
+          else if (bpjsImgData.includes('image/webp')) format = 'WEBP';
+          
+          doc.roundedRect(15, 42, width - 30, height - 70, 3, 3, 'D');
+          doc.addImage(bpjsImgData, format, 16, 43, width - 32, height - 72);
+        }
+      } catch (e) {
+        console.warn('Failed to render BPJS document page:', e);
+      }
+    }
+  }
 
   const safeStudentNameFile = student.name.toLowerCase().replace(/[^a-z0-9]/g, '_');
   doc.save(`portofolio_siswa_${safeStudentNameFile}.pdf`);
 };
 
 /**
- * Generate a beautiful A4 Monthly Development Report PDF for Parents
+ * Generate a beautiful A4/F4 Monthly Development Report PDF for Parents
  * (Excludes savings balances and tahfidz as requested)
  */
-export const generateStudentMonthlyReportPDF = async (student: User, users: User[]) => {
+export const generateStudentMonthlyReportPDF = async (student: User, users: User[], options?: PDFExportOptions) => {
+  const {
+    paperSize = 'f4',
+    includePhoto = true,
+    includeAddress = true,
+    includeKkNik = true,
+    includeDocPhotos = false,
+  } = options || {};
+
+  const isF4 = paperSize === 'f4';
+  const width = isF4 ? 215 : 210;
+  const height = isF4 ? 330 : 297;
+
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
-    format: 'a4'
+    format: isF4 ? [215, 330] : 'a4'
   });
 
   const imgData = student.fotoUrl ? await loadImage(student.fotoUrl) : '';
@@ -644,11 +751,11 @@ export const generateStudentMonthlyReportPDF = async (student: User, users: User
   const drawHeaderBlock = (pageNumber: number) => {
     // Top colored band
     doc.setFillColor(79, 70, 229); // Indigo 600
-    doc.rect(0, 0, 210, 25, 'F');
+    doc.rect(0, 0, width, 25, 'F');
     
     // Header Accent Line
     doc.setFillColor(124, 58, 237); // Violet 600
-    doc.rect(0, 25, 210, 2, 'F');
+    doc.rect(0, 25, width, 2, 'F');
 
     // Title & Subtitle
     doc.setTextColor(255, 255, 255);
@@ -664,49 +771,51 @@ export const generateStudentMonthlyReportPDF = async (student: User, users: User
     // Page indicator
     doc.setFontSize(7.5);
     doc.setTextColor(224, 242, 254);
-    doc.text(`Halaman ${pageNumber}`, 195, 12, { align: 'right' });
+    doc.text(`Halaman ${pageNumber}`, width - 15, 12, { align: 'right' });
   };
 
   // Page 1 Setup
   drawHeaderBlock(1);
 
-  // Profile photo frame at x=155, y=35, w=40, h=45
-  const photoX = 155;
-  const photoY = 35;
+  // Profile photo layout
   const photoW = 40;
   const photoH = 45;
+  const photoX = width - 55;
+  const photoY = 35;
 
-  doc.setDrawColor(226, 232, 240); // Slate 200
-  doc.setLineWidth(0.35);
-  doc.roundedRect(photoX, photoY, photoW, photoH, 2, 2, 'D');
+  const metaW = includePhoto ? (width - 78) : (width - 30);
+  doc.setFillColor(248, 250, 252); // Slate 50
+  doc.roundedRect(15, 35, metaW, 45, 2, 2, 'F');
 
-  if (imgData) {
-    try {
-      let format = 'JPEG';
-      if (imgData.includes('image/png')) format = 'PNG';
-      else if (imgData.includes('image/webp')) format = 'WEBP';
-      doc.addImage(imgData, format, photoX + 0.5, photoY + 0.5, photoW - 1, photoH - 1);
-    } catch (e) {
-      console.warn('Monthly report photo render failed:', e);
+  if (includePhoto) {
+    doc.setDrawColor(226, 232, 240); // Slate 200
+    doc.setLineWidth(0.35);
+    doc.roundedRect(photoX, photoY, photoW, photoH, 2, 2, 'D');
+
+    if (imgData) {
+      try {
+        let format = 'JPEG';
+        if (imgData.includes('image/png')) format = 'PNG';
+        else if (imgData.includes('image/webp')) format = 'WEBP';
+        doc.addImage(imgData, format, photoX + 0.5, photoY + 0.5, photoW - 1, photoH - 1);
+      } catch (e) {
+        console.warn('Monthly report photo render failed:', e);
+        doc.setFillColor(241, 245, 249);
+        doc.roundedRect(photoX + 0.5, photoY + 0.5, photoW - 1, photoH - 1, 1.5, 1.5, 'F');
+        doc.setTextColor(148, 163, 184);
+        doc.setFont('Helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.text('FOTO', photoX + photoW / 2, photoY + photoH / 2 + 2, { align: 'center' });
+      }
+    } else {
       doc.setFillColor(241, 245, 249);
       doc.roundedRect(photoX + 0.5, photoY + 0.5, photoW - 1, photoH - 1, 1.5, 1.5, 'F');
       doc.setTextColor(148, 163, 184);
       doc.setFont('Helvetica', 'bold');
       doc.setFontSize(9);
-      doc.text('FOTO', photoX + photoW / 2, photoY + photoH / 2 + 2, { align: 'center' });
+      doc.text('FOTO SISWA', photoX + photoW / 2, photoY + photoH / 2 + 2, { align: 'center' });
     }
-  } else {
-    doc.setFillColor(241, 245, 249);
-    doc.roundedRect(photoX + 0.5, photoY + 0.5, photoW - 1, photoH - 1, 1.5, 1.5, 'F');
-    doc.setTextColor(148, 163, 184);
-    doc.setFont('Helvetica', 'bold');
-    doc.setFontSize(9);
-    doc.text('FOTO SISWA', photoX + photoW / 2, photoY + photoH / 2 + 2, { align: 'center' });
   }
-
-  // Student metadata card at x=15, y=35, w=132, h=45
-  doc.setFillColor(248, 250, 252); // Slate 50
-  doc.roundedRect(15, 35, 132, 45, 2, 2, 'F');
 
   // Metadata Fields
   doc.setFontSize(7);
@@ -716,7 +825,8 @@ export const generateStudentMonthlyReportPDF = async (student: User, users: User
   doc.setFontSize(10);
   doc.setTextColor(15, 23, 42); // Slate 900
   doc.setFont('Helvetica', 'bold');
-  const safeStudentName = student.name.length > 25 ? student.name.substring(0, 23) + '...' : student.name;
+  const nameMaxLen = includePhoto ? 25 : 45;
+  const safeStudentName = student.name.length > nameMaxLen ? student.name.substring(0, nameMaxLen - 2) + '...' : student.name;
   doc.text(safeStudentName, 20, 48.5);
 
   doc.setFontSize(7);
@@ -728,24 +838,27 @@ export const generateStudentMonthlyReportPDF = async (student: User, users: User
   doc.setFont('Helvetica', 'bold');
   doc.text(student.category || 'Umum', 20, 64);
 
+  // Right column of Metadata
+  const rightColX = includePhoto ? 85 : 105;
   doc.setFontSize(7);
   doc.setTextColor(100, 116, 139);
   doc.setFont('Helvetica', 'normal');
-  doc.text('USER ID LAPORAN', 85, 43);
+  doc.text('USER ID LAPORAN', rightColX, 43);
   doc.setFontSize(9.5);
   doc.setTextColor(15, 23, 42);
   doc.setFont('Helvetica', 'bold');
-  doc.text(`@${student.username}`, 85, 48.5);
+  doc.text(`@${student.username}`, rightColX, 48.5);
 
   doc.setFontSize(7);
   doc.setTextColor(100, 116, 139);
   doc.setFont('Helvetica', 'normal');
-  doc.text('PEMBINA / WALI ASUH', 85, 59);
+  doc.text('PEMBINA / WALI ASUH', rightColX, 59);
   doc.setFontSize(9.5);
   doc.setTextColor(15, 23, 42);
   doc.setFont('Helvetica', 'bold');
-  const safeWaliAsuhName = waliAsuhName.length > 20 ? waliAsuhName.substring(0, 18) + '...' : waliAsuhName;
-  doc.text(safeWaliAsuhName, 85, 64);
+  const maxWaliAsuhLen = includePhoto ? 20 : 35;
+  const safeWaliAsuhName = waliAsuhName.length > maxWaliAsuhLen ? waliAsuhName.substring(0, maxWaliAsuhLen - 2) + '...' : waliAsuhName;
+  doc.text(safeWaliAsuhName, rightColX, 64);
 
   // Footer of metadata card
   doc.setFontSize(6.5);
@@ -762,15 +875,15 @@ export const generateStudentMonthlyReportPDF = async (student: User, users: User
 
   doc.setDrawColor(226, 232, 240); // Slate 200
   doc.setLineWidth(0.4);
-  doc.line(15, currentY + 3, 195, currentY + 3);
+  doc.line(15, currentY + 3, width - 15, currentY + 3);
 
   currentY += 9;
 
-  // Render 4 grids for Admin Info (Excluding Savings / Balance entirely as requested)
-  const gridW = 87;
+  // Let's create an elegant grid layout dynamically for details
+  const gridW = (width - 36) / 2;
   const gridH = 13;
   const col1X = 15;
-  const col2X = 108;
+  const col2X = 15 + gridW + 6;
 
   const drawGridItem = (x: number, y: number, label: string, value: string) => {
     doc.setFillColor(250, 250, 250);
@@ -786,23 +899,37 @@ export const generateStudentMonthlyReportPDF = async (student: User, users: User
     doc.setFontSize(8.5);
     doc.setTextColor(51, 65, 85);
     doc.setFont('Helvetica', 'bold');
-    const safeVal = value.length > 42 ? value.substring(0, 39) + '...' : value;
+    const maxValLen = isF4 ? 46 : 42;
+    const safeVal = value.length > maxValLen ? value.substring(0, maxValLen - 3) + '...' : value;
     doc.text(safeVal, x + 4, y + 10);
   };
 
-  drawGridItem(col1X, currentY, 'NIK (Nomor Induk Kependudukan)', student.nik || 'Belum diisi');
-  drawGridItem(col2X, currentY, 'No. Kartu Keluarga', student.kk || 'Belum diisi');
-  
-  currentY += 17;
-  drawGridItem(col1X, currentY, 'Nomor HP Orang Tua', student.parentPhone || 'Belum diisi');
-  drawGridItem(col2X, currentY, 'Alamat Email Wali', student.email || 'Belum diisi');
+  const gridItems: { label: string; value: string }[] = [];
 
-  currentY += 17;
-  drawGridItem(col1X, currentY, 'Alamat Lengkap Asal', student.alamat || 'Belum diisi');
-  // Fill other grid with date of report to make it clean
-  drawGridItem(col2X, currentY, 'Tanggal Terbit Laporan', new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }));
+  if (includeKkNik) {
+    gridItems.push({ label: 'NIK (Nomor Induk Kependudukan)', value: student.nik || 'Belum diisi' });
+    gridItems.push({ label: 'No. Kartu Keluarga', value: student.kk || 'Belum diisi' });
+  }
 
-  currentY += 21;
+  gridItems.push({ label: 'Nomor HP Orang Tua', value: student.parentPhone || 'Belum diisi' });
+  gridItems.push({ label: 'Alamat Email Wali', value: student.email || 'Belum diisi' });
+
+  if (includeAddress) {
+    gridItems.push({ label: 'Alamat Lengkap Asal', value: student.alamat || 'Belum diisi' });
+  }
+  gridItems.push({ label: 'Tanggal Terbit Laporan', value: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) });
+
+  // Draw the grids in 2 columns
+  gridItems.forEach((item, idx) => {
+    const col = idx % 2;
+    const row = Math.floor(idx / 2);
+    const x = col === 0 ? col1X : col2X;
+    const y = currentY + (row * 17);
+    drawGridItem(x, y, item.label, item.value);
+  });
+
+  const numRows = Math.ceil(gridItems.length / 2);
+  currentY += (numRows * 17) + 4;
 
   // Section 2: PERKEMBANGAN KESEHATAN SISWA
   doc.setTextColor(15, 23, 42);
@@ -811,7 +938,7 @@ export const generateStudentMonthlyReportPDF = async (student: User, users: User
   doc.text('II. PERKEMBANGAN KESEHATAN SISWA', 15, currentY);
 
   doc.setDrawColor(226, 232, 240);
-  doc.line(15, currentY + 3, 195, currentY + 3);
+  doc.line(15, currentY + 3, width - 15, currentY + 3);
 
   currentY += 10;
 
@@ -829,7 +956,7 @@ export const generateStudentMonthlyReportPDF = async (student: User, users: User
     doc.setDrawColor(253, 224, 71); // Yellow 400
   }
   
-  doc.roundedRect(15, currentY, 180, 24, 2, 2, 'FD');
+  doc.roundedRect(15, currentY, width - 30, 24, 2, 2, 'FD');
 
   doc.setFontSize(7.5);
   doc.setTextColor(100, 116, 139);
@@ -848,7 +975,7 @@ export const generateStudentMonthlyReportPDF = async (student: User, users: User
   doc.setFontSize(8);
   doc.setTextColor(71, 85, 105);
   doc.setFont('Helvetica', 'normal');
-  const splitHNotes = doc.splitTextToSize(hNotes, 170);
+  const splitHNotes = doc.splitTextToSize(hNotes, width - 40);
   doc.text(splitHNotes, 20, 16.5 + currentY);
 
   currentY += 31;
@@ -860,7 +987,7 @@ export const generateStudentMonthlyReportPDF = async (student: User, users: User
   doc.text('III. DAFTAR KEGIATAN & PEMBINAAN ASRAMA', 15, currentY);
 
   doc.setDrawColor(226, 232, 240);
-  doc.line(15, currentY + 3, 195, currentY + 3);
+  doc.line(15, currentY + 3, width - 15, currentY + 3);
 
   currentY += 10;
 
@@ -868,10 +995,10 @@ export const generateStudentMonthlyReportPDF = async (student: User, users: User
   
   doc.setFillColor(248, 250, 252); // Slate 50
   doc.setDrawColor(241, 245, 249);
-  const splitActNotes = doc.splitTextToSize(actNotes, 170);
+  const splitActNotes = doc.splitTextToSize(actNotes, width - 40);
   const actHeight = 10 + (splitActNotes.length * 4.2);
 
-  doc.roundedRect(15, currentY, 180, actHeight, 2, 2, 'FD');
+  doc.roundedRect(15, currentY, width - 30, actHeight, 2, 2, 'FD');
 
   doc.setFontSize(8.5);
   doc.setTextColor(15, 23, 42);
@@ -886,7 +1013,7 @@ export const generateStudentMonthlyReportPDF = async (student: User, users: User
   currentY += actHeight + 8;
 
   // Section 4: PERKEMBANGAN KARAKTER & SIKAP SISWA
-  if (currentY + 45 > 280) {
+  if (currentY + 45 > height - 17) {
     doc.addPage();
     drawHeaderBlock(2);
     currentY = 40;
@@ -898,7 +1025,7 @@ export const generateStudentMonthlyReportPDF = async (student: User, users: User
   doc.text('IV. PERKEMBANGAN KARAKTER & SIKAP', 15, currentY);
 
   doc.setDrawColor(226, 232, 240);
-  doc.line(15, currentY + 3, 195, currentY + 3);
+  doc.line(15, currentY + 3, width - 15, currentY + 3);
 
   currentY += 10;
 
@@ -906,10 +1033,10 @@ export const generateStudentMonthlyReportPDF = async (student: User, users: User
   
   doc.setFillColor(253, 244, 255); // Purple 50
   doc.setDrawColor(240, 215, 253);
-  const splitCharNotes = doc.splitTextToSize(charNotes, 170);
+  const splitCharNotes = doc.splitTextToSize(charNotes, width - 40);
   const charHeight = 10 + (splitCharNotes.length * 4.2);
 
-  doc.roundedRect(15, currentY, 180, charHeight, 2, 2, 'FD');
+  doc.roundedRect(15, currentY, width - 30, charHeight, 2, 2, 'FD');
 
   doc.setFontSize(8.5);
   doc.setTextColor(112, 26, 117); // Purple 900
@@ -924,18 +1051,18 @@ export const generateStudentMonthlyReportPDF = async (student: User, users: User
   currentY += charHeight;
 
   // Check overflow for signatures
-  if (currentY + 42 > 280) {
+  if (currentY + 42 > height - 17) {
     doc.addPage();
     drawHeaderBlock(doc.getNumberOfPages());
     currentY = 40;
   } else {
-    currentY = Math.max(currentY + 10, 245); // Align cleanly near bottom of page 1 or page 2
+    currentY = Math.max(currentY + 10, height - 52); // Align cleanly near bottom
   }
 
   // Draw signature line and details
   doc.setDrawColor(226, 232, 240);
   doc.setLineWidth(0.3);
-  doc.line(15, currentY - 5, 195, currentY - 5);
+  doc.line(15, currentY - 5, width - 15, currentY - 5);
 
   doc.setFontSize(7.5);
   doc.setTextColor(148, 163, 184);
@@ -954,11 +1081,66 @@ export const generateStudentMonthlyReportPDF = async (student: User, users: User
 
   // Right Signee: Wali Asuh
   doc.setFont('Helvetica', 'normal');
-  doc.text('Tertanda,', 140, currentY + 5);
-  doc.text('Wali Asuh Pendamping', 140, currentY + 9);
-  doc.line(140, currentY + 28, 190, currentY + 28);
+  doc.text('Tertanda,', width - 70, currentY + 5);
+  doc.text('Wali Asuh Pendamping', width - 70, currentY + 9);
+  doc.line(width - 70, currentY + 28, width - 20, currentY + 28);
   doc.setFont('Helvetica', 'bold');
-  doc.text(waliAsuhName, 140, currentY + 32);
+  doc.text(waliAsuhName, width - 70, currentY + 32);
+
+  // APPEND DOCUMENT PHOTOS IF REQUESTED
+  if (includeDocPhotos) {
+    if (student.fotoKkUrl) {
+      doc.addPage();
+      drawHeaderBlock(doc.getNumberOfPages());
+      
+      doc.setTextColor(15, 23, 42);
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.text('LAMPIRAN: FOTO KARTU KELUARGA (KK)', 15, 33);
+      doc.setDrawColor(226, 232, 240);
+      doc.line(15, 35, width - 15, 35);
+      
+      try {
+        const kkImgData = await loadImage(student.fotoKkUrl);
+        if (kkImgData) {
+          let format = 'JPEG';
+          if (kkImgData.includes('image/png')) format = 'PNG';
+          else if (kkImgData.includes('image/webp')) format = 'WEBP';
+          
+          doc.roundedRect(15, 42, width - 30, height - 70, 3, 3, 'D');
+          doc.addImage(kkImgData, format, 16, 43, width - 32, height - 72);
+        }
+      } catch (e) {
+        console.warn('Failed to render KK document page:', e);
+      }
+    }
+    
+    if (student.fotoBpjsUrl) {
+      doc.addPage();
+      drawHeaderBlock(doc.getNumberOfPages());
+      
+      doc.setTextColor(15, 23, 42);
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.text('LAMPIRAN: FOTO KARTU BPJS KESEHATAN', 15, 33);
+      doc.setDrawColor(226, 232, 240);
+      doc.line(15, 35, width - 15, 35);
+      
+      try {
+        const bpjsImgData = await loadImage(student.fotoBpjsUrl);
+        if (bpjsImgData) {
+          let format = 'JPEG';
+          if (bpjsImgData.includes('image/png')) format = 'PNG';
+          else if (bpjsImgData.includes('image/webp')) format = 'WEBP';
+          
+          doc.roundedRect(15, 42, width - 30, height - 70, 3, 3, 'D');
+          doc.addImage(bpjsImgData, format, 16, 43, width - 32, height - 72);
+        }
+      } catch (e) {
+        console.warn('Failed to render BPJS document page:', e);
+      }
+    }
+  }
 
   const safeStudentNameFile = student.name.toLowerCase().replace(/[^a-z0-9]/g, '_');
   const safeMonthYear = currentMonthYear.toLowerCase().replace(/[^a-z0-9]/g, '_');

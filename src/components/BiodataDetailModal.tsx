@@ -64,6 +64,14 @@ export default function BiodataDetailModal({
   const [isAddingPort, setIsAddingPort] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
 
+  // PDF download options
+  const [pdfPaperSize, setPdfPaperSize] = useState<'a4' | 'f4'>('f4');
+  const [pdfIncludePhoto, setPdfIncludePhoto] = useState(true);
+  const [pdfIncludeAddress, setPdfIncludeAddress] = useState(true);
+  const [pdfIncludeKkNik, setPdfIncludeKkNik] = useState(true);
+  const [pdfIncludeDocPhotos, setPdfIncludeDocPhotos] = useState(false);
+  const [showPdfOptions, setShowPdfOptions] = useState(false);
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -266,31 +274,148 @@ export default function BiodataDetailModal({
           </div>
 
           {activeTab !== 'galeri' && (
-            <button
-              type="button"
-              onClick={async () => {
-                setIsPrinting(true);
-                try {
-                  if (activeTab === 'laporan') {
-                    await generateStudentMonthlyReportPDF(child, users);
-                  } else {
-                    await generateStudentPortfolioPDF(child, users);
+            <div className="flex items-center gap-1.5 py-2 sm:py-0">
+              <button
+                type="button"
+                onClick={() => setShowPdfOptions(!showPdfOptions)}
+                className={`px-3 py-1.5 rounded-xl border font-bold text-[10px] uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1 shrink-0 ${
+                  showPdfOptions
+                    ? 'bg-violet-100 text-violet-700 border-violet-300'
+                    : 'bg-white text-slate-500 border-slate-200 hover:text-violet-600 hover:bg-violet-50/50'
+                }`}
+                title="Atur Format, Lampiran, dan Ukuran Kertas PDF"
+              >
+                <span>⚙️ Opsi PDF</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  setIsPrinting(true);
+                  try {
+                    const pdfOptions = {
+                      paperSize: pdfPaperSize,
+                      includePhoto: pdfIncludePhoto,
+                      includeAddress: pdfIncludeAddress,
+                      includeKkNik: pdfIncludeKkNik,
+                      includeDocPhotos: pdfIncludeDocPhotos
+                    };
+                    if (activeTab === 'laporan') {
+                      await generateStudentMonthlyReportPDF(child, users, pdfOptions);
+                    } else {
+                      await generateStudentPortfolioPDF(child, users, pdfOptions);
+                    }
+                  } catch (err) {
+                    console.error(err);
+                    alert("Gagal mengunduh berkas PDF");
+                  } finally {
+                    setIsPrinting(false);
                   }
-                } catch (err) {
-                  console.error(err);
-                  alert("Gagal mengunduh berkas PDF");
-                } finally {
-                  setIsPrinting(false);
-                }
-              }}
-              disabled={isPrinting}
-              className="my-2 sm:my-0 px-3.5 py-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 disabled:from-slate-200 disabled:to-slate-300 disabled:text-slate-400 disabled:cursor-not-allowed text-white font-extrabold text-[10px] uppercase tracking-wider rounded-xl shadow-md transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-1.5 shrink-0"
-            >
-              <FileText className="w-3.5 h-3.5 text-white" />
-              <span>{isPrinting ? 'Mencetak...' : activeTab === 'laporan' ? 'Unduh Laporan Bulanan (A4)' : 'Unduh Portofolio (A4)'}</span>
-            </button>
+                }}
+                disabled={isPrinting}
+                className="px-3.5 py-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 disabled:from-slate-200 disabled:to-slate-300 disabled:text-slate-400 disabled:cursor-not-allowed text-white font-extrabold text-[10px] uppercase tracking-wider rounded-xl shadow-md transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-1.5 shrink-0"
+              >
+                <FileText className="w-3.5 h-3.5 text-white" />
+                <span>
+                  {isPrinting
+                    ? 'Mencetak...'
+                    : activeTab === 'laporan'
+                    ? `Laporan (${pdfPaperSize.toUpperCase()})`
+                    : `Portofolio (${pdfPaperSize.toUpperCase()})`}
+                </span>
+              </button>
+            </div>
           )}
         </div>
+
+        {/* PDF Export Options Collapse Panel */}
+        <AnimatePresence>
+          {showPdfOptions && activeTab !== 'galeri' && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden bg-violet-50/70 border-b border-violet-100/80 text-left"
+            >
+              <div className="p-4 sm:p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Paper Size Option */}
+                <div>
+                  <span className="block text-[10px] font-black text-violet-800 uppercase tracking-wider mb-2">Ukuran Kertas Dokumen</span>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPdfPaperSize('f4')}
+                      className={`flex-1 py-2 px-3 rounded-xl text-[11px] font-bold border transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                        pdfPaperSize === 'f4'
+                          ? 'bg-violet-600 text-white border-violet-600 shadow-sm'
+                          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
+                      <span>F4 (Folio 215x330mm)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPdfPaperSize('a4')}
+                      className={`flex-1 py-2 px-3 rounded-xl text-[11px] font-bold border transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                        pdfPaperSize === 'a4'
+                          ? 'bg-violet-600 text-white border-violet-600 shadow-sm'
+                          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
+                      <span>A4 (Standar 210x297mm)</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Attachments / Data Selection Checklist */}
+                <div>
+                  <span className="block text-[10px] font-black text-violet-800 uppercase tracking-wider mb-2">Checklist Lampiran / Isi PDF</span>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                    <label className="flex items-center gap-2 text-[11px] font-medium text-slate-600 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={pdfIncludePhoto}
+                        onChange={(e) => setPdfIncludePhoto(e.target.checked)}
+                        className="w-3.5 h-3.5 text-violet-600 border-slate-300 rounded focus:ring-violet-500 cursor-pointer"
+                      />
+                      <span>Foto Profil Siswa</span>
+                    </label>
+                    <label className="flex items-center gap-2 text-[11px] font-medium text-slate-600 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={pdfIncludeAddress}
+                        onChange={(e) => setPdfIncludeAddress(e.target.checked)}
+                        className="w-3.5 h-3.5 text-violet-600 border-slate-300 rounded focus:ring-violet-500 cursor-pointer"
+                      />
+                      <span>Alamat Lengkap</span>
+                    </label>
+                    <label className="flex items-center gap-2 text-[11px] font-medium text-slate-600 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={pdfIncludeKkNik}
+                        onChange={(e) => setPdfIncludeKkNik(e.target.checked)}
+                        className="w-3.5 h-3.5 text-violet-600 border-slate-300 rounded focus:ring-violet-500 cursor-pointer"
+                      />
+                      <span>Nomor NIK & KK</span>
+                    </label>
+                    <label className="flex items-center gap-2 text-[11px] font-medium text-slate-600 cursor-pointer select-none" title="Lampirkan foto fisik berkas KK & BPJS jika ada">
+                      <input
+                        type="checkbox"
+                        checked={pdfIncludeDocPhotos}
+                        onChange={(e) => setPdfIncludeDocPhotos(e.target.checked)}
+                        className="w-3.5 h-3.5 text-violet-600 border-slate-300 rounded focus:ring-violet-500 cursor-pointer"
+                      />
+                      <span className="font-semibold text-violet-700">Foto Berkas Fisik</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Modal Body Content */}
         <div className="p-6 overflow-y-auto max-h-[480px]">
