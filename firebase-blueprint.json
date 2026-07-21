@@ -219,6 +219,32 @@
         }
       },
       "required": ["id", "senderId", "senderName", "senderRole", "receiverId", "receiverName", "content", "isEncrypted", "createdAt"]
+    },
+    "ActivityChecklist": {
+      "title": "ActivityChecklist",
+      "description": "Daftar ceklist kehadiran atau partisipasi siswa dalam kegiatan yang dikelola oleh Wali Asuh.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "date": {
+          "type": "string"
+        },
+        "waliAsuhId": {
+          "type": "string"
+        },
+        "students": {
+          "type": "array"
+        },
+        "createdAt": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "title", "date", "waliAsuhId", "students", "createdAt"]
     }
   },
   "firestore": {
@@ -241,6 +267,10 @@
     "chat_messages/{messageId}": {
       "schema": "ChatMessage",
       "description": "Koleksi pesan chat real-time"
+    },
+    "activity_checklists/{checklistId}": {
+      "schema": "ActivityChecklist",
+      "description": "Koleksi ceklist aktivitas siswa"
     }
   }
 }

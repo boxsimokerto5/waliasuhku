@@ -33,6 +33,20 @@ export interface User {
     date: string;
     category?: 'Akademik' | 'Prestasi' | 'Sikap' | 'Karya' | 'Olahraga' | 'Lainnya';
   }[];
+  
+  // Laporan Bulanan Fields
+  healthStatus?: string;
+  healthNotes?: string;
+  monthlyActivities?: string;
+  characterNotes?: string;
+
+  // Galeri Foto Kegiatan Siswa
+  activityPhotos?: {
+    id: string;
+    url: string; // Base64 image
+    caption: string;
+    date: string;
+  }[];
 }
 
 export interface SavingsTransaction {
@@ -107,4 +121,20 @@ export interface ChatMessage {
   isEncrypted: boolean;
   createdAt: string;
 }
+
+export interface ChecklistStudentStatus {
+  studentId: string;
+  studentName: string;
+  status: 'sudah' | 'belum';
+}
+
+export interface ActivityChecklist {
+  id: string;
+  title: string;
+  date: string;
+  waliAsuhId: string;
+  students: ChecklistStudentStatus[];
+  createdAt: string;
+}
+
 

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { User, Report, Reply, SavingsTransaction } from '../types';
-import { Heart, Lock, Calendar, MessageSquare, Send, CheckCircle2, User as UserIcon, ShieldCheck, Mail, RefreshCw, Coins, ArrowUpRight, ArrowDownLeft, Eye, FileText, X } from 'lucide-react';
+import { Heart, Lock, Calendar, MessageSquare, Send, CheckCircle2, User as UserIcon, ShieldCheck, Mail, RefreshCw, Coins, ArrowUpRight, ArrowDownLeft, Eye, FileText, X, ImageIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { decryptMessage, formatDate } from '../utils/crypto';
-import { generateStudentPortfolioPDF } from '../utils/pdfGenerator';
+import { generateStudentPortfolioPDF, generateStudentMonthlyReportPDF } from '../utils/pdfGenerator';
 
 interface OrangTuaDashboardProps {
   currentUser: User;
@@ -152,6 +152,68 @@ export default function OrangTuaDashboard({
                       )}
                     </div>
                   )}
+                </div>
+
+                {/* Laporan Bulanan Anak */}
+                <div className="pt-2 border-t border-slate-150">
+                  <div className="bg-gradient-to-r from-violet-600 to-indigo-600 rounded-2xl p-4 text-white space-y-3 mt-2 shadow-md">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <Heart className="w-4 h-4 fill-white text-white animate-pulse" />
+                        <span className="text-[11px] font-black uppercase tracking-wider">Laporan Perkembangan Bulanan</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setIsPrinting(true);
+                          try {
+                            await generateStudentMonthlyReportPDF(myChild, users);
+                          } catch (err) {
+                            console.error(err);
+                            alert("Gagal mengunduh laporan bulanan");
+                          } finally {
+                            setIsPrinting(false);
+                          }
+                        }}
+                        disabled={isPrinting}
+                        className="px-2.5 py-1 bg-white hover:bg-slate-100 disabled:bg-slate-100 text-violet-700 disabled:text-slate-400 font-extrabold text-[9px] uppercase tracking-wider rounded-lg transition-all active:scale-95 cursor-pointer flex items-center gap-1 shrink-0 shadow-sm"
+                      >
+                        <FileText className="w-3 h-3" />
+                        <span>{isPrinting ? 'Mencetak...' : 'Unduh PDF (A4)'}</span>
+                      </button>
+                    </div>
+
+                    <p className="text-[10px] text-violet-100 leading-relaxed font-medium">
+                      Laporan resmi pertanggungjawaban asrama mengenai kondisi kesehatan, aktivitas pembinaan, dan perkembangan karakter.
+                    </p>
+
+                    <div className="bg-white/10 rounded-xl p-3 border border-white/10 text-left space-y-2.5 text-[11px]">
+                      {/* Kesehatan */}
+                      <div>
+                        <span className="font-extrabold text-amber-300 block text-[9px] uppercase tracking-wider">I. Kondisi Kesehatan</span>
+                        <p className="font-bold text-white mt-0.5">Status: {myChild.healthStatus || 'Sangat Sehat'}</p>
+                        <p className="text-violet-100/95 leading-relaxed font-medium mt-0.5">
+                          {myChild.healthNotes || 'Siswa dalam kondisi sehat walafiat, aktif mengikuti seluruh kegiatan.'}
+                        </p>
+                      </div>
+
+                      {/* Kegiatan */}
+                      <div className="border-t border-white/5 pt-2">
+                        <span className="font-extrabold text-amber-300 block text-[9px] uppercase tracking-wider">II. Kegiatan & Pembinaan</span>
+                        <p className="text-violet-100/95 leading-relaxed font-medium mt-0.5">
+                          {myChild.monthlyActivities || 'Aktif mengikuti seluruh rangkaian ibadah wajib, kajian malam, bimbingan belajar, dan olahraga.'}
+                        </p>
+                      </div>
+
+                      {/* Karakter */}
+                      <div className="border-t border-white/5 pt-2">
+                        <span className="font-extrabold text-amber-300 block text-[9px] uppercase tracking-wider">III. Catatan Perkembangan Karakter</span>
+                        <p className="text-violet-100/95 leading-relaxed font-medium mt-0.5">
+                          {myChild.characterNotes || 'Menunjukkan adab yang baik, sopan santun kepada pembina asrama, serta disiplin melaksanakan piket harian.'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="pt-2 border-t border-slate-150">
@@ -306,6 +368,34 @@ export default function OrangTuaDashboard({
                                   </div>
                                   <h5 className="font-bold text-slate-800 mt-1">{item.title}</h5>
                                   <p className="text-[10px] text-slate-500 mt-0.5 leading-normal">{item.description}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Gallery Section */}
+                      <div className="pt-4 border-t border-slate-100">
+                        <div className="flex items-center gap-1.5 mb-3">
+                          <ImageIcon className="w-4 h-4 text-violet-600" />
+                          <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Galeri Kegiatan & Aktivitas Anak</h4>
+                        </div>
+                        {!myChild.activityPhotos || myChild.activityPhotos.length === 0 ? (
+                          <p className="text-[10px] text-slate-450 italic py-4 text-center bg-slate-50 rounded-xl border border-dashed border-slate-100">Belum ada dokumentasi foto kegiatan dari asrama.</p>
+                        ) : (
+                          <div className="grid grid-cols-2 gap-3">
+                            {myChild.activityPhotos.map(photo => (
+                              <div key={photo.id} className="bg-white border border-slate-150 rounded-xl overflow-hidden shadow-2xs group flex flex-col justify-between">
+                                <div className="relative aspect-video w-full bg-slate-100 overflow-hidden cursor-zoom-in" onClick={() => setZoomImage(photo.url)}>
+                                  <img src={photo.url} className="w-full h-full object-cover group-hover:scale-102 transition-all duration-300" alt={photo.caption} referrerPolicy="no-referrer" />
+                                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
+                                    <span className="text-[7.5px] font-black text-white uppercase tracking-wider bg-black/60 px-1.5 py-0.5 rounded">Perbesar</span>
+                                  </div>
+                                </div>
+                                <div className="p-2 space-y-1 text-left flex-1 flex flex-col justify-between">
+                                  <p className="text-[10px] text-slate-600 leading-snug font-bold">{photo.caption}</p>
+                                  <span className="text-[7.5px] text-slate-400 font-mono block pt-1 border-t border-slate-50/50">{photo.date}</span>
                                 </div>
                               </div>
                             ))}

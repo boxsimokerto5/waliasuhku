@@ -9,6 +9,7 @@ import { ParentRegistration } from './ParentRegistration';
 import { BroadcastModule } from './BroadcastModule';
 import { AnakAsuhList } from './AnakAsuhList';
 import { SavingsManagement } from './SavingsManagement';
+import { ChecklistManagement } from './ChecklistManagement';
 import BiodataDetailModal from './BiodataDetailModal';
 
 interface WaliAsuhDashboardProps {
@@ -425,6 +426,10 @@ export default function WaliAsuhDashboard({
     subPageTitle = "Chat Real-time Anak Asuh";
     subPageSubtitle = "Ruang obrolan langsung terenkripsi penuh dengan masing-masing anak asuh Anda";
     subPageIcon = <MessageCircle className="w-5 h-5 text-pink-600" />;
+  } else if (activeSubPage === 'ceklist') {
+    subPageTitle = "Ceklist & Kehadiran Kegiatan";
+    subPageSubtitle = "Catat partisipasi, pantau kelengkapan aktivitas harian, dan cetak PDF laporan perkegiatan";
+    subPageIcon = <Clipboard className="w-5 h-5 text-violet-600" />;
   }
 
   return (
@@ -613,6 +618,20 @@ export default function WaliAsuhDashboard({
                 <MessageCircle className="w-5 h-5 text-pink-500" />
               </div>
               <span className="text-[11px] font-extrabold leading-tight">Chat Anak Asuh</span>
+            </button>
+
+            {/* 11. Ceklist Kegiatan */}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveSubPage('ceklist');
+              }}
+              className="flex flex-col items-center justify-center p-3 rounded-2xl bg-violet-50 border border-violet-100 text-violet-700 hover:bg-violet-100/70 transition-all text-center cursor-pointer gap-1.5"
+            >
+              <div className="p-2 bg-white rounded-xl shadow-xs">
+                <Clipboard className="w-5 h-5 text-violet-600" />
+              </div>
+              <span className="text-[11px] font-extrabold leading-tight">Ceklist Kegiatan</span>
             </button>
           </div>
         </div>
@@ -847,6 +866,14 @@ export default function WaliAsuhDashboard({
             })()}
           </div>
         </div>
+      )}
+
+      {/* Checklist & Kehadiran Kegiatan Sub-Page */}
+      {activeSubPage === 'ceklist' && (
+        <ChecklistManagement
+          currentUser={currentUser}
+          users={users}
+        />
       )}
 
       {/* 4. Account Management Sub-Page */}

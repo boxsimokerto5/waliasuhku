@@ -1,8 +1,46 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if true;
+    
+    // Helper function to check if user is logged in
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // 1. Users collection
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+
+    // 2. Reports collection
+    match /reports/{reportId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+
+    // 3. Notifications collection
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+
+    // 4. Savings Transactions collection
+    match /savings_transactions/{transactionId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+
+    // 5. Chat Messages collection
+    match /chat_messages/{messageId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+
+    // 6. Activity Checklists collection
+    match /activity_checklists/{checklistId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
     }
   }
 }
