@@ -18,18 +18,32 @@ import { db, handleFirestoreError, OperationType } from './lib/firebase';
 export default function App() {
   // Persistence state
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [users, setUsers] = useState<User[]>([]);
-  const [reports, setReports] = useState<Report[]>([]);
-  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [users, setUsers] = useState<User[]>(initialUsers);
+  const [reports, setReports] = useState<Report[]>(getInitialReports());
+  const [notifications, setNotifications] = useState<AppNotification[]>(getInitialNotifications());
   const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
   const [savingsTransactions, setSavingsTransactions] = useState<SavingsTransaction[]>([]);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [quotaExceeded, setQuotaExceeded] = useState<boolean>(false);
 
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [viewportMode, setViewportMode] = useState<'mobile' | 'desktop'>('desktop');
   
   // Real-time Active Toast Banner
   const [activeToast, setActiveToast] = useState<{ id: string; title: string; message: string } | null>(null);
+
+  // Helper to handle listener errors gracefully
+  const handleListenerError = (error: unknown, path: string) => {
+    const errStr = error instanceof Error ? error.message : String(error);
+    if (errStr.includes('Quota limit exceeded') || errStr.includes('Quota exceeded')) {
+      setQuotaExceeded(true);
+    }
+    try {
+      handleFirestoreError(error, OperationType.GET, path);
+    } catch (e) {
+      console.warn(`Firestore listener handled gracefully for ${path}:`, e);
+    }
+  };
 
   // Synchronize Users from Firestore in Real-Time
   useEffect(() => {
@@ -50,13 +64,18 @@ export default function App() {
           createdAt: '2026-06-01T08:00:00Z'
         };
         setDoc(doc(db, 'users', defaultAdmin.id), defaultAdmin).catch(err => {
-          handleFirestoreError(err, OperationType.WRITE, `users/${defaultAdmin.id}`);
+          try {
+            handleFirestoreError(err, OperationType.WRITE, `users/${defaultAdmin.id}`);
+          } catch (e) {
+            console.warn('Could not write default admin to Firestore:', e);
+          }
         });
+        setUsers([defaultAdmin, ...fetchedUsers]);
       } else {
         setUsers(fetchedUsers);
       }
     }, (error) => {
-      handleFirestoreError(error, OperationType.GET, 'users');
+      handleListenerError(error, 'users');
     });
     return () => unsubscribe();
   }, []);
@@ -72,7 +91,7 @@ export default function App() {
       fetchedReports.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       setReports(fetchedReports);
     }, (error) => {
-      handleFirestoreError(error, OperationType.GET, 'reports');
+      handleListenerError(error, 'reports');
     });
     return () => unsubscribe();
   }, []);
@@ -88,7 +107,7 @@ export default function App() {
       fetchedNotifications.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       setNotifications(fetchedNotifications);
     }, (error) => {
-      handleFirestoreError(error, OperationType.GET, 'notifications');
+      handleListenerError(error, 'notifications');
     });
     return () => unsubscribe();
   }, []);
@@ -104,7 +123,7 @@ export default function App() {
       fetchedBroadcasts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       setBroadcasts(fetchedBroadcasts);
     }, (error) => {
-      handleFirestoreError(error, OperationType.GET, 'broadcasts');
+      handleListenerError(error, 'broadcasts');
     });
     return () => unsubscribe();
   }, []);
@@ -120,7 +139,7 @@ export default function App() {
       fetchedTransactions.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       setSavingsTransactions(fetchedTransactions);
     }, (error) => {
-      handleFirestoreError(error, OperationType.GET, 'savings_transactions');
+      handleListenerError(error, 'savings_transactions');
     });
     return () => unsubscribe();
   }, []);
@@ -136,7 +155,7 @@ export default function App() {
       fetchedMessages.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
       setChatMessages(fetchedMessages);
     }, (error) => {
-      handleFirestoreError(error, OperationType.GET, 'chat_messages');
+      handleListenerError(error, 'chat_messages');
     });
     return () => unsubscribe();
   }, []);
@@ -827,6 +846,26 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 antialiased selection:bg-indigo-500 selection:text-white pb-12 transition-colors duration-300">
       
+      {/* Firestore Quota Exceeded Banner */}
+      {quotaExceeded && (
+        <div className="bg-amber-600 text-white px-4 py-2.5 text-xs font-semibold flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md z-50 sticky top-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <ShieldAlert className="w-4 h-4 shrink-0 text-amber-200" />
+            <span>
+              <strong>Kuota Harian Firestore Gratis Terlampaui (Free Tier Quota Exceeded).</strong> Aplikasi berjalan dalam mode lokal/offline. Kuota akan direset otomatis besok.
+            </span>
+          </div>
+          <a
+            href="https://console.firebase.google.com/project/inlaid-park-8d2jw/firestore/databases/ai-studio-waliasuhku-5b4d6e99-725b-48c6-9756-310ee01109f2/data?openUpgradeDialog=true"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 bg-white text-amber-900 px-3 py-1 rounded-lg text-[11px] font-bold hover:bg-amber-100 transition-colors shadow-xs"
+          >
+            Konsol Firebase
+          </a>
+        </div>
+      )}
+
       {/* Real-time Toast Popups (Visible on top screen) */}
       <AnimatePresence>
         {activeToast && (

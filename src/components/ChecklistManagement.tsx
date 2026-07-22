@@ -68,7 +68,11 @@ export function ChecklistManagement({ currentUser, users }: ChecklistManagementP
         setIsLoading(false);
       },
       (error) => {
-        handleFirestoreError(error, OperationType.GET, 'activity_checklists');
+        try {
+          handleFirestoreError(error, OperationType.GET, 'activity_checklists');
+        } catch (e) {
+          console.warn('ChecklistManagement Firestore error handled:', e);
+        }
         setIsLoading(false);
       }
     );

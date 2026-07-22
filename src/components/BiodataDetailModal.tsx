@@ -194,10 +194,10 @@ export default function BiodataDetailModal({
         initial={{ opacity: 0, scale: 0.95, y: 15 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 15 }}
-        className="bg-white rounded-3xl w-full max-w-3xl overflow-hidden shadow-2xl border border-slate-100 flex flex-col text-left"
+        className="bg-white rounded-3xl w-full max-w-3xl max-h-[calc(100vh-2rem)] md:max-h-[90vh] overflow-hidden shadow-2xl border border-slate-100 flex flex-col text-left"
       >
         {/* Modal Header */}
-        <div className="bg-gradient-to-r from-violet-600 to-indigo-700 text-white p-6 relative">
+        <div className="bg-gradient-to-r from-violet-600 to-indigo-700 text-white p-4 sm:p-6 relative">
           <button
             onClick={onClose}
             className="absolute top-4 right-4 p-2 bg-black/10 hover:bg-black/20 rounded-full text-white transition-all cursor-pointer"
@@ -207,11 +207,11 @@ export default function BiodataDetailModal({
           </button>
 
           <div className="flex flex-col sm:flex-row items-center gap-4">
-            <div className="w-20 h-20 rounded-2xl bg-white/10 border-2 border-white/20 overflow-hidden flex items-center justify-center shrink-0 shadow-lg">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white/10 border-2 border-white/20 overflow-hidden flex items-center justify-center shrink-0 shadow-lg">
               {child.fotoUrl ? (
                 <img src={child.fotoUrl} alt={child.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
               ) : (
-                <span className="text-3xl font-bold uppercase text-white">{child.name.charAt(0)}</span>
+                <span className="text-2xl sm:text-3xl font-bold uppercase text-white">{child.name.charAt(0)}</span>
               )}
             </div>
 
@@ -232,11 +232,11 @@ export default function BiodataDetailModal({
 
         {/* Modal Navigation Tabs */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 bg-slate-50/50 pr-4 pl-2 sm:pl-0">
-          <div className="flex flex-wrap">
+          <div className="flex overflow-x-auto scrollbar-none whitespace-nowrap -mb-[2px] w-full sm:w-auto">
             <button
               type="button"
               onClick={() => setActiveTab('biodata')}
-              className={`py-3.5 px-4 font-black text-xs uppercase tracking-wider transition-all border-b-2 -mb-[2px] cursor-pointer ${
+              className={`py-3.5 px-4 font-black text-xs uppercase tracking-wider transition-all border-b-2 -mb-[2px] cursor-pointer shrink-0 ${
                 activeTab === 'biodata' ? 'border-violet-600 text-violet-700' : 'border-transparent text-slate-400 hover:text-slate-600'
               }`}
             >
@@ -245,7 +245,7 @@ export default function BiodataDetailModal({
             <button
               type="button"
               onClick={() => setActiveTab('portofolio')}
-              className={`py-3.5 px-4 font-black text-xs uppercase tracking-wider transition-all border-b-2 -mb-[2px] cursor-pointer flex items-center gap-1.5 ${
+              className={`py-3.5 px-4 font-black text-xs uppercase tracking-wider transition-all border-b-2 -mb-[2px] cursor-pointer flex items-center gap-1.5 shrink-0 ${
                 activeTab === 'portofolio' ? 'border-violet-600 text-violet-700' : 'border-transparent text-slate-400 hover:text-slate-600'
               }`}
             >
@@ -255,7 +255,7 @@ export default function BiodataDetailModal({
             <button
               type="button"
               onClick={() => setActiveTab('laporan')}
-              className={`py-3.5 px-4 font-black text-xs uppercase tracking-wider transition-all border-b-2 -mb-[2px] cursor-pointer flex items-center gap-1.5 ${
+              className={`py-3.5 px-4 font-black text-xs uppercase tracking-wider transition-all border-b-2 -mb-[2px] cursor-pointer flex items-center gap-1.5 shrink-0 ${
                 activeTab === 'laporan' ? 'border-violet-600 text-violet-700' : 'border-transparent text-slate-400 hover:text-slate-600'
               }`}
             >
@@ -265,7 +265,7 @@ export default function BiodataDetailModal({
             <button
               type="button"
               onClick={() => setActiveTab('galeri')}
-              className={`py-3.5 px-4 font-black text-xs uppercase tracking-wider transition-all border-b-2 -mb-[2px] cursor-pointer flex items-center gap-1.5 ${
+              className={`py-3.5 px-4 font-black text-xs uppercase tracking-wider transition-all border-b-2 -mb-[2px] cursor-pointer flex items-center gap-1.5 shrink-0 ${
                 activeTab === 'galeri' ? 'border-violet-600 text-violet-700' : 'border-transparent text-slate-400 hover:text-slate-600'
               }`}
             >
@@ -275,7 +275,7 @@ export default function BiodataDetailModal({
             <button
               type="button"
               onClick={() => setActiveTab('asesmen')}
-              className={`py-3.5 px-4 font-black text-xs uppercase tracking-wider transition-all border-b-2 -mb-[2px] cursor-pointer flex items-center gap-1.5 ${
+              className={`py-3.5 px-4 font-black text-xs uppercase tracking-wider transition-all border-b-2 -mb-[2px] cursor-pointer flex items-center gap-1.5 shrink-0 ${
                 activeTab === 'asesmen' ? 'border-violet-600 text-violet-700' : 'border-transparent text-slate-400 hover:text-slate-600'
               }`}
             >
@@ -439,7 +439,7 @@ export default function BiodataDetailModal({
         </AnimatePresence>
 
         {/* Modal Body Content */}
-        <div className="p-6 overflow-y-auto max-h-[480px]">
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1 min-h-0">
           {activeTab === 'biodata' && (
             <div className="space-y-6">
               <div className="flex justify-between items-center border-b border-slate-50 pb-2">

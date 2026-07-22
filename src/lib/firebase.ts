@@ -67,8 +67,15 @@ export interface FirestoreErrorInfo {
 
 // Global firestore error translator as requested by guidelines
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errStr = error instanceof Error ? error.message : String(error);
+  const isQuotaError = 
+    errStr.includes('Quota limit exceeded') || 
+    errStr.includes('Quota exceeded') || 
+    errStr.includes('RESOURCE_EXHAUSTED') ||
+    errStr.toLowerCase().includes('quota');
+
   const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
+    error: errStr,
     authInfo: {
       userId: null,
       email: null,
@@ -80,6 +87,12 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     operationType,
     path
   };
+
+  if (isQuotaError) {
+    console.warn(`[Firestore Quota Exceeded] ${operationType} on ${path}: Database running in local offline fallback state.`);
+    return;
+  }
+
   console.error('Firestore Error: ', JSON.stringify(errInfo));
   throw new Error(JSON.stringify(errInfo));
 }
