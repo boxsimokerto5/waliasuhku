@@ -782,6 +782,10 @@ export default function App() {
           <SuperAdminDashboard
             users={users}
             reports={reports}
+            notifications={notifications}
+            broadcasts={broadcasts}
+            savingsTransactions={savingsTransactions}
+            chatMessages={chatMessages}
             onCreateWaliAsuh={handleCreateWaliAsuh}
           />
         );

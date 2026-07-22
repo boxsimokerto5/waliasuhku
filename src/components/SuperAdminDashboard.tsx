@@ -1,18 +1,28 @@
 import React, { useState } from 'react';
-import { User, Report } from '../types';
-import { Plus, UserCheck, ShieldAlert, ClipboardList, RefreshCw, Key, Database, ShieldCheck, Eye, EyeOff } from 'lucide-react';
+import { User, Report, AppNotification, Broadcast, SavingsTransaction, ChatMessage } from '../types';
+import { Plus, UserCheck, ShieldAlert, ClipboardList, RefreshCw, Key, Database, ShieldCheck, Eye, EyeOff, CheckCircle2, AlertTriangle, ArrowRight, Server } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { decryptMessage } from '../utils/crypto';
+import { testSupabaseConnection } from '../lib/supabase';
+import { migrateDataToSupabase, MigrationSummary } from '../lib/supabaseMigration';
 
 interface SuperAdminDashboardProps {
   users: User[];
   reports: Report[];
+  notifications?: AppNotification[];
+  broadcasts?: Broadcast[];
+  savingsTransactions?: SavingsTransaction[];
+  chatMessages?: ChatMessage[];
   onCreateWaliAsuh: (username: string, name: string) => void;
 }
 
 export default function SuperAdminDashboard({ 
   users, 
   reports, 
+  notifications = [],
+  broadcasts = [],
+  savingsTransactions = [],
+  chatMessages = [],
   onCreateWaliAsuh 
 }: SuperAdminDashboardProps) {
   const [newUsername, setNewUsername] = useState('');
@@ -22,6 +32,40 @@ export default function SuperAdminDashboard({
   const [showRawDatabase, setShowRawDatabase] = useState(false);
   const [dbDecryptKey, setDbDecryptKey] = useState('waliasuhku-secure-key');
   const [revealedReportId, setRevealedReportId] = useState<string | null>(null);
+
+  // Supabase migration state
+  const [supabaseTestResult, setSupabaseTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [isTesting, setIsTesting] = useState(false);
+  const [isMigrating, setIsMigrating] = useState(false);
+  const [migrationSummary, setMigrationSummary] = useState<MigrationSummary | null>(null);
+
+  const handleTestSupabase = async () => {
+    setIsTesting(true);
+    setSupabaseTestResult(null);
+    const res = await testSupabaseConnection();
+    setSupabaseTestResult(res);
+    setIsTesting(false);
+  };
+
+  const handleRunMigration = async () => {
+    if (!window.confirm("Apakah Anda yakin ingin memindahkan seluruh data aktif (Pengguna, Laporan, Notifikasi, Tabungan, Chat) ke Supabase?")) {
+      return;
+    }
+    setIsMigrating(true);
+    setMigrationSummary(null);
+
+    const summary = await migrateDataToSupabase({
+      users,
+      reports,
+      notifications,
+      broadcasts,
+      savingsTransactions,
+      chatMessages
+    });
+
+    setMigrationSummary(summary);
+    setIsMigrating(false);
+  };
 
   // Group stats
   const totalWaliAsuh = users.filter(u => u.role === 'wali_asuh').length;
@@ -212,6 +256,94 @@ export default function SuperAdminDashboard({
                   </div>
                 );
               })}
+            </div>
+          </div>
+
+          {/* Supabase Database Migration Panel */}
+          <div className="bg-emerald-950 text-emerald-100 border border-emerald-900 rounded-3xl p-6 shadow-lg space-y-4">
+            <div className="flex items-center justify-between border-b border-emerald-900 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl">
+                  <Server className="w-5 h-5" />
+                </div>
+                <div className="text-left">
+                  <h3 className="text-sm font-extrabold text-emerald-300">Migrasi Data ke Supabase</h3>
+                  <p className="text-[10px] text-emerald-400/80">Transfer data aktif ke PostgreSQL Supabase</p>
+                </div>
+              </div>
+              <span className="text-[9px] font-bold px-2 py-0.5 bg-emerald-900 text-emerald-300 rounded-full border border-emerald-700">
+                PostgreSQL Ready
+              </span>
+            </div>
+
+            <div className="space-y-2 text-xs text-emerald-200/90 text-left leading-relaxed">
+              <p>Tabel Supabase telah berhasil dibuat. Klik tombol di bawah ini untuk memindahkan semua data aktif ke database Supabase Anda:</p>
+              
+              <div className="grid grid-cols-2 gap-2 text-[10px] bg-emerald-900/40 p-2.5 rounded-xl border border-emerald-900 font-mono">
+                <div>• User: <span className="text-emerald-300 font-bold">{users.length}</span></div>
+                <div>• Laporan: <span className="text-emerald-300 font-bold">{reports.length}</span></div>
+                <div>• Notifikasi: <span className="text-emerald-300 font-bold">{notifications.length}</span></div>
+                <div>• Siaran: <span className="text-emerald-300 font-bold">{broadcasts.length}</span></div>
+                <div>• Tabungan: <span className="text-emerald-300 font-bold">{savingsTransactions.length}</span></div>
+                <div>• Chat: <span className="text-emerald-300 font-bold">{chatMessages.length}</span></div>
+              </div>
+            </div>
+
+            {/* Test Connection Button */}
+            {supabaseTestResult && (
+              <div className={`p-3 rounded-xl text-xs font-medium border text-left ${
+                supabaseTestResult.success 
+                  ? 'bg-emerald-900/60 border-emerald-700 text-emerald-200' 
+                  : 'bg-rose-950/80 border-rose-800 text-rose-300'
+              }`}>
+                {supabaseTestResult.message}
+              </div>
+            )}
+
+            {migrationSummary && (
+              <div className="p-3 bg-emerald-900/80 border border-emerald-700 rounded-xl text-xs text-emerald-200 space-y-1.5 text-left">
+                <p className="font-bold text-emerald-300 flex items-center gap-1">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Hasil Migrasi Database:
+                </p>
+                <div className="text-[11px] space-y-0.5 pl-2 border-l-2 border-emerald-500">
+                  <p>✓ {migrationSummary.users} Pengguna tersimpan di Supabase</p>
+                  <p>✓ {migrationSummary.reports} Laporan tersimpan di Supabase</p>
+                  <p>✓ {migrationSummary.notifications} Notifikasi tersimpan di Supabase</p>
+                  <p>✓ {migrationSummary.broadcasts} Siaran tersimpan di Supabase</p>
+                  <p>✓ {migrationSummary.savingsTransactions} Transaksi Tabungan tersimpan</p>
+                  <p>✓ {migrationSummary.chatMessages} Pesan Chat tersimpan</p>
+                </div>
+                {migrationSummary.errors.length > 0 && (
+                  <div className="mt-2 text-rose-300 text-[10px]">
+                    <p className="font-bold">Catatan Kendala:</p>
+                    {migrationSummary.errors.map((err, idx) => (
+                      <p key={idx}>• {err}</p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={handleTestSupabase}
+                disabled={isTesting}
+                className="flex-1 bg-emerald-900/60 hover:bg-emerald-900 text-emerald-200 font-bold py-2 px-3 rounded-xl text-xs border border-emerald-700 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isTesting ? 'animate-spin' : ''}`} />
+                {isTesting ? 'Menguji...' : 'Uji Koneksi'}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleRunMigration}
+                disabled={isMigrating}
+                className="flex-1 bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-extrabold py-2 px-3 rounded-xl text-xs shadow-md shadow-emerald-500/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <ArrowRight className="w-3.5 h-3.5" />
+                {isMigrating ? 'Memindahkan...' : 'Jalankan Migrasi'}
+              </button>
             </div>
           </div>
         </div>
