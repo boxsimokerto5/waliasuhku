@@ -48,9 +48,6 @@ export default function SuperAdminDashboard({
   };
 
   const handleRunMigration = async () => {
-    if (!window.confirm("Apakah Anda yakin ingin memindahkan seluruh data aktif (Pengguna, Laporan, Notifikasi, Tabungan, Chat) ke Supabase?")) {
-      return;
-    }
     setIsMigrating(true);
     setMigrationSummary(null);
 
@@ -66,6 +63,34 @@ export default function SuperAdminDashboard({
     setMigrationSummary(summary);
     setIsMigrating(false);
   };
+
+  // Auto-run migration when SuperAdmin Dashboard mounts
+  React.useEffect(() => {
+    let isMounted = true;
+    const autoRun = async () => {
+      setIsMigrating(true);
+      const testRes = await testSupabaseConnection();
+      if (isMounted) setSupabaseTestResult(testRes);
+
+      if (testRes.success) {
+        const summary = await migrateDataToSupabase({
+          users,
+          reports,
+          notifications,
+          broadcasts,
+          savingsTransactions,
+          chatMessages
+        });
+        if (isMounted) {
+          setMigrationSummary(summary);
+        }
+      }
+      if (isMounted) setIsMigrating(false);
+    };
+
+    autoRun();
+    return () => { isMounted = false; };
+  }, []);
 
   // Group stats
   const totalWaliAsuh = users.filter(u => u.role === 'wali_asuh').length;

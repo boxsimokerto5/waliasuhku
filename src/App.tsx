@@ -14,6 +14,7 @@ import { Bell, Lock, ShieldAlert, Monitor, Phone, HeartHandshake } from 'lucide-
 import { motion, AnimatePresence } from 'motion/react';
 import { collection, onSnapshot, setDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from './lib/firebase';
+import { fetchSupabaseTable } from './lib/supabase';
 
 export default function App() {
   // Persistence state
@@ -31,6 +32,95 @@ export default function App() {
   
   // Real-time Active Toast Banner
   const [activeToast, setActiveToast] = useState<{ id: string; title: string; message: string } | null>(null);
+
+  // Load local backup state on mount
+  useEffect(() => {
+    try {
+      const localUsers = localStorage.getItem('waliasuhku_local_users');
+      if (localUsers) {
+        const parsed = JSON.parse(localUsers);
+        if (Array.isArray(parsed) && parsed.length > 0) setUsers(parsed);
+      }
+      const localReports = localStorage.getItem('waliasuhku_local_reports');
+      if (localReports) {
+        const parsed = JSON.parse(localReports);
+        if (Array.isArray(parsed)) setReports(parsed);
+      }
+      const localNotifs = localStorage.getItem('waliasuhku_local_notifications');
+      if (localNotifs) {
+        const parsed = JSON.parse(localNotifs);
+        if (Array.isArray(parsed)) setNotifications(parsed);
+      }
+      const localBroadcasts = localStorage.getItem('waliasuhku_local_broadcasts');
+      if (localBroadcasts) {
+        const parsed = JSON.parse(localBroadcasts);
+        if (Array.isArray(parsed)) setBroadcasts(parsed);
+      }
+      const localSavings = localStorage.getItem('waliasuhku_local_savings');
+      if (localSavings) {
+        const parsed = JSON.parse(localSavings);
+        if (Array.isArray(parsed)) setSavingsTransactions(parsed);
+      }
+      const localChats = localStorage.getItem('waliasuhku_local_chats');
+      if (localChats) {
+        const parsed = JSON.parse(localChats);
+        if (Array.isArray(parsed)) setChatMessages(parsed);
+      }
+    } catch (e) {
+      console.warn('Error reading local backup state:', e);
+    }
+  }, []);
+
+  // Backup state to local storage
+  useEffect(() => {
+    if (users.length > 0) localStorage.setItem('waliasuhku_local_users', JSON.stringify(users));
+  }, [users]);
+  useEffect(() => {
+    localStorage.setItem('waliasuhku_local_reports', JSON.stringify(reports));
+  }, [reports]);
+  useEffect(() => {
+    localStorage.setItem('waliasuhku_local_notifications', JSON.stringify(notifications));
+  }, [notifications]);
+  useEffect(() => {
+    localStorage.setItem('waliasuhku_local_broadcasts', JSON.stringify(broadcasts));
+  }, [broadcasts]);
+  useEffect(() => {
+    localStorage.setItem('waliasuhku_local_savings', JSON.stringify(savingsTransactions));
+  }, [savingsTransactions]);
+  useEffect(() => {
+    localStorage.setItem('waliasuhku_local_chats', JSON.stringify(chatMessages));
+  }, [chatMessages]);
+
+  // Load data from Supabase if connected
+  useEffect(() => {
+    const loadSupabaseData = async () => {
+      const supaUsers = await fetchSupabaseTable<User>('users');
+      if (supaUsers && supaUsers.length > 0) {
+        setUsers(prev => {
+          const map = new Map<string, User>();
+          prev.forEach(u => map.set(u.id, u));
+          supaUsers.forEach(u => map.set(u.id, u));
+          return Array.from(map.values());
+        });
+      }
+      const supaReports = await fetchSupabaseTable<Report>('reports');
+      if (supaReports && supaReports.length > 0) setReports(supaReports);
+
+      const supaNotifs = await fetchSupabaseTable<AppNotification>('notifications');
+      if (supaNotifs && supaNotifs.length > 0) setNotifications(supaNotifs);
+
+      const supaBroadcasts = await fetchSupabaseTable<Broadcast>('broadcasts');
+      if (supaBroadcasts && supaBroadcasts.length > 0) setBroadcasts(supaBroadcasts);
+
+      const supaSavings = await fetchSupabaseTable<SavingsTransaction>('savings_transactions');
+      if (supaSavings && supaSavings.length > 0) setSavingsTransactions(supaSavings);
+
+      const supaChats = await fetchSupabaseTable<ChatMessage>('chat_messages');
+      if (supaChats && supaChats.length > 0) setChatMessages(supaChats);
+    };
+
+    loadSupabaseData();
+  }, []);
 
   // Helper to handle listener errors gracefully
   const handleListenerError = (error: unknown, path: string) => {

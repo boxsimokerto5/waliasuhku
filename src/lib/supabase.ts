@@ -64,10 +64,26 @@ export async function testSupabaseConnection(): Promise<{ success: boolean; mess
     if (error) {
       return { success: false, message: `Gagal terhubung ke tabel 'users': ${error.message}` };
     }
-    return { success: true, message: `Koneksi Supabase BERHASIL! (Ditemukan ${data.length} data uji)` };
+    return { success: true, message: `Koneksi Supabase BERHASIL! (Ditemukan ${data.length} data)` };
   } catch (err: any) {
     return { success: false, message: `Error koneksi: ${err?.message || String(err)}` };
   }
+}
+
+function toCamelCaseKey(key: string): string {
+  return key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+}
+
+export function normalizeRecordKeys(obj: any): any {
+  if (!obj || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(normalizeRecordKeys);
+
+  const normalized: Record<string, any> = {};
+  for (const [key, val] of Object.entries(obj)) {
+    const camelKey = toCamelCaseKey(key);
+    normalized[camelKey] = val;
+  }
+  return normalized;
 }
 
 /**
@@ -83,7 +99,7 @@ export async function fetchSupabaseTable<T>(tableName: string): Promise<T[] | nu
       console.warn(`[Supabase Fetch Error] ${tableName}:`, error.message);
       return null;
     }
-    return data as T[];
+    return (data || []).map(normalizeRecordKeys) as T[];
   } catch (err) {
     console.warn(`[Supabase Exception] ${tableName}:`, err);
     return null;
@@ -129,4 +145,3 @@ export async function deleteSupabaseRecord(tableName: string, id: string): Promi
     return false;
   }
 }
-
