@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { decryptMessage, encryptMessage, formatDate, getStatusBadge, getTypeBadge } from '../utils/crypto';
 import { uploadToImgBB } from '../utils/imgbb';
 import AnakAsuhBiodataTab from './AnakAsuhBiodataTab';
+import DailyQuoteBanner from './DailyQuoteBanner';
 
 interface AnakAsuhDashboardProps {
   currentUser: User;
@@ -303,6 +304,9 @@ export default function AnakAsuhDashboard({
           </p>
         </div>
       </div>
+
+      {/* Daily Time-based Quote Banner */}
+      <DailyQuoteBanner role="anak_asuh" />
 
       {/* Main Mode Toggles */}
       <div className="flex flex-wrap gap-1 bg-slate-100 p-1.5 rounded-2xl w-fit">

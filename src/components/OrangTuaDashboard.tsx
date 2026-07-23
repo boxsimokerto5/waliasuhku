@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { decryptMessage, formatDate } from '../utils/crypto';
 import { generateStudentPortfolioPDF, generateStudentMonthlyReportPDF } from '../utils/pdfGenerator';
 import InitialAssessmentModal from './InitialAssessmentModal';
+import DailyQuoteBanner from './DailyQuoteBanner';
 
 interface OrangTuaDashboardProps {
   currentUser: User;
@@ -88,6 +89,9 @@ export default function OrangTuaDashboard({
           </p>
         </div>
       </div>
+
+      {/* Daily Time-based Quote Banner */}
+      <DailyQuoteBanner role="orang_tua" />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         

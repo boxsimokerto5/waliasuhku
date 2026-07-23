@@ -11,6 +11,7 @@ import { AnakAsuhList } from './AnakAsuhList';
 import { SavingsManagement } from './SavingsManagement';
 import { ChecklistManagement } from './ChecklistManagement';
 import BiodataDetailModal from './BiodataDetailModal';
+import DailyQuoteBanner from './DailyQuoteBanner';
 
 interface WaliAsuhDashboardProps {
   currentUser: User;
@@ -441,18 +442,22 @@ export default function WaliAsuhDashboard({
 
       {/* Guardian Welcome Banner */}
       {activeSubPage === null && (
-        <div className="bg-gradient-to-r from-violet-600 via-violet-700 to-indigo-800 rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden shadow-lg">
-          <div className="absolute -right-10 -bottom-10 w-44 h-44 bg-white/10 rounded-full blur-2xl"></div>
-          <div className="relative z-10 max-w-2xl text-left">
-            <span className="text-xs font-bold bg-violet-500/40 text-violet-100 px-3 py-1 rounded-full border border-violet-400/20">
-              Dasbor Wali Asuh
-            </span>
-            <h2 className="text-2xl sm:text-3xl font-extrabold mt-3 tracking-tight">Selamat Datang, {currentUser.name}</h2>
-            <p className="text-violet-100/80 text-sm mt-2 leading-relaxed">
-              Pantau dan tanggapi setiap laporan, pengaduan, dan curhatan dari anak asuh Anda secara bijaksana. WaliAsuhku menjamin pesan yang masuk dienkripsi dan hanya dapat diakses oleh Anda.
-            </p>
+        <>
+          <div className="bg-gradient-to-r from-violet-600 via-violet-700 to-indigo-800 rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden shadow-lg">
+            <div className="absolute -right-10 -bottom-10 w-44 h-44 bg-white/10 rounded-full blur-2xl"></div>
+            <div className="relative z-10 max-w-2xl text-left">
+              <span className="text-xs font-bold bg-violet-500/40 text-violet-100 px-3 py-1 rounded-full border border-violet-400/20">
+                Dasbor Wali Asuh
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-extrabold mt-3 tracking-tight">Selamat Datang, {currentUser.name}</h2>
+              <p className="text-violet-100/80 text-sm mt-2 leading-relaxed">
+                Pantau dan tanggapi setiap laporan, pengaduan, dan curhatan dari anak asuh Anda secara bijaksana. WaliAsuhku menjamin pesan yang masuk dienkripsi dan hanya dapat diakses oleh Anda.
+              </p>
+            </div>
           </div>
-        </div>
+
+          <DailyQuoteBanner role="wali_asuh" />
+        </>
       )}
 
       {/* Kategori Pintasan & Fitur (Quick Action Categories) */}
