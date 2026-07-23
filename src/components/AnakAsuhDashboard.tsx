@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { User, Report, ReportType, Broadcast, SavingsTransaction, ChatMessage } from '../types';
-import { Send, Upload, Lock, ShieldCheck, Heart, Clipboard, HelpCircle, FileText, AlertCircle, Trash2, CheckCircle, Clock, ShieldAlert, ImageIcon, MessageCircle, ZoomIn, ZoomOut, RotateCw, X, Download, Maximize2, Package, Megaphone, ExternalLink, Calendar, Coins, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
+import { Send, Upload, Lock, ShieldCheck, Heart, Clipboard, HelpCircle, FileText, AlertCircle, Trash2, CheckCircle, Clock, ShieldAlert, ImageIcon, MessageCircle, ZoomIn, ZoomOut, RotateCw, X, Download, Maximize2, Package, Megaphone, ExternalLink, Calendar, Coins, ArrowUpRight, ArrowDownLeft, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { decryptMessage, encryptMessage, formatDate, getStatusBadge, getTypeBadge } from '../utils/crypto';
+import { uploadToImgBB } from '../utils/imgbb';
 import AnakAsuhBiodataTab from './AnakAsuhBiodataTab';
 
 interface AnakAsuhDashboardProps {
@@ -199,18 +200,32 @@ export default function AnakAsuhDashboard({
     }, 2000);
   };
 
-  const handleCustomPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+
+  const handleCustomPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      if (event.target?.result) {
-        setPhotoUrl(event.target.result as string);
-        setCustomPhotoName(file.name);
-      }
-    };
-    reader.readAsDataURL(file);
+    setIsUploadingPhoto(true);
+    setCustomPhotoName(`Mengompres & Mengunggah: ${file.name}...`);
+
+    try {
+      const res = await uploadToImgBB(file);
+      setPhotoUrl(res.proxiedUrl);
+      setCustomPhotoName(file.name);
+    } catch (err: any) {
+      console.warn('ImgBB upload fallback:', err);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setPhotoUrl(event.target.result as string);
+          setCustomPhotoName(file.name);
+        }
+      };
+      reader.readAsDataURL(file);
+    } finally {
+      setIsUploadingPhoto(false);
+    }
   };
 
   const handleDrag = (e: React.DragEvent) => {
@@ -223,21 +238,33 @@ export default function AnakAsuhDashboard({
     }
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
 
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0];
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          setPhotoUrl(event.target.result as string);
-          setCustomPhotoName(file.name);
-        }
-      };
-      reader.readAsDataURL(file);
+      setIsUploadingPhoto(true);
+      setCustomPhotoName(`Mengompres & Mengunggah: ${file.name}...`);
+
+      try {
+        const res = await uploadToImgBB(file);
+        setPhotoUrl(res.proxiedUrl);
+        setCustomPhotoName(file.name);
+      } catch (err: any) {
+        console.warn('ImgBB upload fallback:', err);
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          if (event.target?.result) {
+            setPhotoUrl(event.target.result as string);
+            setCustomPhotoName(file.name);
+          }
+        };
+        reader.readAsDataURL(file);
+      } finally {
+        setIsUploadingPhoto(false);
+      }
     }
   };
 

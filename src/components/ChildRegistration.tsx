@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { User, MapPin, CreditCard, Phone, Mail, Camera, Eye, EyeOff, FileText, Upload } from 'lucide-react';
+import { User, MapPin, CreditCard, Phone, Mail, Camera, Eye, EyeOff, FileText, Upload, Loader2, CheckCircle2 } from 'lucide-react';
+import { uploadToImgBB } from '../utils/imgbb';
 
 interface ChildRegistrationProps {
   newName: string;
@@ -41,54 +42,76 @@ export const ChildRegistration: React.FC<ChildRegistrationProps> = ({
   const [kkPreview, setKkPreview] = useState<string | null>(null);
   const [bpjsPreview, setBpjsPreview] = useState<string | null>(null);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [uploadingFoto, setUploadingFoto] = useState(false);
+  const [uploadingKk, setUploadingKk] = useState(false);
+  const [uploadingBpjs, setUploadingBpjs] = useState(false);
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        alert("Ukuran file foto maksimal 2MB");
-        return;
+      setUploadingFoto(true);
+      try {
+        const res = await uploadToImgBB(file);
+        setImagePreview(res.proxiedUrl);
+        setFotoUrl(res.proxiedUrl);
+      } catch (err: any) {
+        console.warn('ImgBB upload fallback:', err);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64 = reader.result as string;
+          setImagePreview(base64);
+          setFotoUrl(base64);
+        };
+        reader.readAsDataURL(file);
+      } finally {
+        setUploadingFoto(false);
       }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
-        setImagePreview(base64String);
-        setFotoUrl(base64String);
-      };
-      reader.readAsDataURL(file);
     }
   };
 
-  const handleKkChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleKkChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        alert("Ukuran file foto KK maksimal 2MB");
-        return;
+      setUploadingKk(true);
+      try {
+        const res = await uploadToImgBB(file);
+        setKkPreview(res.proxiedUrl);
+        setFotoKkUrl(res.proxiedUrl);
+      } catch (err: any) {
+        console.warn('ImgBB upload fallback:', err);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64 = reader.result as string;
+          setKkPreview(base64);
+          setFotoKkUrl(base64);
+        };
+        reader.readAsDataURL(file);
+      } finally {
+        setUploadingKk(false);
       }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
-        setKkPreview(base64String);
-        setFotoKkUrl(base64String);
-      };
-      reader.readAsDataURL(file);
     }
   };
 
-  const handleBpjsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleBpjsChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        alert("Ukuran file foto BPJS maksimal 2MB");
-        return;
+      setUploadingBpjs(true);
+      try {
+        const res = await uploadToImgBB(file);
+        setBpjsPreview(res.proxiedUrl);
+        setFotoBpjsUrl(res.proxiedUrl);
+      } catch (err: any) {
+        console.warn('ImgBB upload fallback:', err);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64 = reader.result as string;
+          setBpjsPreview(base64);
+          setFotoBpjsUrl(base64);
+        };
+        reader.readAsDataURL(file);
+      } finally {
+        setUploadingBpjs(false);
       }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
-        setBpjsPreview(base64String);
-        setFotoBpjsUrl(base64String);
-      };
-      reader.readAsDataURL(file);
     }
   };
 
