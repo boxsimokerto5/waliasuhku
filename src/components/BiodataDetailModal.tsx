@@ -210,107 +210,107 @@ export default function BiodataDetailModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 my-auto">
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 15 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 15 }}
-        className="bg-white rounded-3xl w-full max-w-3xl max-h-[calc(100vh-2rem)] md:max-h-[90vh] overflow-hidden shadow-2xl border border-slate-100 flex flex-col text-left"
+        className="bg-white rounded-2xl sm:rounded-3xl w-full max-w-3xl max-h-[92dvh] sm:max-h-[90vh] my-auto overflow-hidden shadow-2xl border border-slate-100 flex flex-col text-left transition-all"
       >
         {/* Modal Header */}
-        <div className="bg-gradient-to-r from-violet-600 to-indigo-700 text-white p-4 sm:p-6 relative">
+        <div className="bg-gradient-to-r from-violet-600 to-indigo-700 text-white p-3.5 sm:p-6 relative shrink-0">
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 p-2 bg-black/10 hover:bg-black/20 rounded-full text-white transition-all cursor-pointer"
+            className="absolute top-3 right-3 sm:top-4 sm:right-4 p-1.5 sm:p-2 bg-black/10 hover:bg-black/20 rounded-full text-white transition-all cursor-pointer z-10"
             title="Tutup"
           >
-            <X className="w-4.5 h-4.5" />
+            <X className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
           </button>
 
-          <div className="flex flex-col sm:flex-row items-center gap-4">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white/10 border-2 border-white/20 overflow-hidden flex items-center justify-center shrink-0 shadow-lg">
+          <div className="flex flex-row items-center gap-3 sm:gap-4 pr-8 sm:pr-0">
+            <div className="w-12 h-12 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl bg-white/10 border-2 border-white/20 overflow-hidden flex items-center justify-center shrink-0 shadow-lg">
               {child.fotoUrl ? (
                 <img src={child.fotoUrl} alt={child.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
               ) : (
-                <span className="text-2xl sm:text-3xl font-bold uppercase text-white">{child.name.charAt(0)}</span>
+                <span className="text-xl sm:text-3xl font-bold uppercase text-white">{child.name.charAt(0)}</span>
               )}
             </div>
 
-            <div className="text-center sm:text-left space-y-1">
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                <h3 className="text-lg font-black tracking-tight">{child.name}</h3>
+            <div className="text-left space-y-0.5 sm:space-y-1 min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <h3 className="text-sm sm:text-lg font-black tracking-tight text-white truncate max-w-[180px] sm:max-w-none">{child.name}</h3>
                 {child.category && (
-                  <span className="text-[9px] font-black bg-white/25 text-white border border-white/15 uppercase tracking-wider px-2 py-0.5 rounded-full">
+                  <span className="text-[8px] sm:text-[9px] font-black bg-white/25 text-white border border-white/15 uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0">
                     {child.category}
                   </span>
                 )}
               </div>
-              <p className="text-xs text-violet-100 font-mono">ID Akun: @{child.username}</p>
-              <p className="text-[10px] text-violet-200 font-medium">Terdaftar sejak: {new Date(child.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+              <p className="text-[10px] sm:text-xs text-violet-100 font-mono">ID: @{child.username}</p>
+              <p className="text-[9px] sm:text-[10px] text-violet-200 font-medium hidden sm:block">Terdaftar sejak: {new Date(child.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
             </div>
           </div>
         </div>
 
         {/* Modal Navigation Tabs */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 bg-slate-50/50 pr-4 pl-2 sm:pl-0">
-          <div className="flex overflow-x-auto scrollbar-none whitespace-nowrap -mb-[2px] w-full sm:w-auto">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 bg-slate-50/50 px-2 sm:px-4 py-1.5 sm:py-0 shrink-0 gap-1.5 sm:gap-0">
+          <div className="flex overflow-x-auto scrollbar-none whitespace-nowrap -mb-[2px] w-full sm:w-auto gap-0.5 sm:gap-0">
             <button
               type="button"
               onClick={() => setActiveTab('biodata')}
-              className={`py-3.5 px-4 font-black text-xs uppercase tracking-wider transition-all border-b-2 -mb-[2px] cursor-pointer shrink-0 ${
+              className={`py-2.5 px-3 sm:py-3.5 sm:px-4 font-black text-[10px] sm:text-xs uppercase tracking-wider transition-all border-b-2 -mb-[2px] cursor-pointer shrink-0 ${
                 activeTab === 'biodata' ? 'border-violet-600 text-violet-700' : 'border-transparent text-slate-400 hover:text-slate-600'
               }`}
             >
-              Biodata Lengkap
+              Biodata
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('portofolio')}
-              className={`py-3.5 px-4 font-black text-xs uppercase tracking-wider transition-all border-b-2 -mb-[2px] cursor-pointer flex items-center gap-1.5 shrink-0 ${
+              className={`py-2.5 px-3 sm:py-3.5 sm:px-4 font-black text-[10px] sm:text-xs uppercase tracking-wider transition-all border-b-2 -mb-[2px] cursor-pointer flex items-center gap-1 sm:gap-1.5 shrink-0 ${
                 activeTab === 'portofolio' ? 'border-violet-600 text-violet-700' : 'border-transparent text-slate-400 hover:text-slate-600'
               }`}
             >
-              <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
-              <span>Portofolio & Prestasi</span>
+              <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-500 animate-pulse" />
+              <span>Portofolio</span>
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('laporan')}
-              className={`py-3.5 px-4 font-black text-xs uppercase tracking-wider transition-all border-b-2 -mb-[2px] cursor-pointer flex items-center gap-1.5 shrink-0 ${
+              className={`py-2.5 px-3 sm:py-3.5 sm:px-4 font-black text-[10px] sm:text-xs uppercase tracking-wider transition-all border-b-2 -mb-[2px] cursor-pointer flex items-center gap-1 sm:gap-1.5 shrink-0 ${
                 activeTab === 'laporan' ? 'border-violet-600 text-violet-700' : 'border-transparent text-slate-400 hover:text-slate-600'
               }`}
             >
-              <Heart className="w-3.5 h-3.5 text-rose-500 animate-pulse" />
-              <span>Laporan Bulanan (Ortu)</span>
+              <Heart className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-rose-500 animate-pulse" />
+              <span>Laporan Bulanan</span>
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('galeri')}
-              className={`py-3.5 px-4 font-black text-xs uppercase tracking-wider transition-all border-b-2 -mb-[2px] cursor-pointer flex items-center gap-1.5 shrink-0 ${
+              className={`py-2.5 px-3 sm:py-3.5 sm:px-4 font-black text-[10px] sm:text-xs uppercase tracking-wider transition-all border-b-2 -mb-[2px] cursor-pointer flex items-center gap-1 sm:gap-1.5 shrink-0 ${
                 activeTab === 'galeri' ? 'border-violet-600 text-violet-700' : 'border-transparent text-slate-400 hover:text-slate-600'
               }`}
             >
-              <ImageIcon className="w-3.5 h-3.5 text-blue-500" />
-              <span>Galeri Kegiatan</span>
+              <ImageIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-500" />
+              <span>Galeri</span>
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('asesmen')}
-              className={`py-3.5 px-4 font-black text-xs uppercase tracking-wider transition-all border-b-2 -mb-[2px] cursor-pointer flex items-center gap-1.5 shrink-0 ${
+              className={`py-2.5 px-3 sm:py-3.5 sm:px-4 font-black text-[10px] sm:text-xs uppercase tracking-wider transition-all border-b-2 -mb-[2px] cursor-pointer flex items-center gap-1 sm:gap-1.5 shrink-0 ${
                 activeTab === 'asesmen' ? 'border-violet-600 text-violet-700' : 'border-transparent text-slate-400 hover:text-slate-600'
               }`}
             >
-              <FileText className="w-3.5 h-3.5 text-amber-500" />
-              <span>Asesmen Awal {child.initialAssessment ? '(Ada)' : '(Kosong)'}</span>
+              <FileText className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-500" />
+              <span>Asesmen Awal</span>
             </button>
           </div>
 
           {activeTab !== 'galeri' && (
-            <div className="flex items-center gap-1.5 py-2 sm:py-0">
+            <div className="flex items-center justify-between sm:justify-end gap-1.5 py-1 sm:py-0 w-full sm:w-auto shrink-0 border-t sm:border-t-0 border-slate-100 pt-1.5 sm:pt-0">
               <button
                 type="button"
                 onClick={() => setShowPdfOptions(!showPdfOptions)}
-                className={`px-3 py-1.5 rounded-xl border font-bold text-[10px] uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1 shrink-0 ${
+                className={`px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl border font-bold text-[9px] sm:text-[10px] uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1 shrink-0 ${
                   showPdfOptions
                     ? 'bg-violet-100 text-violet-700 border-violet-300'
                     : 'bg-white text-slate-500 border-slate-200 hover:text-violet-600 hover:bg-violet-50/50'
@@ -346,15 +346,15 @@ export default function BiodataDetailModal({
                   }
                 }}
                 disabled={isPrinting}
-                className="px-3.5 py-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 disabled:from-slate-200 disabled:to-slate-300 disabled:text-slate-400 disabled:cursor-not-allowed text-white font-extrabold text-[10px] uppercase tracking-wider rounded-xl shadow-md transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-1.5 shrink-0"
+                className="px-3 py-1 sm:px-3.5 sm:py-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 disabled:from-slate-200 disabled:to-slate-300 disabled:text-slate-400 disabled:cursor-not-allowed text-white font-extrabold text-[9px] sm:text-[10px] uppercase tracking-wider rounded-xl shadow-md transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-1.5 shrink-0"
               >
-                <FileText className="w-3.5 h-3.5 text-white" />
+                <FileText className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" />
                 <span>
                   {isPrinting
-                    ? 'Mencetak...'
+                    ? 'Cetak...'
                     : activeTab === 'laporan'
-                    ? `Laporan (${pdfPaperSize.toUpperCase()})`
-                    : `Portofolio (${pdfPaperSize.toUpperCase()})`}
+                    ? `PDF (${pdfPaperSize.toUpperCase()})`
+                    : `PDF (${pdfPaperSize.toUpperCase()})`}
                 </span>
               </button>
             </div>
@@ -460,7 +460,7 @@ export default function BiodataDetailModal({
         </AnimatePresence>
 
         {/* Modal Body Content */}
-        <div className="p-4 sm:p-6 overflow-y-auto flex-1 min-h-0">
+        <div className="p-3 sm:p-6 overflow-y-auto flex-1 min-h-0">
           {activeTab === 'biodata' && (
             <div className="space-y-6">
               <div className="flex justify-between items-center border-b border-slate-50 pb-2">
@@ -1592,7 +1592,7 @@ export default function BiodataDetailModal({
         </div>
 
         {/* Modal Footer */}
-        <div className="border-t border-slate-100 p-4 bg-slate-50/50 flex justify-end">
+        <div className="border-t border-slate-100 p-3 sm:p-4 bg-slate-50/50 flex justify-end shrink-0">
           <button
             onClick={onClose}
             className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs rounded-xl transition-all cursor-pointer"
@@ -1604,19 +1604,19 @@ export default function BiodataDetailModal({
 
       {/* DOCUMENT ZOOM MODAL */}
       {zoomImage && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-xs z-55 flex items-center justify-center p-4">
-          <div className="relative max-w-4xl max-h-full overflow-hidden bg-slate-900 rounded-2xl p-2 flex flex-col items-center">
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-xs z-55 flex items-center justify-center p-2 sm:p-4 my-auto">
+          <div className="relative w-full max-w-4xl max-h-[90dvh] overflow-hidden bg-slate-900 rounded-2xl p-2 flex flex-col items-center">
             <button
               type="button"
               onClick={() => setZoomImage(null)}
-              className="absolute top-4 right-4 bg-black/60 hover:bg-black text-white rounded-full p-2.5 transition-all z-10 cursor-pointer"
+              className="absolute top-3 right-3 bg-black/60 hover:bg-black text-white rounded-full p-2 transition-all z-10 cursor-pointer"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
-            <div className="overflow-auto max-h-[80vh] flex items-center justify-center p-2">
+            <div className="overflow-auto max-h-[75dvh] flex items-center justify-center p-2 w-full">
               <img src={zoomImage} className="max-w-full max-h-full object-contain rounded-lg" alt="Zoom Dokumen" referrerPolicy="no-referrer" />
             </div>
-            <div className="p-3 text-center text-xs text-slate-400 font-medium font-mono">
+            <div className="p-2 text-center text-[10px] sm:text-xs text-slate-400 font-medium font-mono">
               Pratinjau Berkas Dokumen Resmi WaliAsuhku
             </div>
           </div>

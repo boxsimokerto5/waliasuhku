@@ -2116,7 +2116,7 @@ export default function WaliAsuhDashboard({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex flex-col items-center justify-between p-4"
+            className="fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex flex-col items-center justify-between p-2.5 sm:p-4 my-auto"
           >
             {/* Top Bar with metadata and close */}
             <div className="w-full max-w-5xl flex items-center justify-between z-10 pt-2 pb-4 border-b border-white/10">
