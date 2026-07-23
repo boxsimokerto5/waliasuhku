@@ -14,7 +14,7 @@ import { Bell, Lock, ShieldAlert, Monitor, Phone, HeartHandshake } from 'lucide-
 import { motion, AnimatePresence } from 'motion/react';
 import { collection, onSnapshot, setDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from './lib/firebase';
-import { fetchSupabaseTable } from './lib/supabase';
+import { fetchSupabaseTable, upsertSupabaseRecord, deleteSupabaseRecord } from './lib/supabase';
 
 export default function App() {
   // Persistence state
@@ -276,7 +276,14 @@ export default function App() {
     };
 
     try {
-      await setDoc(doc(db, 'users', newWali.id), newWali);
+      setUsers(prev => [...prev.filter(u => u.id !== newWali.id), newWali]);
+      upsertSupabaseRecord('users', newWali);
+
+      try {
+        await setDoc(doc(db, 'users', newWali.id), newWali);
+      } catch (err) {
+        handleFirestoreError(err, OperationType.WRITE, `users/${newWali.id}`);
+      }
 
       // Create a real-time notification
       const notif: AppNotification = {
@@ -287,10 +294,16 @@ export default function App() {
         isRead: false,
         createdAt: new Date().toISOString()
       };
-      await setDoc(doc(db, 'notifications', notif.id), notif);
+      setNotifications(prev => [notif, ...prev]);
+      upsertSupabaseRecord('notifications', notif);
+      try {
+        await setDoc(doc(db, 'notifications', notif.id), notif);
+      } catch (err) {
+        handleFirestoreError(err, OperationType.WRITE, `notifications/${notif.id}`);
+      }
       showToast(notif.title, notif.message);
     } catch (err) {
-      handleFirestoreError(err, OperationType.WRITE, `users/${newWali.id}`);
+      console.warn('Wali creation error handled:', err);
     }
   };
 
@@ -323,7 +336,14 @@ export default function App() {
     };
 
     try {
-      await setDoc(doc(db, 'users', newAnak.id), newAnak);
+      setUsers(prev => [...prev.filter(u => u.id !== newAnak.id), newAnak]);
+      upsertSupabaseRecord('users', newAnak);
+
+      try {
+        await setDoc(doc(db, 'users', newAnak.id), newAnak);
+      } catch (err) {
+        handleFirestoreError(err, OperationType.WRITE, `users/${newAnak.id}`);
+      }
 
       // Create a real-time notification
       const notif: AppNotification = {
@@ -334,10 +354,16 @@ export default function App() {
         isRead: false,
         createdAt: new Date().toISOString()
       };
-      await setDoc(doc(db, 'notifications', notif.id), notif);
+      setNotifications(prev => [notif, ...prev]);
+      upsertSupabaseRecord('notifications', notif);
+      try {
+        await setDoc(doc(db, 'notifications', notif.id), notif);
+      } catch (err) {
+        handleFirestoreError(err, OperationType.WRITE, `notifications/${notif.id}`);
+      }
       showToast(notif.title, notif.message);
     } catch (err) {
-      handleFirestoreError(err, OperationType.WRITE, `users/${newAnak.id}`);
+      console.warn('Anak creation error handled:', err);
     }
   };
 
