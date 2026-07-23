@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { User, Report, AppNotification, Broadcast, SavingsTransaction, ChatMessage } from '../types';
-import { Plus, UserCheck, ShieldAlert, ClipboardList, RefreshCw, Key, Database, ShieldCheck, Eye, EyeOff, CheckCircle2, AlertTriangle, ArrowRight, Server } from 'lucide-react';
+import { Plus, UserCheck, ShieldAlert, ClipboardList, RefreshCw, Key, Database, ShieldCheck, Eye, EyeOff, CheckCircle2, AlertTriangle, ArrowRight, Server, Code } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { decryptMessage } from '../utils/crypto';
 import { testSupabaseConnection } from '../lib/supabase';
@@ -38,6 +38,99 @@ export default function SuperAdminDashboard({
   const [isTesting, setIsTesting] = useState(false);
   const [isMigrating, setIsMigrating] = useState(false);
   const [migrationSummary, setMigrationSummary] = useState<MigrationSummary | null>(null);
+  const [showSqlScript, setShowSqlScript] = useState(false);
+  const [copiedSql, setCopiedSql] = useState(false);
+
+  const sqlSchemaScript = `-- SKRIP TABEL SUPABASE WALIASUHKU
+CREATE TABLE IF NOT EXISTS users (
+  id TEXT PRIMARY KEY,
+  username TEXT,
+  name TEXT,
+  role TEXT,
+  password TEXT,
+  wali_asuh_id TEXT,
+  anak_asuh_id TEXT,
+  category TEXT,
+  is_suspended BOOLEAN DEFAULT FALSE,
+  savings_balance NUMERIC DEFAULT 0,
+  foto_url TEXT,
+  foto_kk_url TEXT,
+  foto_bpjs_url TEXT,
+  alamat TEXT,
+  nik TEXT,
+  kk TEXT,
+  parent_phone TEXT,
+  email TEXT,
+  health_status TEXT,
+  health_notes TEXT,
+  monthly_activities TEXT,
+  character_notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS reports (
+  id TEXT PRIMARY KEY,
+  sender_id TEXT,
+  sender_name TEXT,
+  receiver_id TEXT,
+  receiver_name TEXT,
+  title TEXT,
+  content TEXT,
+  type TEXT,
+  status TEXT,
+  attachment_url TEXT,
+  is_encrypted BOOLEAN DEFAULT FALSE,
+  parent_approval_status TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS notifications (
+  id TEXT PRIMARY KEY,
+  user_id TEXT,
+  title TEXT,
+  message TEXT,
+  is_read BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS broadcasts (
+  id TEXT PRIMARY KEY,
+  sender_id TEXT,
+  sender_name TEXT,
+  message TEXT,
+  link_url TEXT,
+  link_text TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS savings_transactions (
+  id TEXT PRIMARY KEY,
+  student_id TEXT,
+  student_name TEXT,
+  wali_asuh_id TEXT,
+  amount NUMERIC DEFAULT 0,
+  type TEXT,
+  description TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS chat_messages (
+  id TEXT PRIMARY KEY,
+  sender_id TEXT,
+  sender_name TEXT,
+  sender_role TEXT,
+  receiver_id TEXT,
+  receiver_name TEXT,
+  content TEXT,
+  is_encrypted BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);`;
+
+  const handleCopySql = () => {
+    navigator.clipboard.writeText(sqlSchemaScript);
+    setCopiedSql(true);
+    setTimeout(() => setCopiedSql(false), 2000);
+  };
 
   const handleTestSupabase = async () => {
     setIsTesting(true);
@@ -51,13 +144,41 @@ export default function SuperAdminDashboard({
     setIsMigrating(true);
     setMigrationSummary(null);
 
+    // Read from localStorage backups if present
+    let targetUsers = [...users];
+    let targetReports = [...reports];
+    let targetNotifs = [...notifications];
+    let targetBroadcasts = [...broadcasts];
+    let targetSavings = [...savingsTransactions];
+    let targetChats = [...chatMessages];
+
+    try {
+      const localUsers = localStorage.getItem('waliasuhku_local_users');
+      if (localUsers) {
+        const parsed = JSON.parse(localUsers);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const map = new Map<string, User>();
+          targetUsers.forEach(u => map.set(u.id, u));
+          parsed.forEach((u: User) => map.set(u.id, u));
+          targetUsers = Array.from(map.values());
+        }
+      }
+      const localReports = localStorage.getItem('waliasuhku_local_reports');
+      if (localReports) {
+        const parsed = JSON.parse(localReports);
+        if (Array.isArray(parsed)) targetReports = parsed;
+      }
+    } catch (e) {
+      console.warn('Migration backup load warning:', e);
+    }
+
     const summary = await migrateDataToSupabase({
-      users,
-      reports,
-      notifications,
-      broadcasts,
-      savingsTransactions,
-      chatMessages
+      users: targetUsers,
+      reports: targetReports,
+      notifications: targetNotifs,
+      broadcasts: targetBroadcasts,
+      savingsTransactions: targetSavings,
+      chatMessages: targetChats
     });
 
     setMigrationSummary(summary);
@@ -302,7 +423,7 @@ export default function SuperAdminDashboard({
             </div>
 
             <div className="space-y-2 text-xs text-emerald-200/90 text-left leading-relaxed">
-              <p>Tabel Supabase telah berhasil dibuat. Klik tombol di bawah ini untuk memindahkan semua data aktif ke database Supabase Anda:</p>
+              <p>Transfer dan sinkronkan seluruh data aktif ke database PostgreSQL Supabase Anda:</p>
               
               <div className="grid grid-cols-2 gap-2 text-[10px] bg-emerald-900/40 p-2.5 rounded-xl border border-emerald-900 font-mono">
                 <div>• User: <span className="text-emerald-300 font-bold">{users.length}</span></div>
@@ -311,6 +432,36 @@ export default function SuperAdminDashboard({
                 <div>• Siaran: <span className="text-emerald-300 font-bold">{broadcasts.length}</span></div>
                 <div>• Tabungan: <span className="text-emerald-300 font-bold">{savingsTransactions.length}</span></div>
                 <div>• Chat: <span className="text-emerald-300 font-bold">{chatMessages.length}</span></div>
+              </div>
+
+              {/* SQL Script Button */}
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowSqlScript(!showSqlScript)}
+                  className="text-[10px] text-emerald-300 hover:text-emerald-100 underline flex items-center gap-1 cursor-pointer"
+                >
+                  <Code className="w-3 h-3" />
+                  {showSqlScript ? "Sembunyikan Skrip SQL Supabase" : "Lihat & Salin Skrip SQL Supabase (Opsional)"}
+                </button>
+
+                {showSqlScript && (
+                  <div className="mt-2 p-3 bg-emerald-950/90 border border-emerald-800 rounded-xl space-y-2 text-[10px] font-mono text-emerald-200">
+                    <div className="flex items-center justify-between border-b border-emerald-800 pb-1.5">
+                      <span className="font-bold text-emerald-300">Skrip SQL DDL Supabase:</span>
+                      <button
+                        type="button"
+                        onClick={handleCopySql}
+                        className="px-2 py-0.5 bg-emerald-500 text-emerald-950 font-bold rounded hover:bg-emerald-400 text-[9px] flex items-center gap-1 cursor-pointer"
+                      >
+                        {copiedSql ? "Tersalin!" : "Salin SQL"}
+                      </button>
+                    </div>
+                    <pre className="max-h-40 overflow-y-auto p-2 bg-black/40 rounded text-[9px] whitespace-pre-wrap select-all text-emerald-300/90">
+                      {sqlSchemaScript}
+                    </pre>
+                  </div>
+                )}
               </div>
             </div>
 

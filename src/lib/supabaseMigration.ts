@@ -121,54 +121,44 @@ function cleanChatCamel(c: any) {
 
 /**
  * Smart upsert that automatically handles camelCase vs snake_case schema differences
+ * and automatically strips missing columns if the Supabase table doesn't have them yet.
  */
 async function smartUpsert(tableName: string, recordsCamel: any[], client: any): Promise<{ success: boolean; count: number; error?: string }> {
-  if (recordsCamel.length === 0) return { success: true, count: 0 };
+  if (!recordsCamel || recordsCamel.length === 0) return { success: true, count: 0 };
 
-  // Attempt 1: Upsert with camelCase
-  let { error } = await client.from(tableName).upsert(recordsCamel);
-  if (!error) return { success: true, count: recordsCamel.length };
+  let currentPayload = recordsCamel.map(objectToSnakeCase);
 
-  const errMsg = error.message || '';
-  console.warn(`[Supabase Migration] Attempt 1 failed for ${tableName}:`, errMsg);
-
-  // Attempt 2: Convert to snake_case if column missing error
-  if (errMsg.includes('Could not find') || errMsg.includes('column') || error.code === 'PGRST204') {
-    const recordsSnake = recordsCamel.map(objectToSnakeCase);
-    const snakeRes = await client.from(tableName).upsert(recordsSnake);
-    if (!snakeRes.error) {
-      return { success: true, count: recordsSnake.length };
-    }
-    console.warn(`[Supabase Migration] Attempt 2 (snake_case) failed for ${tableName}:`, snakeRes.error.message);
-
-    // Attempt 3: Stripping missing column if error specifies a column name
-    const missingColMatch = snakeRes.error.message.match(/column '([^']+)'|column "([^"]+)"|'([^']+)' column/i);
-    const badCol = missingColMatch ? (missingColMatch[1] || missingColMatch[2] || missingColMatch[3]) : null;
-
-    if (badCol) {
-      const strippedCamel = recordsCamel.map(item => {
-        const copy = { ...item };
-        delete copy[badCol];
-        delete copy[toSnakeCaseKey(badCol)];
-        return copy;
-      });
-      const stripRes = await client.from(tableName).upsert(strippedCamel);
-      if (!stripRes.error) return { success: true, count: strippedCamel.length };
-
-      const strippedSnake = recordsSnake.map(item => {
-        const copy = { ...item };
-        delete copy[badCol];
-        delete copy[toSnakeCaseKey(badCol)];
-        return copy;
-      });
-      const stripSnakeRes = await client.from(tableName).upsert(strippedSnake);
-      if (!stripSnakeRes.error) return { success: true, count: strippedSnake.length };
+  for (let attempt = 0; attempt < 12; attempt++) {
+    const { error } = await client.from(tableName).upsert(currentPayload);
+    if (!error) {
+      return { success: true, count: currentPayload.length };
     }
 
-    return { success: false, count: 0, error: snakeRes.error.message };
+    const errMsg = error.message || '';
+    console.warn(`[Supabase Migration] Attempt ${attempt + 1} for ${tableName}:`, errMsg);
+
+    const match = errMsg.match(/column '([^']+)'|column "([^"]+)"|'([^']+)' column/i);
+    const missingCol = match ? (match[1] || match[2] || match[3]) : null;
+
+    if (missingCol) {
+      currentPayload = currentPayload.map(item => {
+        const copy = { ...item };
+        delete copy[missingCol];
+        delete copy[toSnakeCaseKey(missingCol)];
+        return copy;
+      });
+      continue;
+    }
+
+    if (attempt === 0) {
+      currentPayload = recordsCamel;
+      continue;
+    }
+
+    return { success: false, count: 0, error: errMsg };
   }
 
-  return { success: false, count: 0, error: errMsg };
+  return { success: false, count: 0, error: 'Gagal menyimpan ke Supabase setelah beberapa percobaan.' };
 }
 
 export async function migrateDataToSupabase(data: {

@@ -106,6 +106,20 @@ export async function fetchSupabaseTable<T>(tableName: string): Promise<T[] | nu
   }
 }
 
+function toSnakeCaseKey(key: string): string {
+  return key.replace(/([A-Z])/g, "_$1").toLowerCase();
+}
+
+function objectToSnakeCase(obj: Record<string, any>): Record<string, any> {
+  const result: Record<string, any> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined) {
+      result[toSnakeCaseKey(key)] = value;
+    }
+  }
+  return result;
+}
+
 /**
  * Universal upsert helper for Supabase
  */
@@ -114,10 +128,15 @@ export async function upsertSupabaseRecord<T extends { id: string }>(tableName: 
   if (!client) return false;
 
   try {
-    const { error } = await client.from(tableName).upsert(record);
+    const snakePayload = objectToSnakeCase(record);
+    const { error } = await client.from(tableName).upsert(snakePayload);
     if (error) {
-      console.error(`[Supabase Upsert Error] ${tableName}:`, error.message);
-      return false;
+      // Fallback attempt with raw record
+      const { error: camelError } = await client.from(tableName).upsert(record);
+      if (camelError) {
+        console.error(`[Supabase Upsert Error] ${tableName}:`, error.message);
+        return false;
+      }
     }
     return true;
   } catch (err) {
