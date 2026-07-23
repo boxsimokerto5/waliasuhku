@@ -573,7 +573,7 @@ export default function AnakAsuhBiodataTab({
                         <label className="cursor-pointer flex flex-col items-center justify-center p-2 w-full h-full">
                           <Upload className="w-5 h-5 text-indigo-500 mb-1" />
                           <span className="text-[10px] font-bold text-indigo-700">Unggah Foto KK Baru</span>
-                          <span className="text-[8px] text-slate-400 mt-0.5">Maks 2MB</span>
+                          <span className="text-[8px] text-violet-600 font-semibold mt-0.5">Otomatis dikompres</span>
                           <input type="file" accept="image/*" onChange={handleKkChange} className="hidden" />
                         </label>
                       )}
@@ -601,7 +601,7 @@ export default function AnakAsuhBiodataTab({
                         <label className="cursor-pointer flex flex-col items-center justify-center p-2 w-full h-full">
                           <Upload className="w-5 h-5 text-emerald-500 mb-1" />
                           <span className="text-[10px] font-bold text-emerald-700">Unggah Foto BPJS Baru</span>
-                          <span className="text-[8px] text-slate-400 mt-0.5">Maks 2MB</span>
+                          <span className="text-[8px] text-violet-600 font-semibold mt-0.5">Otomatis dikompres</span>
                           <input type="file" accept="image/*" onChange={handleBpjsChange} className="hidden" />
                         </label>
                       )}

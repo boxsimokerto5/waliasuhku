@@ -262,7 +262,7 @@ export const ChildRegistration: React.FC<ChildRegistrationProps> = ({
                         className="hidden" 
                       />
                     </label>
-                    <span className="text-[9px] text-slate-400 font-medium">Maksimal 2MB</span>
+                    <span className="text-[9px] text-violet-600 font-semibold">Otomatis dikompres</span>
                   </div>
                 </div>
               </div>
@@ -382,7 +382,7 @@ export const ChildRegistration: React.FC<ChildRegistrationProps> = ({
                     <label className="cursor-pointer flex flex-col items-center justify-center p-2 w-full h-full">
                       <Upload className="w-5 h-5 text-indigo-500 mb-1" />
                       <span className="text-[10px] font-bold text-indigo-700">Pilih Foto KK</span>
-                      <span className="text-[8px] text-slate-400 mt-0.5">Maks 2MB</span>
+                      <span className="text-[8px] text-violet-600 font-semibold mt-0.5">Otomatis dikompres</span>
                       <input type="file" accept="image/*" onChange={handleKkChange} className="hidden" />
                     </label>
                   )}
@@ -410,7 +410,7 @@ export const ChildRegistration: React.FC<ChildRegistrationProps> = ({
                     <label className="cursor-pointer flex flex-col items-center justify-center p-2 w-full h-full">
                       <Upload className="w-5 h-5 text-emerald-500 mb-1" />
                       <span className="text-[10px] font-bold text-emerald-700">Pilih Foto BPJS</span>
-                      <span className="text-[8px] text-slate-400 mt-0.5">Maks 2MB</span>
+                      <span className="text-[8px] text-violet-600 font-semibold mt-0.5">Otomatis dikompres</span>
                       <input type="file" accept="image/*" onChange={handleBpjsChange} className="hidden" />
                     </label>
                   )}

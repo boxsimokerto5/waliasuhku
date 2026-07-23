@@ -788,7 +788,7 @@ export default function BiodataDetailModal({
                           <label className="cursor-pointer flex flex-col items-center justify-center p-1 w-full h-full">
                             <Upload className="w-4 h-4 text-indigo-500 mb-1" />
                             <span className="text-[9px] font-bold text-indigo-700">Unggah Foto KK</span>
-                            <span className="text-[7px] text-slate-400">Maks 2MB</span>
+                            <span className="text-[7px] text-violet-600 font-semibold">Otomatis dikompres</span>
                             <input type="file" accept="image/*" onChange={handleKkChange} className="hidden" />
                           </label>
                         )}
@@ -816,7 +816,7 @@ export default function BiodataDetailModal({
                           <label className="cursor-pointer flex flex-col items-center justify-center p-1 w-full h-full">
                             <Upload className="w-4 h-4 text-emerald-500 mb-1" />
                             <span className="text-[9px] font-bold text-emerald-700">Unggah Foto BPJS</span>
-                            <span className="text-[7px] text-slate-400">Maks 2MB</span>
+                            <span className="text-[7px] text-violet-600 font-semibold">Otomatis dikompres</span>
                             <input type="file" accept="image/*" onChange={handleBpjsChange} className="hidden" />
                           </label>
                         )}
@@ -1410,10 +1410,16 @@ export default function BiodataDetailModal({
                   {/* File Upload Zone */}
                   <div className="space-y-2">
                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                      Pilih Foto Kegiatan (Max 2MB)
+                      Pilih Foto Kegiatan (Otomatis Dikompres)
                     </label>
                     <div className="relative border-2 border-dashed border-slate-200 hover:border-violet-500 rounded-2xl p-4 transition-all flex flex-col items-center justify-center min-h-[140px] bg-white cursor-pointer group">
-                      {galleryPreview ? (
+                      {isUploadingPhoto ? (
+                        <div className="flex flex-col items-center justify-center space-y-2 text-center py-4">
+                          <Loader2 className="w-6 h-6 text-violet-600 animate-spin" />
+                          <p className="text-xs font-bold text-violet-700">Mengompres & Mengunggah...</p>
+                          <p className="text-[10px] text-slate-400">Sedang mengecilkan ukuran berkas foto</p>
+                        </div>
+                      ) : galleryPreview ? (
                         <div className="relative w-full h-[120px]">
                           <img src={galleryPreview} className="w-full h-full object-cover rounded-xl" alt="Preview" referrerPolicy="no-referrer" />
                           <button
@@ -1434,29 +1440,36 @@ export default function BiodataDetailModal({
                             <Upload className="w-5 h-5" />
                           </div>
                           <div>
-                            <p className="text-xs font-bold text-slate-700">Pilih berkas foto</p>
-                            <p className="text-[10px] text-slate-400 mt-0.5">Mendukung JPEG, PNG, WEBP</p>
+                            <p className="text-xs font-bold text-slate-700">Pilih berkas foto (Semua Ukuran)</p>
+                            <p className="text-[10px] text-violet-600 font-semibold mt-0.5">Otomatis Dikompres Client-Side</p>
                           </div>
                         </div>
                       )}
                       <input
                         type="file"
                         accept="image/*"
-                        className="absolute inset-0 opacity-0 cursor-pointer"
-                        onChange={(e) => {
+                        className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                        disabled={isUploadingPhoto}
+                        onChange={async (e) => {
                           const file = e.target.files?.[0];
                           if (file) {
-                            if (file.size > 2 * 1024 * 1024) {
-                              alert("Ukuran file foto maksimal 2MB");
-                              return;
+                            setIsUploadingPhoto(true);
+                            try {
+                              const res = await uploadToImgBB(file);
+                              setGalleryPreview(res.proxiedUrl);
+                              setGalleryPhotoUrl(res.proxiedUrl);
+                            } catch (err: any) {
+                              console.warn('ImgBB upload fallback:', err);
+                              const reader = new FileReader();
+                              reader.onloadend = () => {
+                                const base64String = reader.result as string;
+                                setGalleryPreview(base64String);
+                                setGalleryPhotoUrl(base64String);
+                              };
+                              reader.readAsDataURL(file);
+                            } finally {
+                              setIsUploadingPhoto(false);
                             }
-                            const reader = new FileReader();
-                            reader.onloadend = () => {
-                              const base64String = reader.result as string;
-                              setGalleryPreview(base64String);
-                              setGalleryPhotoUrl(base64String);
-                            };
-                            reader.readAsDataURL(file);
                           }
                         }}
                       />
