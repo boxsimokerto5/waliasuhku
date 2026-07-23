@@ -33,13 +33,24 @@ export default function OrangTuaDashboard({
   const [zoomImage, setZoomImage] = useState<string | null>(null);
   const [isPrinting, setIsPrinting] = useState(false);
 
-  // Find the child linked to this Parent account
-  const myChild = users.find(u => u.id === currentUser.anakAsuhId && u.role === 'anak_asuh');
+  const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
+
+  // Find all children linked to this Parent account (by anakAsuhId or parentPhone)
+  const myChildren = users.filter(u => 
+    u.role === 'anak_asuh' && (
+      u.id === currentUser.anakAsuhId || 
+      (u.parentPhone && currentUser.parentPhone && u.parentPhone === currentUser.parentPhone) ||
+      (u.parentPhone && currentUser.username && u.parentPhone === currentUser.username)
+    )
+  );
+
+  // Active selected child (defaults to first linked child)
+  const myChild = myChildren.find(c => c.id === selectedChildId) || myChildren[0] || users.find(u => u.id === currentUser.anakAsuhId && u.role === 'anak_asuh');
 
   // Filter messages intended for parents (pesan_ortu) from their specific child, which have been approved by Wali Asuh
   const parentMessages = reports.filter(r => 
     r.type === 'pesan_ortu' && 
-    r.senderId === currentUser.anakAsuhId && 
+    (myChild ? r.senderId === myChild.id : r.senderId === currentUser.anakAsuhId) && 
     r.parentApprovalStatus === 'approved'
   );
 
@@ -100,7 +111,39 @@ export default function OrangTuaDashboard({
           
           {/* Linked Student Card */}
           <div className="bg-white border border-slate-100 rounded-3xl p-5 shadow-sm text-left">
-            <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-3">Informasi Anak</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">Informasi Anak</h3>
+              {myChildren.length > 1 && (
+                <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100">
+                  {myChildren.length} Anak Terhubung
+                </span>
+              )}
+            </div>
+
+            {/* Child selector tabs if multiple children */}
+            {myChildren.length > 1 && (
+              <div className="flex flex-wrap gap-1.5 mb-4 p-1 bg-slate-100 rounded-2xl">
+                {myChildren.map(child => {
+                  const isSelected = myChild?.id === child.id;
+                  return (
+                    <button
+                      key={child.id}
+                      type="button"
+                      onClick={() => setSelectedChildId(child.id)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                        isSelected 
+                          ? 'bg-amber-500 text-white shadow-xs' 
+                          : 'text-slate-600 hover:bg-slate-200/60'
+                      }`}
+                    >
+                      <UserIcon className="w-3.5 h-3.5" />
+                      <span>{child.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
             {myChild ? (
               <div className="space-y-4">
                 <div className="flex items-center gap-3 p-3 bg-amber-50/40 border border-amber-100/50 rounded-2xl">

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Phone, MapPin, CreditCard, Camera, Sparkles, Award, Edit2, Check, ExternalLink, Upload, FileText, Eye, X, Heart, ImageIcon, Loader2 } from 'lucide-react';
+import { Mail, Phone, MapPin, CreditCard, Camera, Sparkles, Award, Edit2, Check, ExternalLink, Upload, FileText, Eye, X, Heart, ImageIcon, Loader2, Plus, Trash2 } from 'lucide-react';
 import { User } from '../types';
 import { generateStudentPortfolioPDF, generateStudentMonthlyReportPDF } from '../utils/pdfGenerator';
 import { uploadToImgBB } from '../utils/imgbb';
@@ -37,6 +37,14 @@ export default function AnakAsuhBiodataTab({
   const [zoomImage, setZoomImage] = useState<string | null>(null);
 
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+
+  // Gallery Upload State
+  const [galleryPhotoUrl, setGalleryPhotoUrl] = useState('');
+  const [galleryPreview, setGalleryPreview] = useState<string | null>(null);
+  const [galleryCaption, setGalleryCaption] = useState('');
+  const [galleryDate, setGalleryDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  const [isUploadingGalleryPhoto, setIsUploadingGalleryPhoto] = useState(false);
+  const [isAddingGalleryPhoto, setIsAddingGalleryPhoto] = useState(false);
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -741,18 +749,166 @@ export default function AnakAsuhBiodataTab({
 
         {subTab === 'galeri' && (
           <div className="space-y-6">
-            <div className="bg-blue-50/50 p-4 rounded-2xl border border-blue-100 flex items-start gap-3">
-              <ImageIcon className="w-5 h-5 text-blue-500 shrink-0 mt-0.5 animate-pulse" />
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50/60 p-4 rounded-2xl border border-blue-100/80 flex items-start gap-3">
+              <ImageIcon className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5 animate-pulse" />
               <div>
-                <h4 className="text-xs font-black text-blue-800 uppercase tracking-wider">
+                <h4 className="text-xs font-black text-indigo-900 uppercase tracking-wider">
                   Galeri Kegiatan & Aktivitas Belajarku
                 </h4>
-                <p className="text-[11px] text-blue-600/90 mt-1 leading-relaxed font-medium">
-                  Halaman ini menampilkan dokumentasi foto kegiatan asrama dan pembinaan Anda yang diabadikan oleh Wali Asuh Anda sebagai bukti portofolio aktif.
+                <p className="text-[11px] text-indigo-700/90 mt-1 leading-relaxed font-medium">
+                  Dokumentasikan foto kegiatan, hafalan, atau belajar kamu di sini. Foto otomatis dikompres hemat data dan disalurkan via CDN Cloudflare agar dapat langsung dilihat oleh Orang Tua kamu tanpa tertukar.
                 </p>
               </div>
             </div>
 
+            {/* Form Tambah Foto Baru oleh Anak Asuh */}
+            <div className="bg-slate-50 border border-slate-150 p-4 sm:p-5 rounded-2xl text-left space-y-4">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Unggah Foto Kegiatan Baru</span>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* File Upload Area */}
+                <div className="space-y-2">
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                    Pilih Foto Kegiatan (Otomatis Dikompres)
+                  </label>
+                  <div className="relative border-2 border-dashed border-slate-200 hover:border-violet-500 rounded-2xl p-4 transition-all flex flex-col items-center justify-center min-h-[140px] bg-white cursor-pointer group">
+                    {isUploadingGalleryPhoto ? (
+                      <div className="flex flex-col items-center justify-center space-y-2 text-center py-4">
+                        <Loader2 className="w-6 h-6 text-violet-600 animate-spin" />
+                        <p className="text-xs font-bold text-violet-700">Mengompres & Mengunggah...</p>
+                        <p className="text-[10px] text-slate-400">Mengecilkan foto & mengunggah ke CDN</p>
+                      </div>
+                    ) : galleryPreview ? (
+                      <div className="relative w-full h-[120px]">
+                        <img src={galleryPreview} className="w-full h-full object-cover rounded-xl" alt="Preview" referrerPolicy="no-referrer" />
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setGalleryPreview(null);
+                            setGalleryPhotoUrl('');
+                          }}
+                          className="absolute top-1.5 right-1.5 p-1 bg-red-500 hover:bg-red-600 text-white rounded-full transition-all cursor-pointer shadow-sm"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center space-y-2 text-center">
+                        <div className="p-3 bg-slate-50 rounded-full group-hover:bg-violet-50 transition-all text-slate-400 group-hover:text-violet-600">
+                          <Upload className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-slate-700">Pilih / Ambil Foto Kegiatan</p>
+                          <p className="text-[10px] text-violet-600 font-semibold mt-0.5">Otomatis Dikompres Client-Side & CDN Proxy</p>
+                        </div>
+                      </div>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                      disabled={isUploadingGalleryPhoto}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setIsUploadingGalleryPhoto(true);
+                          try {
+                            const res = await uploadToImgBB(file);
+                            setGalleryPreview(res.proxiedUrl);
+                            setGalleryPhotoUrl(res.proxiedUrl);
+                          } catch (err: any) {
+                            console.warn('ImgBB upload fallback:', err);
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              const base64String = reader.result as string;
+                              setGalleryPreview(base64String);
+                              setGalleryPhotoUrl(base64String);
+                            };
+                            reader.readAsDataURL(file);
+                          } finally {
+                            setIsUploadingGalleryPhoto(false);
+                          }
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Caption & Date Input */}
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                      Keterangan Foto (Caption)
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={galleryCaption}
+                      onChange={(e) => setGalleryCaption(e.target.value)}
+                      placeholder="Contoh: Mengikuti kegiatan shalat berjamaah dan muroja'ah di musholla."
+                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-violet-500 text-slate-700 leading-relaxed font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                      Tanggal Kegiatan
+                    </label>
+                    <input
+                      type="date"
+                      value={galleryDate}
+                      onChange={(e) => setGalleryDate(e.target.value)}
+                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-violet-500 text-slate-700 font-medium"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-1">
+                <button
+                  type="button"
+                  disabled={isAddingGalleryPhoto || isUploadingGalleryPhoto || !galleryPhotoUrl || !galleryCaption.trim()}
+                  onClick={async () => {
+                    if (!galleryPhotoUrl || !galleryCaption.trim()) return;
+                    setIsAddingGalleryPhoto(true);
+                    try {
+                      const newPhoto = {
+                        id: Math.random().toString(36).substring(2, 9),
+                        url: galleryPhotoUrl,
+                        caption: galleryCaption.trim(),
+                        date: galleryDate || new Date().toISOString().split('T')[0],
+                      };
+                      const currentPhotos = currentUser.activityPhotos || [];
+                      const updatedPhotos = [newPhoto, ...currentPhotos];
+
+                      if (onUpdateBiodata) {
+                        await onUpdateBiodata(currentUser.id, {
+                          activityPhotos: updatedPhotos
+                        });
+                      }
+
+                      // Reset form
+                      setGalleryPreview(null);
+                      setGalleryPhotoUrl('');
+                      setGalleryCaption('');
+                      setGalleryDate(new Date().toISOString().split('T')[0]);
+                      alert("Foto kegiatan berhasil ditambahkan ke galeri kamu!");
+                    } catch (err) {
+                      console.error(err);
+                      alert("Gagal menambahkan foto kegiatan");
+                    } finally {
+                      setIsAddingGalleryPhoto(false);
+                    }
+                  }}
+                  className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-slate-200 disabled:to-slate-300 disabled:text-slate-400 text-white font-extrabold text-[10px] uppercase tracking-wider rounded-xl shadow-md active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>{isAddingGalleryPhoto ? "Mengunggah..." : "Tambah ke Galeri Belajarku"}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* List Foto Kegiatan */}
             <div className="space-y-4">
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block border-b border-slate-100 pb-2">
                 Daftar Foto Dokumentasi ({currentUser.activityPhotos?.length || 0})
@@ -762,7 +918,7 @@ export default function AnakAsuhBiodataTab({
                 <div className="text-center py-12 text-slate-450 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200 flex flex-col items-center justify-center space-y-2">
                   <ImageIcon className="w-8 h-8 text-slate-300" />
                   <p className="text-xs font-bold text-slate-500">Belum ada foto kegiatan</p>
-                  <p className="text-[10px] text-slate-400 font-normal">Wali Asuh Anda belum mengunggah foto dokumentasi kegiatan asrama Anda.</p>
+                  <p className="text-[10px] text-slate-400 font-normal">Gunakan formulir di atas untuk mengunggah foto kegiatan pertama kamu.</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -771,7 +927,7 @@ export default function AnakAsuhBiodataTab({
                       <div className="relative aspect-video w-full bg-slate-100 overflow-hidden cursor-zoom-in" onClick={() => setZoomImage(photo.url)}>
                         <img src={photo.url} className="w-full h-full object-cover group-hover:scale-105 transition-all duration-350" alt={photo.caption} referrerPolicy="no-referrer" />
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
-                          <span className="text-[9px] font-black text-white uppercase tracking-widest bg-black/60 px-2 py-1 rounded-md">Zoom</span>
+                          <span className="text-[9px] font-black text-white uppercase tracking-widest bg-black/60 px-2 py-1 rounded-md">Perbesar</span>
                         </div>
                       </div>
 
@@ -780,8 +936,32 @@ export default function AnakAsuhBiodataTab({
                         
                         <div className="flex items-center justify-between pt-2 border-t border-slate-50 mt-auto">
                           <span className="text-[9px] text-slate-450 font-mono font-bold">
-                            {new Date(photo.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            {photo.date ? photo.date : new Date().toISOString().split('T')[0]}
                           </span>
+
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (confirm("Apakah Anda yakin ingin menghapus foto kegiatan ini dari galeri Anda?")) {
+                                try {
+                                  const updatedPhotos = (currentUser.activityPhotos || []).filter(p => p.id !== photo.id);
+                                  if (onUpdateBiodata) {
+                                    await onUpdateBiodata(currentUser.id, {
+                                      activityPhotos: updatedPhotos
+                                    });
+                                  }
+                                  alert("Foto kegiatan berhasil dihapus!");
+                                } catch (err) {
+                                  console.error(err);
+                                  alert("Gagal menghapus foto kegiatan");
+                                }
+                              }
+                            }}
+                            className="p-1 text-slate-400 hover:text-rose-600 transition-all cursor-pointer rounded-lg hover:bg-rose-50"
+                            title="Hapus foto dari galeri"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </div>
                     </div>
