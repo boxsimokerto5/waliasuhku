@@ -210,12 +210,12 @@ export default function BiodataDetailModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 my-auto">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 box-border">
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 15 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 15 }}
-        className="bg-white rounded-2xl sm:rounded-3xl w-full max-w-3xl max-h-[92dvh] sm:max-h-[90vh] my-auto overflow-hidden shadow-2xl border border-slate-100 flex flex-col text-left transition-all"
+        className="bg-white rounded-2xl sm:rounded-3xl w-[calc(100vw-1rem)] max-w-3xl max-h-[92dvh] sm:max-h-[90vh] my-auto overflow-hidden shadow-2xl border border-slate-100 flex flex-col text-left transition-all min-w-0 box-border"
       >
         {/* Modal Header */}
         <div className="bg-gradient-to-r from-violet-600 to-indigo-700 text-white p-3.5 sm:p-6 relative shrink-0">
@@ -252,8 +252,8 @@ export default function BiodataDetailModal({
         </div>
 
         {/* Modal Navigation Tabs */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 bg-slate-50/50 px-2 sm:px-4 py-1.5 sm:py-0 shrink-0 gap-1.5 sm:gap-0">
-          <div className="flex overflow-x-auto scrollbar-none whitespace-nowrap -mb-[2px] w-full sm:w-auto gap-0.5 sm:gap-0">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 bg-slate-50/50 px-2 sm:px-4 py-1.5 sm:py-0 shrink-0 gap-1.5 sm:gap-0 min-w-0 max-w-full overflow-hidden">
+          <div className="flex overflow-x-auto scrollbar-none whitespace-nowrap -mb-[2px] w-full sm:w-auto gap-0.5 sm:gap-0 min-w-0 max-w-full">
             <button
               type="button"
               onClick={() => setActiveTab('biodata')}
@@ -306,7 +306,7 @@ export default function BiodataDetailModal({
           </div>
 
           {activeTab !== 'galeri' && (
-            <div className="flex items-center justify-between sm:justify-end gap-1.5 py-1 sm:py-0 w-full sm:w-auto shrink-0 border-t sm:border-t-0 border-slate-100 pt-1.5 sm:pt-0">
+            <div className="flex items-center justify-between sm:justify-end gap-1.5 py-1 sm:py-0 w-full sm:w-auto shrink-0 border-t sm:border-t-0 border-slate-100 pt-1.5 sm:pt-0 min-w-0 max-w-full">
               <button
                 type="button"
                 onClick={() => setShowPdfOptions(!showPdfOptions)}
@@ -351,10 +351,10 @@ export default function BiodataDetailModal({
                 <FileText className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" />
                 <span>
                   {isPrinting
-                    ? 'Cetak...'
+                    ? 'Proses Cetak...'
                     : activeTab === 'laporan'
-                    ? `PDF (${pdfPaperSize.toUpperCase()})`
-                    : `PDF (${pdfPaperSize.toUpperCase()})`}
+                    ? `Cetak Laporan PDF (${pdfPaperSize.toUpperCase()})`
+                    : `Cetak Portofolio PDF (${pdfPaperSize.toUpperCase()})`}
                 </span>
               </button>
             </div>

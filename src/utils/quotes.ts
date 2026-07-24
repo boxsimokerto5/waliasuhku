@@ -173,9 +173,19 @@ export function getQuoteForRole(role: "anak_asuh" | "wali_asuh" | "orang_tua" | 
   if (role === "wali_asuh") quotesList = WALI_ASUH_QUOTES;
   if (role === "orang_tua") quotesList = ORANG_TUA_QUOTES;
 
-  const index = sessionInfo.slotIndex % quotesList.length;
+  if (!quotesList || quotesList.length === 0) {
+    quotesList = ANAK_ASUH_QUOTES;
+  }
+
+  const safeIndex = Math.abs(sessionInfo.slotIndex || 0) % quotesList.length;
+  const quote = quotesList[safeIndex] || quotesList[0] || {
+    id: "default",
+    text: "Pendidikan dan adab adalah lentera penerang masa depan.",
+    author: "WaliAsuhku"
+  };
+
   return {
-    quote: quotesList[index],
+    quote,
     sessionInfo,
   };
 }

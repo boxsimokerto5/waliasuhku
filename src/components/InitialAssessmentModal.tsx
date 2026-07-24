@@ -166,12 +166,12 @@ export default function InitialAssessmentModal({ child, onClose, onSave }: Initi
   ];
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4 my-auto">
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4 box-border">
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 15 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 15 }}
-        className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-4xl max-h-[92dvh] sm:max-h-[92vh] my-auto flex flex-col overflow-hidden text-slate-800 border border-slate-100"
+        className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-[calc(100vw-1rem)] max-w-4xl max-h-[92dvh] sm:max-h-[92vh] my-auto flex flex-col overflow-hidden text-slate-800 border border-slate-100 min-w-0 box-border"
       >
         {/* Header Block */}
         <div className="bg-gradient-to-r from-amber-600 to-amber-700 px-6 py-4 text-white relative">

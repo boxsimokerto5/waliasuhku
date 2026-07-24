@@ -447,11 +447,11 @@ export const generateStudentPortfolioPDF = async (student: User, users: User[], 
   doc.setFontSize(7);
   doc.setTextColor(100, 116, 139);
   doc.setFont('Helvetica', 'normal');
-  doc.text('USERNAME / ID AKUN', rightColX, 43);
+  doc.text('STATUS KEANGGOTAAN', rightColX, 43);
   doc.setFontSize(9.5);
   doc.setTextColor(15, 23, 42);
   doc.setFont('Helvetica', 'bold');
-  doc.text(`@${student.username}`, rightColX, 48.5);
+  doc.text('Siswa Aktif Asrama', rightColX, 48.5);
 
   doc.setFontSize(7);
   doc.setTextColor(100, 116, 139);
@@ -1008,11 +1008,11 @@ export const generateStudentMonthlyReportPDF = async (student: User, users: User
   doc.setFontSize(7);
   doc.setTextColor(100, 116, 139);
   doc.setFont('Helvetica', 'normal');
-  doc.text('USER ID LAPORAN', rightColX, 43);
+  doc.text('STATUS KEANGGOTAAN', rightColX, 43);
   doc.setFontSize(9.5);
   doc.setTextColor(15, 23, 42);
   doc.setFont('Helvetica', 'bold');
-  doc.text(`@${student.username}`, rightColX, 48.5);
+  doc.text('Siswa Aktif Asrama', rightColX, 48.5);
 
   doc.setFontSize(7);
   doc.setTextColor(100, 116, 139);

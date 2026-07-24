@@ -1155,6 +1155,7 @@ export default function WaliAsuhDashboard({
                 onToggleUserSuspension={onToggleUserSuspension}
                 onSelectChildForDetail={setSelectedChildForDetail}
                 onDeleteAnakAsuh={onDeleteAnakAsuh}
+                allUsers={users}
               />
               <div className="hidden">
                 {/* List of My Children */}

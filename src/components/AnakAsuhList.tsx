@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { User, Report } from '../types';
-import { User as UserIcon, Tag, MoreVertical, Check, Plus, ShieldAlert, Eye, Trash2 } from 'lucide-react';
+import { User as UserIcon, Tag, MoreVertical, Check, Plus, ShieldAlert, Eye, Trash2, FileText, Printer, Loader2 } from 'lucide-react';
+import { generateStudentMonthlyReportPDF } from '../utils/pdfGenerator';
 
 interface AnakAsuhListProps {
   myChildren: User[];
@@ -19,6 +20,7 @@ interface AnakAsuhListProps {
   onToggleUserSuspension?: (userId: string, isSuspended: boolean) => Promise<void> | void;
   onSelectChildForDetail?: (child: User) => void;
   onDeleteAnakAsuh?: (childId: string) => Promise<void> | void;
+  allUsers?: User[];
 }
 
 export const AnakAsuhList: React.FC<AnakAsuhListProps> = ({
@@ -38,8 +40,10 @@ export const AnakAsuhList: React.FC<AnakAsuhListProps> = ({
   onToggleUserSuspension,
   onSelectChildForDetail,
   onDeleteAnakAsuh,
+  allUsers = [],
 }) => {
-  const [confirmDeleteId, setConfirmDeleteId] = React.useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [printingChildId, setPrintingChildId] = useState<string | null>(null);
 
   const filteredChildren = myChildren.filter(c => {
     if (selectedCategoryFilter === 'all') return true;
@@ -142,11 +146,37 @@ export const AnakAsuhList: React.FC<AnakAsuhListProps> = ({
                             </span>
                           )}
                         </div>
-                        <p className="text-[9px] text-slate-400 font-mono">ID: {c.username}</p>
+                        <p className="text-[9px] text-slate-400 font-medium">Asrama: {c.category || 'Umum'}</p>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-1.5 shrink-0 relative">
+                      <button
+                        type="button"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          setPrintingChildId(c.id);
+                          try {
+                            await generateStudentMonthlyReportPDF(c, allUsers.length > 0 ? allUsers : myChildren);
+                          } catch (err) {
+                            console.error(err);
+                            alert("Gagal mencetak laporan PDF");
+                          } finally {
+                            setPrintingChildId(null);
+                          }
+                        }}
+                        disabled={printingChildId === c.id}
+                        className="p-1 px-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 hover:text-emerald-900 rounded-lg transition-all cursor-pointer flex items-center gap-1 text-[9px] font-bold"
+                        title="Cetak Laporan Bulanan (PDF)"
+                      >
+                        {printingChildId === c.id ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
+                        ) : (
+                          <Printer className="w-3.5 h-3.5" />
+                        )}
+                        <span className="hidden sm:inline">Cetak PDF</span>
+                      </button>
+
                       <button
                         type="button"
                         onClick={(e) => {

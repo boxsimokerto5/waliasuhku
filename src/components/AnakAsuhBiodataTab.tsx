@@ -189,12 +189,12 @@ export default function AnakAsuhBiodataTab({
       </div>
 
       {/* Navigation Sub-Tabs */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 bg-white rounded-t-3xl pr-4 pl-2 sm:pl-0 pt-2 shadow-xs">
-        <div className="flex flex-wrap">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 bg-white rounded-t-3xl px-2 sm:px-4 pt-2 shadow-xs min-w-0 max-w-full overflow-hidden gap-2">
+        <div className="flex overflow-x-auto scrollbar-none whitespace-nowrap -mb-[2px] min-w-0 max-w-full gap-1">
           <button
             type="button"
             onClick={() => setSubTab('biodata')}
-            className={`py-3.5 px-4 font-black text-xs uppercase tracking-wider transition-all border-b-2 -mb-[2px] cursor-pointer ${
+            className={`py-2.5 px-3 sm:py-3.5 sm:px-4 font-black text-xs uppercase tracking-wider transition-all border-b-2 -mb-[2px] cursor-pointer shrink-0 ${
               subTab === 'biodata' ? 'border-violet-600 text-violet-700' : 'border-transparent text-slate-400 hover:text-slate-600'
             }`}
           >
@@ -203,7 +203,7 @@ export default function AnakAsuhBiodataTab({
           <button
             type="button"
             onClick={() => setSubTab('portofolio')}
-            className={`py-3.5 px-4 font-black text-xs uppercase tracking-wider transition-all border-b-2 -mb-[2px] cursor-pointer flex items-center gap-1.5 ${
+            className={`py-2.5 px-3 sm:py-3.5 sm:px-4 font-black text-xs uppercase tracking-wider transition-all border-b-2 -mb-[2px] cursor-pointer flex items-center gap-1.5 shrink-0 ${
               subTab === 'portofolio' ? 'border-violet-600 text-violet-700' : 'border-transparent text-slate-400 hover:text-slate-600'
             }`}
           >
@@ -213,7 +213,7 @@ export default function AnakAsuhBiodataTab({
           <button
             type="button"
             onClick={() => setSubTab('laporan')}
-            className={`py-3.5 px-4 font-black text-xs uppercase tracking-wider transition-all border-b-2 -mb-[2px] cursor-pointer flex items-center gap-1.5 ${
+            className={`py-2.5 px-3 sm:py-3.5 sm:px-4 font-black text-xs uppercase tracking-wider transition-all border-b-2 -mb-[2px] cursor-pointer flex items-center gap-1.5 shrink-0 ${
               subTab === 'laporan' ? 'border-violet-600 text-violet-700' : 'border-transparent text-slate-400 hover:text-slate-600'
             }`}
           >
@@ -223,7 +223,7 @@ export default function AnakAsuhBiodataTab({
           <button
             type="button"
             onClick={() => setSubTab('galeri')}
-            className={`py-3.5 px-4 font-black text-xs uppercase tracking-wider transition-all border-b-2 -mb-[2px] cursor-pointer flex items-center gap-1.5 ${
+            className={`py-2.5 px-3 sm:py-3.5 sm:px-4 font-black text-xs uppercase tracking-wider transition-all border-b-2 -mb-[2px] cursor-pointer flex items-center gap-1.5 shrink-0 ${
               subTab === 'galeri' ? 'border-violet-600 text-violet-700' : 'border-transparent text-slate-400 hover:text-slate-600'
             }`}
           >

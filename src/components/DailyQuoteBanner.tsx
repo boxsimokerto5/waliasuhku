@@ -13,6 +13,8 @@ export default function DailyQuoteBanner({ role, className = '' }: DailyQuoteBan
   );
 
   useEffect(() => {
+    setQuoteData(getQuoteForRole(role));
+
     // Re-check quote every minute so at 06:00 and 16:00 it updates automatically
     const interval = setInterval(() => {
       setQuoteData(getQuoteForRole(role));
@@ -20,6 +22,8 @@ export default function DailyQuoteBanner({ role, className = '' }: DailyQuoteBan
 
     return () => clearInterval(interval);
   }, [role]);
+
+  if (!quote || !quote.text) return null;
 
   // Role-based theme styling
   const themeStyles = {
