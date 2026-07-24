@@ -149,7 +149,8 @@ export interface EventChecklistOption {
 export interface EventChecklistStudentStatus {
   studentId: string;
   studentName: string;
-  selectedOptionId?: string; // ID of the option selected from EventChecklistOption[]
+  selectedOptionId?: string; // Legacy single option ID
+  selectedOptionIds?: string[]; // Array of selected option IDs for multi-selection
   status?: 'sudah' | 'belum'; // Fallback / legacy status
 }
 

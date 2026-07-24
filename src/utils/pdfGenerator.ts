@@ -1,5 +1,6 @@
 import { jsPDF } from 'jspdf';
-import { User, ActivityChecklist, EventChecklist } from '../types';
+import QRCode from 'qrcode';
+import { User, ActivityChecklist, EventChecklist, EventChecklistOption } from '../types';
 
 /**
  * Preload an image URL and convert it to a canvas-compatible base64 format
@@ -1580,27 +1581,92 @@ export const generateEventChecklistPDF = async (checklist: EventChecklist, users
   const totalStudents = checklist.students.length;
 
   // Build resolved options list
-  const options = checklist.options && checklist.options.length > 0
+  const options: EventChecklistOption[] = checklist.options && checklist.options.length > 0
     ? checklist.options
     : [
         { id: 'opt_sudah', label: checklist.sudahLabel || 'SUDAH / IKUT', isNegative: false },
         { id: 'opt_belum', label: checklist.belumLabel || 'BELUM / TIDAK IKUT', isNegative: true }
       ];
 
-  // Helper to find option for a student
-  const getStudentOption = (s: any) => {
+  // Helper to find ALL selected options for a student (supporting multi-selection)
+  const getStudentOptions = (s: any): EventChecklistOption[] => {
+    if (s.selectedOptionIds && Array.isArray(s.selectedOptionIds) && s.selectedOptionIds.length > 0) {
+      const matched = options.filter(o => s.selectedOptionIds.includes(o.id));
+      if (matched.length > 0) return matched;
+    }
     if (s.selectedOptionId) {
       const found = options.find(o => o.id === s.selectedOptionId);
-      if (found) return found;
+      if (found) return [found];
     }
-    if (s.status === 'sudah') return options[0];
-    if (s.status === 'belum') return options[options.length - 1];
-    return options[0];
+    if (s.status === 'sudah') return [options[0]];
+    if (s.status === 'belum') return [options[options.length - 1]];
+    return [options[0]];
+  };
+
+  // Color mapping helper for distinct event/lomba colors
+  const getOptionColorTheme = (opt: EventChecklistOption, idx: number) => {
+    const labelLower = opt.label.toLowerCase();
+
+    // Negative / Tidak Ikut option -> Rose / Red
+    if (opt.isNegative || labelLower.includes('tidak') || labelLower.includes('absen') || labelLower.includes('batal')) {
+      return { bg: [254, 226, 226], text: [185, 28, 28], border: [254, 202, 202] };
+    }
+
+    // Estafet / Lari / Sprint / Amber / Orange -> ORANGE
+    if (labelLower.includes('estafet') || labelLower.includes('lari') || labelLower.includes('sprint')) {
+      return { bg: [255, 237, 213], text: [194, 65, 12], border: [254, 215, 170] };
+    }
+
+    // Voli / Volley / Futsal / Bola -> SKY BLUE
+    if (labelLower.includes('voly') || labelLower.includes('voli') || labelLower.includes('futsal') || labelLower.includes('bola')) {
+      return { bg: [224, 242, 254], text: [3, 105, 161], border: [186, 230, 253] };
+    }
+
+    // Menyanyi / Nyanyi / Nasyid / Musik -> EMERALD GREEN
+    if (labelLower.includes('menyanyi') || labelLower.includes('nyanyi') || labelLower.includes('nasyid') || labelLower.includes('musik')) {
+      return { bg: [220, 252, 231], text: [21, 128, 61], border: [187, 247, 208] };
+    }
+
+    // Seni / Lukis / Tari / Gambar -> SOFT PURPLE
+    if (labelLower.includes('seni') || labelLower.includes('lukis') || labelLower.includes('tari') || labelLower.includes('gambar') || labelLower.includes('kaligrafi')) {
+      return { bg: [243, 232, 255], text: [126, 34, 206], border: [233, 213, 255] };
+    }
+
+    // Explicit color matching
+    if (opt.color === 'amber' || opt.color === 'orange') {
+      return { bg: [255, 237, 213], text: [194, 65, 12], border: [254, 215, 170] };
+    }
+
+    if (opt.color === 'blue') {
+      return { bg: [224, 242, 254], text: [3, 105, 161], border: [186, 230, 253] };
+    }
+
+    if (opt.color === 'emerald' || opt.color === 'green') {
+      return { bg: [220, 252, 231], text: [21, 128, 61], border: [187, 247, 208] };
+    }
+
+    if (opt.color === 'purple') {
+      return { bg: [243, 232, 255], text: [126, 34, 206], border: [233, 213, 255] };
+    }
+
+    if (opt.color === 'indigo') {
+      return { bg: [224, 231, 255], text: [67, 56, 202], border: [199, 210, 254] };
+    }
+
+    // Fallback palette cycling distinct colors
+    const fallbackPalette = [
+      { bg: [255, 237, 213], text: [194, 65, 12], border: [254, 215, 170] }, // Orange
+      { bg: [224, 242, 254], text: [3, 105, 161], border: [186, 230, 253] }, // Blue
+      { bg: [220, 252, 231], text: [21, 128, 61], border: [187, 247, 208] }, // Green
+      { bg: [243, 232, 255], text: [126, 34, 206], border: [233, 213, 255] }, // Purple
+      { bg: [254, 243, 199], text: [180, 83, 9], border: [253, 230, 138] },  // Amber
+    ];
+    return fallbackPalette[idx % fallbackPalette.length];
   };
 
   const participantCount = checklist.students.filter(s => {
-    const opt = getStudentOption(s);
-    return !opt.isNegative;
+    const opts = getStudentOptions(s);
+    return opts.some(o => !o.isNegative);
   }).length;
 
   const completionPercentage = totalStudents > 0 ? Math.round((participantCount / totalStudents) * 100) : 0;
@@ -1715,13 +1781,19 @@ export const generateEventChecklistPDF = async (checklist: EventChecklist, users
   doc.setFontSize(8);
   doc.text('NO', 20, currentY + 5);
   doc.text('NAMA LENGKAP SISWA (ANAK ASUH)', 40, currentY + 5);
-  doc.text('STATUS / PILIHAN ACARA LOMBA', 145, currentY + 5, { align: 'center' });
+  doc.text('PILIHAN STATUS ACARA / LOMBA (MULTI-PILiHAN)', 145, currentY + 5, { align: 'center' });
 
   // 5. Checklist Table Content Row-by-Row
   currentY += 7.5;
   doc.setLineWidth(0.2);
+
   checklist.students.forEach((item, index) => {
-    if (currentY + 10 > 275) {
+    const selectedOpts = getStudentOptions(item);
+    
+    // Determine row height dynamically based on number of selected options
+    const rowHeight = selectedOpts.length > 2 ? 12 : 9;
+
+    if (currentY + rowHeight > 275) {
       doc.addPage();
       
       doc.setFillColor(30, 41, 59);
@@ -1743,7 +1815,7 @@ export const generateEventChecklistPDF = async (checklist: EventChecklist, users
       doc.setFontSize(8);
       doc.text('NO', 20, currentY + 5);
       doc.text('NAMA LENGKAP SISWA (ANAK ASUH)', 40, currentY + 5);
-      doc.text('STATUS / PILIHAN ACARA LOMBA', 145, currentY + 5, { align: 'center' });
+      doc.text('PILIHAN STATUS ACARA / LOMBA (MULTI-PILIHAN)', 145, currentY + 5, { align: 'center' });
       
       currentY += 7.5;
     }
@@ -1753,41 +1825,53 @@ export const generateEventChecklistPDF = async (checklist: EventChecklist, users
     } else {
       doc.setFillColor(255, 255, 255);
     }
-    doc.rect(15, currentY, 180, 7.5, 'F');
+    doc.rect(15, currentY, 180, rowHeight, 'F');
 
     doc.setDrawColor(241, 245, 249);
-    doc.line(15, currentY + 7.5, 195, currentY + 7.5);
+    doc.line(15, currentY + rowHeight, 195, currentY + rowHeight);
 
     doc.setTextColor(30, 41, 59);
     doc.setFont('Helvetica', 'normal');
     doc.setFontSize(8);
-    doc.text(`${index + 1}`, 21, currentY + 5);
-    doc.text(item.studentName.toUpperCase(), 40, currentY + 5);
+    doc.text(`${index + 1}`, 21, currentY + (rowHeight / 2) + 1.2);
+    doc.setFont('Helvetica', 'bold');
+    doc.text(item.studentName.toUpperCase(), 40, currentY + (rowHeight / 2) + 1.2);
 
-    const opt = getStudentOption(item);
-    const optLabel = opt.label.toUpperCase();
+    // Draw badges for all selected options
+    let badgeX = 105;
+    selectedOpts.forEach((opt) => {
+      const optionIndex = options.findIndex(o => o.id === opt.id);
+      const colorTheme = getOptionColorTheme(opt, optionIndex >= 0 ? optionIndex : 0);
 
-    if (!opt.isNegative) {
-      doc.setFillColor(220, 252, 231);
-      doc.roundedRect(110, currentY + 1.25, 70, 5, 0.8, 0.8, 'F');
-      doc.setTextColor(21, 128, 61);
+      const optLabel = opt.label.toUpperCase();
+      const prefix = opt.isNegative ? '✘ ' : '✔ ';
+      const fullText = `${prefix}${optLabel}`;
+
       doc.setFont('Helvetica', 'bold');
-      doc.setFontSize(7);
-      doc.text(`✔ ${optLabel}`, 145, currentY + 4.75, { align: 'center' });
-    } else {
-      doc.setFillColor(254, 226, 226);
-      doc.roundedRect(110, currentY + 1.25, 70, 5, 0.8, 0.8, 'F');
-      doc.setTextColor(185, 28, 28);
-      doc.setFont('Helvetica', 'bold');
-      doc.setFontSize(7);
-      doc.text(`✘ ${optLabel}`, 145, currentY + 4.75, { align: 'center' });
-    }
+      doc.setFontSize(6.5);
+      const textWidth = doc.getTextWidth(fullText);
+      const badgeW = Math.min(Math.max(textWidth + 5, 24), 85);
 
-    currentY += 7.5;
+      if (badgeX + badgeW > 192) {
+        // Move to next line if overflowing
+        badgeX = 105;
+      }
+
+      doc.setFillColor(colorTheme.bg[0], colorTheme.bg[1], colorTheme.bg[2]);
+      doc.setDrawColor(colorTheme.border[0], colorTheme.border[1], colorTheme.border[2]);
+      doc.roundedRect(badgeX, currentY + (rowHeight / 2) - 2.5, badgeW, 5, 0.8, 0.8, 'FD');
+
+      doc.setTextColor(colorTheme.text[0], colorTheme.text[1], colorTheme.text[2]);
+      doc.text(fullText, badgeX + (badgeW / 2), currentY + (rowHeight / 2) + 1, { align: 'center' });
+
+      badgeX += badgeW + 2;
+    });
+
+    currentY += rowHeight;
   });
 
-  // 6. Signatures block
-  if (currentY + 45 > 280) {
+  // 6. Signatures block (Wali Asuh Pendamping Only + Automated QR Code Verification)
+  if (currentY + 50 > 280) {
     doc.addPage();
     doc.setFillColor(30, 41, 59);
     doc.rect(0, 0, 210, 15, 'F');
@@ -1801,7 +1885,7 @@ export const generateEventChecklistPDF = async (checklist: EventChecklist, users
     
     currentY = 25;
   } else {
-    currentY = Math.max(currentY + 12, 235);
+    currentY = Math.max(currentY + 12, 230);
   }
 
   doc.setDrawColor(226, 232, 240);
@@ -1811,23 +1895,40 @@ export const generateEventChecklistPDF = async (checklist: EventChecklist, users
   doc.setFontSize(7);
   doc.setTextColor(148, 163, 184);
   doc.setFont('Helvetica', 'italic');
-  doc.text(`Laporan acara diverifikasi dan dicetak pada ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })} pukul ${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB.`, 15, currentY - 0.5);
+  doc.text(`Laporan acara diverifikasi dan dicetak secara otomatis pada ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}.`, 15, currentY - 0.5);
 
+  // Signature Block for Wali Asuh Pendamping ONLY
+  const sigX = 135;
   doc.setFontSize(8.5);
   doc.setTextColor(71, 85, 105);
   doc.setFont('Helvetica', 'normal');
-  doc.text('Mengetahui,', 25, currentY + 5);
-  doc.text('Kepala Asrama WaliAsuhku', 25, currentY + 9);
-  doc.line(25, currentY + 28, 75, currentY + 28);
+  doc.text('Tertanda & Diberitahukan,', sigX, currentY + 5);
   doc.setFont('Helvetica', 'bold');
-  doc.text('Ustadz Pembina Utama, M.Pd.', 25, currentY + 32);
+  doc.text('Wali Asuh Pendamping', sigX, currentY + 9.5);
 
-  doc.setFont('Helvetica', 'normal');
-  doc.text('Tertanda,', 140, currentY + 5);
-  doc.text('Wali Asuh Pendamping', 140, currentY + 9);
-  doc.line(140, currentY + 28, 190, currentY + 28);
+  // Generate Automatic QR Verification Barcode
+  try {
+    const qrDataStr = `VERIFIKASI WALIASUHKU\nAcara: ${checklist.title}\nTanggal: ${formattedDate}\nWali Asuh: ${waliAsuhName}\nTotal Siswa: ${totalStudents}\nID: ${checklist.id}`;
+    const qrDataUrl = await QRCode.toDataURL(qrDataStr, { margin: 1, width: 150 });
+    
+    // Draw QR Code Image beside signature line
+    doc.addImage(qrDataUrl, 'PNG', sigX - 25, currentY + 10, 22, 22);
+
+    doc.setFontSize(6);
+    doc.setFont('Helvetica', 'normal');
+    doc.setTextColor(148, 163, 184);
+    doc.text('Scan QR untuk Verifikasi', sigX - 25, currentY + 33);
+  } catch (err) {
+    console.warn('QR generation error:', err);
+  }
+
+  doc.setDrawColor(148, 163, 184);
+  doc.setLineWidth(0.3);
+  doc.line(sigX, currentY + 30, 195, currentY + 30);
   doc.setFont('Helvetica', 'bold');
-  doc.text(waliAsuhName, 140, currentY + 32);
+  doc.setFontSize(9);
+  doc.setTextColor(30, 41, 59);
+  doc.text(waliAsuhName, sigX, currentY + 34);
 
   const safeTitle = checklist.title.toLowerCase().replace(/[^a-z0-9]/g, '_');
   const safeDate = checklist.date.replace(/[^a-z0-9]/g, '_');

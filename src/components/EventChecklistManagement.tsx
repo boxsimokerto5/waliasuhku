@@ -80,9 +80,9 @@ export function EventChecklistManagement({ currentUser, users }: EventChecklistM
   const [newTitle, setNewTitle] = useState('');
   const [newDate, setNewDate] = useState(new Date().toISOString().split('T')[0]);
   const [options, setOptions] = useState<EventChecklistOption[]>([
-    { id: 'opt_1', label: 'Ikut Lomba Voli', icon: 'trophy', color: 'emerald', isNegative: false },
-    { id: 'opt_2', label: 'Ikut Lomba Estafet', icon: 'flag', color: 'blue', isNegative: false },
-    { id: 'opt_3', label: 'Ikut Lomba Menyanyi', icon: 'music', color: 'purple', isNegative: false },
+    { id: 'opt_1', label: 'Ikut Lomba Voli', icon: 'activity', color: 'blue', isNegative: false },
+    { id: 'opt_2', label: 'Ikut Lomba Estafet', icon: 'flag', color: 'amber', isNegative: false },
+    { id: 'opt_3', label: 'Ikut Lomba Menyanyi', icon: 'music', color: 'emerald', isNegative: false },
     { id: 'opt_4', label: 'Tidak Ikut Lomba', icon: 'x', color: 'rose', isNegative: true },
   ]);
   const [newOptionLabel, setNewOptionLabel] = useState('');
@@ -165,9 +165,9 @@ export function EventChecklistManagement({ currentUser, users }: EventChecklistM
       case 'lomba_3':
         setNewTitle('Pekan Lomba Voli, Estafet & Menyanyi');
         setOptions([
-          { id: `opt_${Date.now()}_1`, label: 'Ikut Lomba Voli', icon: 'trophy', color: 'emerald', isNegative: false },
-          { id: `opt_${Date.now()}_2`, label: 'Ikut Lomba Estafet', icon: 'flag', color: 'blue', isNegative: false },
-          { id: `opt_${Date.now()}_3`, label: 'Ikut Lomba Menyanyi', icon: 'music', color: 'purple', isNegative: false },
+          { id: `opt_${Date.now()}_1`, label: 'Ikut Lomba Voli', icon: 'activity', color: 'blue', isNegative: false },
+          { id: `opt_${Date.now()}_2`, label: 'Ikut Lomba Estafet', icon: 'flag', color: 'amber', isNegative: false },
+          { id: `opt_${Date.now()}_3`, label: 'Ikut Lomba Menyanyi', icon: 'music', color: 'emerald', isNegative: false },
           { id: `opt_${Date.now()}_4`, label: 'Tidak Ikut Lomba', icon: 'x', color: 'rose', isNegative: true },
         ]);
         break;
@@ -282,18 +282,66 @@ export function EventChecklistManagement({ currentUser, users }: EventChecklistM
     }
   };
 
-  const handleSelectStudentOption = async (studentId: string, optionId: string) => {
+  const getStudentSelectedOptionIds = (student: EventChecklistStudentStatus, currentOpts: EventChecklistOption[]): string[] => {
+    if (student.selectedOptionIds && Array.isArray(student.selectedOptionIds) && student.selectedOptionIds.length > 0) {
+      return student.selectedOptionIds;
+    }
+    if (student.selectedOptionId) {
+      return [student.selectedOptionId];
+    }
+    if (student.status === 'sudah' && currentOpts[0]) {
+      return [currentOpts[0].id];
+    }
+    const negativeOpt = currentOpts.find(o => o.isNegative) || currentOpts[currentOpts.length - 1];
+    return negativeOpt ? [negativeOpt.id] : [];
+  };
+
+  const handleToggleStudentOption = async (studentId: string, optionId: string) => {
     if (!selectedChecklist) return;
 
     const currentOpts = getResolvedOptions(selectedChecklist);
-    const chosenOpt = currentOpts.find(o => o.id === optionId);
+    const targetOpt = currentOpts.find(o => o.id === optionId);
+    if (!targetOpt) return;
+
+    const negativeOpt = currentOpts.find(o => o.isNegative) || currentOpts[currentOpts.length - 1];
 
     const updatedStudents = selectedChecklist.students.map(s => {
       if (s.studentId === studentId) {
+        let currentSelected = getStudentSelectedOptionIds(s, currentOpts);
+
+        if (targetOpt.isNegative) {
+          // Selecting "Tidak Ikut" clears all positive options
+          currentSelected = [targetOpt.id];
+        } else {
+          // Selecting a competition option
+          // Remove negative option if present
+          if (negativeOpt) {
+            currentSelected = currentSelected.filter(id => id !== negativeOpt.id);
+          }
+
+          if (currentSelected.includes(optionId)) {
+            // Toggle off
+            currentSelected = currentSelected.filter(id => id !== optionId);
+            // If nothing left, fallback to negative option
+            if (currentSelected.length === 0 && negativeOpt) {
+              currentSelected = [negativeOpt.id];
+            }
+          } else {
+            // Toggle on (multi-select e.g. Voli + Menyanyi)
+            currentSelected = [...currentSelected, optionId];
+          }
+        }
+
+        const isHasPositive = currentSelected.some(id => {
+          const opt = currentOpts.find(o => o.id === id);
+          return opt && !opt.isNegative;
+        });
+
         return {
           ...s,
-          selectedOptionId: optionId,
-          status: chosenOpt?.isNegative ? ('belum' as const) : ('sudah' as const)
+          selectedOptionIds: currentSelected,
+          selectedOptionId: currentSelected[0] || optionId,
+          status: isHasPositive ? ('sudah' as const) : ('belum' as const)
         };
       }
       return s;
@@ -316,6 +364,7 @@ export function EventChecklistManagement({ currentUser, users }: EventChecklistM
 
     const updatedStudents = selectedChecklist.students.map(s => ({
       ...s,
+      selectedOptionIds: [optionId],
       selectedOptionId: optionId,
       status: chosenOpt?.isNegative ? ('belum' as const) : ('sudah' as const)
     }));
@@ -755,8 +804,8 @@ export function EventChecklistManagement({ currentUser, users }: EventChecklistM
                       {currentOpts.map(o => {
                         const theme = getColorThemeDetails(o.color);
                         const count = selectedChecklist.students.filter(s => {
-                          if (s.selectedOptionId) return s.selectedOptionId === o.id;
-                          return o.isNegative ? s.status === 'belum' : s.status === 'sudah';
+                          const selectedIds = getStudentSelectedOptionIds(s, currentOpts);
+                          return selectedIds.includes(o.id);
                         }).length;
 
                         return (
@@ -814,8 +863,8 @@ export function EventChecklistManagement({ currentUser, users }: EventChecklistM
                   <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                     Pilih Status Lomba Untuk Setiap Siswa
                   </h4>
-                  <span className="text-[9px] text-slate-400 font-medium italic">
-                    *Klik tombol pilihan pada baris siswa untuk memilih
+                  <span className="text-[9px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                    *Satu anak asuh dapat diikutkan lebih dari 1 lomba (Multi-Pilihan)
                   </span>
                 </div>
 
@@ -825,18 +874,14 @@ export function EventChecklistManagement({ currentUser, users }: EventChecklistM
                       <tr className="bg-slate-50 border-b border-slate-150 text-[9px] font-black text-slate-500 uppercase tracking-wider">
                         <th className="py-2.5 px-3 text-center w-10">No</th>
                         <th className="py-2.5 px-3">Nama Siswa (Anak Asuh)</th>
-                        <th className="py-2.5 px-3 text-center">Pilihan Status Acara / Lomba</th>
+                        <th className="py-2.5 px-3 text-center">Pilihan Acara / Lomba (Bisa Pilih &gt; 1)</th>
                       </tr>
                     </thead>
                     <tbody>
                       {(() => {
                         const currentOpts = getResolvedOptions(selectedChecklist);
                         return selectedChecklist.students.map((item, index) => {
-                          // Determine currently active option ID
-                          let activeOptId = item.selectedOptionId;
-                          if (!activeOptId) {
-                            activeOptId = item.status === 'sudah' ? currentOpts[0]?.id : currentOpts[currentOpts.length - 1]?.id;
-                          }
+                          const activeOptIds = getStudentSelectedOptionIds(item, currentOpts);
 
                           return (
                             <tr
@@ -852,22 +897,27 @@ export function EventChecklistManagement({ currentUser, users }: EventChecklistM
                               <td className="py-3 px-3">
                                 <div className="flex flex-wrap items-center justify-center gap-1.5">
                                   {currentOpts.map(opt => {
-                                    const isSelected = activeOptId === opt.id;
+                                    const isSelected = activeOptIds.includes(opt.id);
                                     const theme = getColorThemeDetails(opt.color);
 
                                     return (
                                       <button
                                         key={opt.id}
                                         type="button"
-                                        onClick={() => handleSelectStudentOption(item.studentId, opt.id)}
+                                        onClick={() => handleToggleStudentOption(item.studentId, opt.id)}
                                         className={`px-2.5 py-1.5 rounded-xl text-[10px] font-extrabold transition-all cursor-pointer flex items-center gap-1.5 ${
                                           isSelected
                                             ? `${theme.badge} text-white shadow-xs scale-105 ring-2 ring-slate-800/20`
-                                            : `bg-slate-100 hover:${theme.bg} text-slate-600 hover:${theme.text} border border-slate-200`
+                                            : `bg-slate-100 hover:${theme.bg} text-slate-600 hover:${theme.text} border border-slate-200 opacity-70 hover:opacity-100`
                                         }`}
                                       >
+                                        <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] ${
+                                          isSelected ? 'bg-white/30 text-white font-black' : 'bg-slate-200 text-slate-500'
+                                        }`}>
+                                          {isSelected ? '✓' : ''}
+                                        </div>
                                         {renderOptionIcon(opt.icon || 'trophy', 'w-3 h-3')}
-                                        <span className="truncate max-w-[120px]">{opt.label}</span>
+                                        <span className="truncate max-w-[130px]">{opt.label}</span>
                                       </button>
                                     );
                                   })}
