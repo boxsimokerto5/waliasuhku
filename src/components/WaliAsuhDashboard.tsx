@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, Report, Reply, Broadcast, SavingsTransaction, ChatMessage } from '../types';
-import { Plus, UserPlus, FileText, Send, Lock, ShieldAlert, Heart, Clipboard, HelpCircle, Eye, CheckCircle2, MessageSquare, Image as ImageIcon, MessageCircle, ZoomIn, ZoomOut, RotateCw, X, Download, Maximize2, Megaphone, Trash2, Link, ChevronDown, ChevronUp, Calendar, MoreVertical, Tag, Filter, Check, FolderOpen, Mail, ArrowLeft, Home, Coins } from 'lucide-react';
+import { Plus, UserPlus, FileText, Send, Lock, ShieldAlert, Heart, Clipboard, HelpCircle, Eye, CheckCircle2, MessageSquare, Image as ImageIcon, MessageCircle, ZoomIn, ZoomOut, RotateCw, X, Download, Maximize2, Megaphone, Trash2, Link, ChevronDown, ChevronUp, Calendar, MoreVertical, Tag, Filter, Check, FolderOpen, Mail, ArrowLeft, Home, Coins, Trophy } from 'lucide-react';
 import { generateSingleCardPDF, generateAllCardsPDF } from '../utils/pdfGenerator';
 import { motion, AnimatePresence } from 'motion/react';
 import { decryptMessage, encryptMessage, formatDate, getStatusBadge, getTypeBadge } from '../utils/crypto';
@@ -10,6 +10,7 @@ import { BroadcastModule } from './BroadcastModule';
 import { AnakAsuhList } from './AnakAsuhList';
 import { SavingsManagement } from './SavingsManagement';
 import { ChecklistManagement } from './ChecklistManagement';
+import { EventChecklistManagement } from './EventChecklistManagement';
 import BiodataDetailModal from './BiodataDetailModal';
 import DailyQuoteBanner from './DailyQuoteBanner';
 
@@ -434,6 +435,10 @@ export default function WaliAsuhDashboard({
     subPageTitle = "Ceklist & Kehadiran Kegiatan";
     subPageSubtitle = "Catat partisipasi, pantau kelengkapan aktivitas harian, dan cetak PDF laporan perkegiatan";
     subPageIcon = <Clipboard className="w-5 h-5 text-violet-600" />;
+  } else if (activeSubPage === 'ceklist_acara') {
+    subPageTitle = "Ceklist Acara & Perlombaan";
+    subPageSubtitle = "Kelola partisipasi acara khusus atau perlombaan dengan kustomisasi label & ikon status";
+    subPageIcon = <Trophy className="w-5 h-5 text-amber-600" />;
   }
 
   return (
@@ -640,6 +645,20 @@ export default function WaliAsuhDashboard({
                 <Clipboard className="w-5 h-5 text-violet-600" />
               </div>
               <span className="text-[11px] font-extrabold leading-tight">Ceklist Kegiatan</span>
+            </button>
+
+            {/* 12. Ceklist Acara & Lomba */}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveSubPage('ceklist_acara');
+              }}
+              className="flex flex-col items-center justify-center p-3 rounded-2xl bg-amber-50 border border-amber-100 text-amber-800 hover:bg-amber-100/70 transition-all text-center cursor-pointer gap-1.5"
+            >
+              <div className="p-2 bg-white rounded-xl shadow-xs">
+                <Trophy className="w-5 h-5 text-amber-600" />
+              </div>
+              <span className="text-[11px] font-extrabold leading-tight">Ceklist Acara</span>
             </button>
           </div>
         </div>
@@ -879,6 +898,14 @@ export default function WaliAsuhDashboard({
       {/* Checklist & Kehadiran Kegiatan Sub-Page */}
       {activeSubPage === 'ceklist' && (
         <ChecklistManagement
+          currentUser={currentUser}
+          users={users}
+        />
+      )}
+
+      {/* Ceklist Acara & Lomba Sub-Page */}
+      {activeSubPage === 'ceklist_acara' && (
+        <EventChecklistManagement
           currentUser={currentUser}
           users={users}
         />
@@ -2122,10 +2149,10 @@ export default function WaliAsuhDashboard({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex flex-col items-center justify-between p-2.5 sm:p-4 my-auto"
+            className="fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex flex-col items-center justify-between p-2.5 sm:p-4 my-auto box-border overflow-x-hidden"
           >
             {/* Top Bar with metadata and close */}
-            <div className="w-full max-w-5xl flex items-center justify-between z-10 pt-2 pb-4 border-b border-white/10">
+            <div className="w-full max-w-[95%] sm:max-w-5xl flex items-center justify-between z-10 pt-2 pb-4 border-b border-white/10 min-w-0 box-border">
               <div className="text-left">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">LAMPIRAN BUKTI</span>
                 <h4 className="text-sm font-bold text-white truncate max-w-xs sm:max-w-md">

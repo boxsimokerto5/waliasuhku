@@ -1,5 +1,5 @@
 import { jsPDF } from 'jspdf';
-import { User, ActivityChecklist } from '../types';
+import { User, ActivityChecklist, EventChecklist } from '../types';
 
 /**
  * Preload an image URL and convert it to a canvas-compatible base64 format
@@ -1565,5 +1565,272 @@ export const generateChecklistPDF = async (checklist: ActivityChecklist, users: 
   const safeTitle = checklist.title.toLowerCase().replace(/[^a-z0-9]/g, '_');
   const safeDate = checklist.date.replace(/[^a-z0-9]/g, '_');
   doc.save(`checklist_${safeTitle}_${safeDate}.pdf`);
+};
+
+export const generateEventChecklistPDF = async (checklist: EventChecklist, users: User[]) => {
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4'
+  });
+
+  const waliAsuh = users.find(u => u.id === checklist.waliAsuhId && u.role === 'wali_asuh');
+  const waliAsuhName = waliAsuh ? waliAsuh.name : 'Wali Asuh Pendamping';
+
+  const totalStudents = checklist.students.length;
+
+  // Build resolved options list
+  const options = checklist.options && checklist.options.length > 0
+    ? checklist.options
+    : [
+        { id: 'opt_sudah', label: checklist.sudahLabel || 'SUDAH / IKUT', isNegative: false },
+        { id: 'opt_belum', label: checklist.belumLabel || 'BELUM / TIDAK IKUT', isNegative: true }
+      ];
+
+  // Helper to find option for a student
+  const getStudentOption = (s: any) => {
+    if (s.selectedOptionId) {
+      const found = options.find(o => o.id === s.selectedOptionId);
+      if (found) return found;
+    }
+    if (s.status === 'sudah') return options[0];
+    if (s.status === 'belum') return options[options.length - 1];
+    return options[0];
+  };
+
+  const participantCount = checklist.students.filter(s => {
+    const opt = getStudentOption(s);
+    return !opt.isNegative;
+  }).length;
+
+  const completionPercentage = totalStudents > 0 ? Math.round((participantCount / totalStudents) * 100) : 0;
+
+  // 1. Header Block
+  doc.setFillColor(21, 128, 61); // Green 700 / Amber
+  doc.rect(0, 0, 210, 28, 'F');
+  
+  doc.setFillColor(245, 158, 11); // Amber 500
+  doc.rect(0, 28, 210, 2, 'F');
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.text('LAPORAN CEKLIST ACARA & LOMBA', 15, 12);
+  
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(236, 253, 245);
+  doc.text('Laporan Partisipasi Acara Khusus dan Perlombaan Siswa WaliAsuhku', 15, 18);
+
+  doc.setFontSize(8);
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('Helvetica', 'bold');
+  doc.text('ASRAMA WALIASUHKU', 195, 12, { align: 'right' });
+  doc.setFont('Helvetica', 'normal');
+  doc.setTextColor(209, 250, 229);
+  doc.text('Sistem Portofolio & Kegiatan', 195, 18, { align: 'right' });
+
+  // 2. Info Section
+  let currentY = 42;
+  doc.setFillColor(248, 250, 252); // Slate 50
+  doc.setDrawColor(226, 232, 240); // Slate 200
+  doc.setLineWidth(0.3);
+  doc.roundedRect(15, currentY, 180, 26, 2, 2, 'FD');
+
+  doc.setTextColor(100, 116, 139); // Slate 500
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(7.5);
+  doc.text('NAMA ACARA / PERLOMBAAN', 22, currentY + 7);
+  doc.text('TANGGAL PELAKSANAAN', 110, currentY + 7);
+  doc.text('WALI ASUH PENDAMPING', 110, currentY + 18);
+
+  doc.setTextColor(30, 41, 59); // Slate 800
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.text(checklist.title, 22, currentY + 15);
+  
+  doc.setFontSize(9);
+  const formattedDate = new Date(checklist.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+  doc.text(formattedDate, 110, currentY + 12);
+  doc.text(waliAsuhName, 110, currentY + 23);
+
+  // 3. Summary Statistics Cards
+  currentY += 32;
+  const cardW = 42;
+  const cardH = 18;
+  const cardSpacing = 4;
+  const startX = 15;
+
+  // Stat 1: Total Siswa
+  doc.setFillColor(239, 246, 255);
+  doc.setDrawColor(191, 219, 254);
+  doc.roundedRect(startX, currentY, cardW, cardH, 1.5, 1.5, 'FD');
+  doc.setTextColor(30, 58, 138);
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(6.5);
+  doc.text('TOTAL SISWA', startX + 4, currentY + 5);
+  doc.setFontSize(10.5);
+  doc.text(`${totalStudents} Orang`, startX + 4, currentY + 13);
+
+  // Stat 2: Total Partisipan
+  doc.setFillColor(240, 253, 244);
+  doc.setDrawColor(187, 247, 208);
+  doc.roundedRect(startX + cardW + cardSpacing, currentY, cardW, cardH, 1.5, 1.5, 'FD');
+  doc.setTextColor(21, 128, 61);
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(6.5);
+  doc.text('TOTAL PARTISIPAN', startX + cardW + cardSpacing + 4, currentY + 5);
+  doc.setFontSize(10.5);
+  doc.text(`${participantCount} Siswa`, startX + cardW + cardSpacing + 4, currentY + 13);
+
+  // Stat 3: Total Kategori Pilihan
+  doc.setFillColor(245, 243, 255);
+  doc.setDrawColor(221, 214, 254);
+  doc.roundedRect(startX + (cardW + cardSpacing) * 2, currentY, cardW, cardH, 1.5, 1.5, 'FD');
+  doc.setTextColor(109, 40, 217);
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(6.5);
+  doc.text('KATEGORI PILIHAN', startX + (cardW + cardSpacing) * 2 + 4, currentY + 5);
+  doc.setFontSize(10.5);
+  doc.text(`${options.length} Pilihan`, startX + (cardW + cardSpacing) * 2 + 4, currentY + 13);
+
+  // Stat 4: Persentase Keikutsertaan
+  doc.setFillColor(254, 243, 199);
+  doc.setDrawColor(253, 230, 138);
+  doc.roundedRect(startX + (cardW + cardSpacing) * 3, currentY, cardW, cardH, 1.5, 1.5, 'FD');
+  doc.setTextColor(180, 83, 9);
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(6.5);
+  doc.text('PERSENTASE PARTISIPASI', startX + (cardW + cardSpacing) * 3 + 4, currentY + 5);
+  doc.setFontSize(10.5);
+  doc.text(`${completionPercentage}%`, startX + (cardW + cardSpacing) * 3 + 4, currentY + 13);
+
+  // 4. Checklist Table Headers
+  currentY += 26;
+  doc.setFillColor(21, 128, 61);
+  doc.rect(15, currentY, 180, 7.5, 'F');
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.text('NO', 20, currentY + 5);
+  doc.text('NAMA LENGKAP SISWA (ANAK ASUH)', 40, currentY + 5);
+  doc.text('STATUS / PILIHAN ACARA LOMBA', 145, currentY + 5, { align: 'center' });
+
+  // 5. Checklist Table Content Row-by-Row
+  currentY += 7.5;
+  doc.setLineWidth(0.2);
+  checklist.students.forEach((item, index) => {
+    if (currentY + 10 > 275) {
+      doc.addPage();
+      
+      doc.setFillColor(30, 41, 59);
+      doc.rect(0, 0, 210, 15, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.text(`CEKLIST ACARA: ${checklist.title}`, 15, 9);
+      
+      doc.setFontSize(7);
+      doc.text(`Halaman ${doc.getNumberOfPages()}`, 195, 9, { align: 'right' });
+
+      currentY = 22;
+      
+      doc.setFillColor(21, 128, 61);
+      doc.rect(15, currentY, 180, 7.5, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.text('NO', 20, currentY + 5);
+      doc.text('NAMA LENGKAP SISWA (ANAK ASUH)', 40, currentY + 5);
+      doc.text('STATUS / PILIHAN ACARA LOMBA', 145, currentY + 5, { align: 'center' });
+      
+      currentY += 7.5;
+    }
+
+    if (index % 2 === 0) {
+      doc.setFillColor(248, 250, 252);
+    } else {
+      doc.setFillColor(255, 255, 255);
+    }
+    doc.rect(15, currentY, 180, 7.5, 'F');
+
+    doc.setDrawColor(241, 245, 249);
+    doc.line(15, currentY + 7.5, 195, currentY + 7.5);
+
+    doc.setTextColor(30, 41, 59);
+    doc.setFont('Helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.text(`${index + 1}`, 21, currentY + 5);
+    doc.text(item.studentName.toUpperCase(), 40, currentY + 5);
+
+    const opt = getStudentOption(item);
+    const optLabel = opt.label.toUpperCase();
+
+    if (!opt.isNegative) {
+      doc.setFillColor(220, 252, 231);
+      doc.roundedRect(110, currentY + 1.25, 70, 5, 0.8, 0.8, 'F');
+      doc.setTextColor(21, 128, 61);
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(7);
+      doc.text(`✔ ${optLabel}`, 145, currentY + 4.75, { align: 'center' });
+    } else {
+      doc.setFillColor(254, 226, 226);
+      doc.roundedRect(110, currentY + 1.25, 70, 5, 0.8, 0.8, 'F');
+      doc.setTextColor(185, 28, 28);
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(7);
+      doc.text(`✘ ${optLabel}`, 145, currentY + 4.75, { align: 'center' });
+    }
+
+    currentY += 7.5;
+  });
+
+  // 6. Signatures block
+  if (currentY + 45 > 280) {
+    doc.addPage();
+    doc.setFillColor(30, 41, 59);
+    doc.rect(0, 0, 210, 15, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.text(`CEKLIST ACARA: ${checklist.title}`, 15, 9);
+    
+    doc.setFontSize(7);
+    doc.text(`Halaman ${doc.getNumberOfPages()}`, 195, 9, { align: 'right' });
+    
+    currentY = 25;
+  } else {
+    currentY = Math.max(currentY + 12, 235);
+  }
+
+  doc.setDrawColor(226, 232, 240);
+  doc.setLineWidth(0.35);
+  doc.line(15, currentY - 4, 195, currentY - 4);
+
+  doc.setFontSize(7);
+  doc.setTextColor(148, 163, 184);
+  doc.setFont('Helvetica', 'italic');
+  doc.text(`Laporan acara diverifikasi dan dicetak pada ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })} pukul ${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB.`, 15, currentY - 0.5);
+
+  doc.setFontSize(8.5);
+  doc.setTextColor(71, 85, 105);
+  doc.setFont('Helvetica', 'normal');
+  doc.text('Mengetahui,', 25, currentY + 5);
+  doc.text('Kepala Asrama WaliAsuhku', 25, currentY + 9);
+  doc.line(25, currentY + 28, 75, currentY + 28);
+  doc.setFont('Helvetica', 'bold');
+  doc.text('Ustadz Pembina Utama, M.Pd.', 25, currentY + 32);
+
+  doc.setFont('Helvetica', 'normal');
+  doc.text('Tertanda,', 140, currentY + 5);
+  doc.text('Wali Asuh Pendamping', 140, currentY + 9);
+  doc.line(140, currentY + 28, 190, currentY + 28);
+  doc.setFont('Helvetica', 'bold');
+  doc.text(waliAsuhName, 140, currentY + 32);
+
+  const safeTitle = checklist.title.toLowerCase().replace(/[^a-z0-9]/g, '_');
+  const safeDate = checklist.date.replace(/[^a-z0-9]/g, '_');
+  doc.save(`ceklist_acara_${safeTitle}_${safeDate}.pdf`);
 };
 

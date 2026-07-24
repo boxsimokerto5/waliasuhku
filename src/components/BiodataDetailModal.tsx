@@ -210,12 +210,12 @@ export default function BiodataDetailModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 box-border">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 box-border max-w-full overflow-x-hidden">
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 15 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 15 }}
-        className="bg-white rounded-2xl sm:rounded-3xl w-[calc(100vw-1rem)] max-w-3xl max-h-[92dvh] sm:max-h-[90vh] my-auto overflow-hidden shadow-2xl border border-slate-100 flex flex-col text-left transition-all min-w-0 box-border"
+        className="bg-white rounded-2xl sm:rounded-3xl w-full max-w-[95%] sm:max-w-3xl max-h-[92dvh] sm:max-h-[90vh] my-auto overflow-hidden shadow-2xl border border-slate-100 flex flex-col text-left transition-all min-w-0 box-border"
       >
         {/* Modal Header */}
         <div className="bg-gradient-to-r from-violet-600 to-indigo-700 text-white p-3.5 sm:p-6 relative shrink-0">
@@ -1617,8 +1617,8 @@ export default function BiodataDetailModal({
 
       {/* DOCUMENT ZOOM MODAL */}
       {zoomImage && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-xs z-55 flex items-center justify-center p-2 sm:p-4 my-auto">
-          <div className="relative w-full max-w-4xl max-h-[90dvh] overflow-hidden bg-slate-900 rounded-2xl p-2 flex flex-col items-center">
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-xs z-55 flex items-center justify-center p-2 sm:p-4 my-auto box-border overflow-x-hidden">
+          <div className="relative w-full max-w-[95%] sm:max-w-4xl max-h-[90dvh] overflow-hidden bg-slate-900 rounded-2xl p-2 flex flex-col items-center box-border min-w-0">
             <button
               type="button"
               onClick={() => setZoomImage(null)}

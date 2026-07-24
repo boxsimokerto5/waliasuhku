@@ -138,6 +138,35 @@ export interface ActivityChecklist {
   createdAt: string;
 }
 
+export interface EventChecklistOption {
+  id: string;
+  label: string;
+  icon?: string;
+  color?: string; // 'emerald' | 'blue' | 'purple' | 'amber' | 'rose' | 'indigo' | 'slate'
+  isNegative?: boolean;
+}
+
+export interface EventChecklistStudentStatus {
+  studentId: string;
+  studentName: string;
+  selectedOptionId?: string; // ID of the option selected from EventChecklistOption[]
+  status?: 'sudah' | 'belum'; // Fallback / legacy status
+}
+
+export interface EventChecklist {
+  id: string;
+  title: string;
+  date: string;
+  waliAsuhId: string;
+  options?: EventChecklistOption[];
+  sudahLabel?: string;
+  belumLabel?: string;
+  sudahIcon?: string;
+  belumIcon?: string;
+  students: EventChecklistStudentStatus[];
+  createdAt: string;
+}
+
 export interface InitialAssessment {
   // KATEGORI A: IDENTITAS & PROFIL KELUARGA
   namaLengkap: string;

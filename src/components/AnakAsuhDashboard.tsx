@@ -1214,10 +1214,10 @@ export default function AnakAsuhDashboard({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex flex-col items-center justify-between p-4"
+            className="fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex flex-col items-center justify-between p-2.5 sm:p-4 my-auto box-border overflow-x-hidden"
           >
             {/* Top Bar with metadata and close */}
-            <div className="w-full max-w-5xl flex items-center justify-between z-10 pt-2 pb-4 border-b border-white/10">
+            <div className="w-full max-w-[95%] sm:max-w-5xl flex items-center justify-between z-10 pt-2 pb-4 border-b border-white/10 min-w-0 box-border">
               <div className="text-left">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">LAMPIRAN BUKTI SAYA</span>
                 <h4 className="text-sm font-bold text-white truncate max-w-xs sm:max-w-md">
@@ -1328,7 +1328,7 @@ export default function AnakAsuhDashboard({
       {/* Broadcast Message Popup Modal */}
       <AnimatePresence>
         {activePopups.length > 0 && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 box-border overflow-x-hidden">
             {/* Backdrop with elegant blur */}
             <motion.div
               initial={{ opacity: 0 }}
@@ -1344,7 +1344,7 @@ export default function AnakAsuhDashboard({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               transition={{ type: "spring", duration: 0.5 }}
-              className="bg-white rounded-3xl p-6 shadow-2xl max-w-md w-full relative z-10 border border-slate-100 text-left overflow-hidden"
+              className="bg-white rounded-3xl p-5 sm:p-6 shadow-2xl max-w-[95%] sm:max-w-md w-full relative z-10 border border-slate-100 text-left overflow-hidden min-w-0 box-border"
             >
               {/* Decorative top strip */}
               <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600"></div>

@@ -975,8 +975,8 @@ export default function AnakAsuhBiodataTab({
 
       {/* DOCUMENT ZOOM MODAL */}
       {zoomImage && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-xs z-55 flex items-center justify-center p-4">
-          <div className="relative max-w-4xl max-h-full overflow-hidden bg-slate-900 rounded-2xl p-2 flex flex-col items-center">
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-xs z-55 flex items-center justify-center p-2 sm:p-4 box-border overflow-x-hidden">
+          <div className="relative w-full max-w-[95%] sm:max-w-4xl max-h-full overflow-hidden bg-slate-900 rounded-2xl p-2 flex flex-col items-center box-border min-w-0">
             <button
               type="button"
               onClick={() => setZoomImage(null)}
