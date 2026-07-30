@@ -59,7 +59,18 @@ jobs:
           else
             echo "Platform android sudah ada."
           fi
+          npm run cap:assets || true
           npx cap sync android
+
+          # Sync Version Code and Version Name for Play Store Overwrite Updates
+          VERSION_NAME=$(node -p "require('./package.json').version")
+          BUILD_NUMBER="${{ github.run_number }}"
+          echo "Updating android/app/build.gradle with versionCode=$BUILD_NUMBER and versionName=$VERSION_NAME"
+          
+          if [ -f "android/app/build.gradle" ]; then
+            sed -i -E "s/versionCode [0-9]+/versionCode $BUILD_NUMBER/g" android/app/build.gradle
+            sed -i -E "s/versionName \"[^\"]+\"/versionName \"$VERSION_NAME\"/g" android/app/build.gradle
+          fi
 
       - name: 8. Setup Keystore (Otomatis / Secret)
         id: setup_keystore
@@ -69,7 +80,7 @@ jobs:
           if [ -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
             echo "=== Menggunakan Keystore dari GitHub Secrets ==="
             echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/keystore/release.jks
-            echo "KEYSTORE_FILE=android/app/keystore/release.jks" >> $GITHUB_ENV
+            echo "KEYSTORE_FILE=$(pwd)/android/app/keystore/release.jks" >> $GITHUB_ENV
             echo "KEYSTORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
             echo "KEYSTORE_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}" >> $GITHUB_ENV
             echo "KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}" >> $GITHUB_ENV
@@ -88,12 +99,11 @@ jobs:
               -keypass "$KEY_PASS" \
               -dname "CN=WaliAsuhku, OU=Development, O=WaliAsuhku, L=Jakarta, ST=DKI Jakarta, C=ID"
 
-            echo "KEYSTORE_FILE=android/app/keystore/release.jks" >> $GITHUB_ENV
+            echo "KEYSTORE_FILE=$(pwd)/android/app/keystore/release.jks" >> $GITHUB_ENV
             echo "KEYSTORE_PASSWORD=$KEY_PASS" >> $GITHUB_ENV
             echo "KEYSTORE_ALIAS=$KEY_ALIAS" >> $GITHUB_ENV
             echo "KEY_PASSWORD=$KEY_PASS" >> $GITHUB_ENV
 
-            # Simpan file informasi password keystore dengan echo yang aman
             {
               echo "====================================================="
               echo "INFORMASI KEYSTORE PRODUKSI / PLAYSTORE WALIASUHKU"
@@ -115,48 +125,53 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleRelease bundleRelease
 
-      - name: 10. Tandatangani (Sign) APK & AAB Otomatis
+      - name: 10. Tandatangani (Sign) APK & AAB dengan apksigner (v1, v2, v3 Scheme)
         run: |
           APK_PATH=$(find android/app/build/outputs/apk/release -name "*.apk" | head -n 1)
           AAB_PATH=$(find android/app/build/outputs/bundle/release -name "*.aab" | head -n 1)
           
           mkdir -p build-output
           
-          echo "Atur nama output file..."
-          FINAL_APK="build-output/WaliAsuhku-v1.0.0.apk"
-          FINAL_AAB="build-output/WaliAsuhku-v1.0.0.aab"
+          VERSION_NAME=$(node -p "require('./package.json').version")
+          BUILD_NUM="${{ github.run_number }}"
+          FINAL_APK="build-output/WaliAsuhku-v${VERSION_NAME}-build${BUILD_NUM}.apk"
+          FINAL_AAB="build-output/WaliAsuhku-v${VERSION_NAME}-build${BUILD_NUM}.aab"
 
-          # Sign APK dengan jarsigner
-          jarsigner -verbose \
-            -sigalg SHA256withRSA \
-            -digestalg SHA-256 \
-            -keystore $KEYSTORE_FILE \
-            -storepass "$KEYSTORE_PASSWORD" \
-            -keypass "$KEY_PASSWORD" \
-            $APK_PATH \
-            $KEYSTORE_ALIAS
-
-          # Align APK jika tool zipalign tersedia
           ANDROID_BUILD_TOOLS=$(find $ANDROID_HOME/build-tools -mindepth 1 -maxdepth 1 2>/dev/null | sort -V | tail -n 1)
-          if [ -n "$ANDROID_BUILD_TOOLS" ] && [ -f "$ANDROID_BUILD_TOOLS/zipalign" ]; then
-            $ANDROID_BUILD_TOOLS/zipalign -v 4 $APK_PATH $FINAL_APK
-          else
-            cp $APK_PATH $FINAL_APK
-          fi
+          echo "Menggunakan Android Build Tools dari: $ANDROID_BUILD_TOOLS"
 
-          # Sign AAB dengan jarsigner
+          # 1. Alignment APK terlebih dahulu dengan zipalign
+          echo "=== Step 1: Running zipalign ==="
+          $ANDROID_BUILD_TOOLS/zipalign -v -f 4 "$APK_PATH" "$FINAL_APK"
+
+          # 2. Tandatangani APK dengan apksigner (Mendukung Schema v1, v2, v3, v4)
+          echo "=== Step 2: Signing APK with apksigner ==="
+          $ANDROID_BUILD_TOOLS/apksigner sign \
+            --ks "$KEYSTORE_FILE" \
+            --ks-pass "pass:$KEYSTORE_PASSWORD" \
+            --ks-key-alias "$KEYSTORE_ALIAS" \
+            --key-pass "pass:$KEY_PASSWORD" \
+            --out "$FINAL_APK" \
+            "$FINAL_APK"
+
+          # 3. Verifikasi tanda tangan APK
+          echo "=== Step 3: Verifying APK signature ==="
+          $ANDROID_BUILD_TOOLS/apksigner verify --verbose "$FINAL_APK"
+
+          # 4. Sign AAB (Google Play Store Bundle)
+          echo "=== Step 4: Signing AAB for Play Store ==="
           jarsigner -verbose \
             -sigalg SHA256withRSA \
             -digestalg SHA-256 \
-            -keystore $KEYSTORE_FILE \
+            -keystore "$KEYSTORE_FILE" \
             -storepass "$KEYSTORE_PASSWORD" \
             -keypass "$KEY_PASSWORD" \
-            $AAB_PATH \
-            $KEYSTORE_ALIAS
+            "$AAB_PATH" \
+            "$KEYSTORE_ALIAS"
 
-          cp $AAB_PATH $FINAL_AAB
+          cp "$AAB_PATH" "$FINAL_AAB"
 
-          echo "=== SIGNING SELESAI ==="
+          echo "=== BUILD & SIGNING SELESAI DENGAN SUKSES ==="
           ls -la build-output/
 
       - name: 11. Upload Artifacts APK

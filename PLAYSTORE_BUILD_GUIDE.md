@@ -17,6 +17,27 @@ Setiap kali Anda me-`push` kode ke branch `main` atau `master` di GitHub, GitHub
 
 ---
 
+## 🔄 Syarat Mutlak Agar Update Aplikasi Bisa Ditimpa (Overwrite) di Play Store & HP
+
+Agar update versi baru aplikasi **WaliAsuhku** bisa ditimpa (*update/overwrite*) secara lancar tanpa error *"Aplikasi tidak diinstal"* atau dikembalikan oleh Play Store, 3 syarat berikut **wajib dipenuhi**:
+
+### 1. Keystore / Signature Digital Harus Sama Persis
+- **Play Store & Android** mencocokkan sertifikat digital saat update.
+- **Cara Kerja di GitHub Actions**:
+  - Unduh artifact **`Keystore-Backup-Simpan-Aman`** dari build pertama Anda (file `release.jks`).
+  - Masukkan file tersebut ke GitHub Secrets (`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`) sesuai petunjuk di atas.
+  - Dengan menyimpan Secret ini, setiap kali build berjalan di GitHub, aplikasi akan ditandatangani dengan kunci yang sama secara konsisten.
+
+### 2. Version Code (`versionCode`) Harus Selalu Naik
+- Google Play Store menolak AAB yang memiliki `versionCode` sama atau lebih rendah.
+- **Otomatisasi**: Workflow GitHub Actions kami telah dikonfigurasi untuk secara **otomatis menaikkan `versionCode`** menggunakan `${{ github.run_number }}` setiap kali Anda menekan tombol build / push ke GitHub!
+
+### 3. Package Name (`appId`) Harus Tetap Sama
+- Package Name aplikasi kita adalah **`com.waliasuhku.app`** (tercatat di `capacitor.config.ts`).
+- Jangan pernah mengubah Package Name ini agar Android mengenali bahwa file APK/AAB baru adalah update dari aplikasi yang sedang terinstall.
+
+---
+
 ## 📦 Hasil Output (Artifacts)
 
 Setelah proses build selesai (sekitar 3–5 menit), buka halaman detail run workflow di GitHub Actions. Di bagian bawah (**Artifacts**), Anda akan menemukan 3 file yang dapat diunduh:
