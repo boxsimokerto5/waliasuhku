@@ -54,8 +54,9 @@ export default function LoginScreen({ users, onLogin }: LoginScreenProps) {
             <HeartHandshake className="w-10 h-10 text-white" />
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight">WaliAsuhku</h1>
-          <p className="text-white/80 text-sm mt-1 max-w-[280px] mx-auto font-light leading-relaxed">
-            Sistem Aman Pelaporan, Pengaduan & Curhatan Anak Asuh
+          <p className="text-emerald-200 text-xs font-bold uppercase tracking-widest mt-0.5">Sekolah Rakyat</p>
+          <p className="text-white/80 text-xs mt-2 max-w-[280px] mx-auto font-light leading-relaxed">
+            Sistem Aman Pengasuhan, Pendampingan & Monitoring Anak Asuh
           </p>
         </div>
 

@@ -93,28 +93,26 @@ jobs:
             echo "KEYSTORE_ALIAS=$KEY_ALIAS" >> $GITHUB_ENV
             echo "KEY_PASSWORD=$KEY_PASS" >> $GITHUB_ENV
 
-            # Simpan file informasi password keystore
-            cat <<EOF > android/app/keystore/KEYSTORE_INFO.txt
-=====================================================
-INFORMASI KEYSTORE PRODUKSI / PLAYSTORE WALIASUHKU
-=====================================================
-Nama File Keystore : release.jks
-Alias              : $KEY_ALIAS
-Password Keystore  : $KEY_PASS
-Password Key       : $KEY_PASS
-
-PENTING:
-Simpan file release.jks dan password di atas secara aman!
-Gunakan file release.jks ini untuk setiap update app di Google Play Store.
-EOF
+            # Simpan file informasi password keystore dengan echo yang aman
+            {
+              echo "====================================================="
+              echo "INFORMASI KEYSTORE PRODUKSI / PLAYSTORE WALIASUHKU"
+              echo "====================================================="
+              echo "Nama File Keystore : release.jks"
+              echo "Alias              : $KEY_ALIAS"
+              echo "Password Keystore  : $KEY_PASS"
+              echo "Password Key       : $KEY_PASS"
+              echo ""
+              echo "PENTING:"
+              echo "Simpan file release.jks dan password di atas secara aman!"
+              echo "Gunakan file release.jks ini untuk setiap update app di Google Play Store."
+            } > android/app/keystore/KEYSTORE_INFO.txt
           fi
 
       - name: 9. Build Release APK & AAB dengan Gradle
         run: |
           cd android
           chmod +x gradlew
-          
-          # Build APK & AAB Unsigned terlebih dahulu
           ./gradlew assembleRelease bundleRelease
 
       - name: 10. Tandatangani (Sign) APK & AAB Otomatis
@@ -128,7 +126,7 @@ EOF
           FINAL_APK="build-output/WaliAsuhku-v1.0.0.apk"
           FINAL_AAB="build-output/WaliAsuhku-v1.0.0.aab"
 
-          # Sign APK
+          # Sign APK dengan jarsigner
           jarsigner -verbose \
             -sigalg SHA256withRSA \
             -digestalg SHA-256 \
@@ -138,15 +136,15 @@ EOF
             $APK_PATH \
             $KEYSTORE_ALIAS
 
-          # Align & Sign APK dengan apksigner jika tersedia
-          ANDROID_BUILD_TOOLS=$(find $ANDROID_HOME/build-tools -mindepth 1 -maxdepth 1 | sort -V | tail -n 1)
-          if [ -f "$ANDROID_BUILD_TOOLS/zipalign" ]; then
+          # Align APK jika tool zipalign tersedia
+          ANDROID_BUILD_TOOLS=$(find $ANDROID_HOME/build-tools -mindepth 1 -maxdepth 1 2>/dev/null | sort -V | tail -n 1)
+          if [ -n "$ANDROID_BUILD_TOOLS" ] && [ -f "$ANDROID_BUILD_TOOLS/zipalign" ]; then
             $ANDROID_BUILD_TOOLS/zipalign -v 4 $APK_PATH $FINAL_APK
           else
             cp $APK_PATH $FINAL_APK
           fi
 
-          # Sign AAB (Android App Bundle untuk Play Store)
+          # Sign AAB dengan jarsigner
           jarsigner -verbose \
             -sigalg SHA256withRSA \
             -digestalg SHA-256 \
@@ -161,21 +159,21 @@ EOF
           echo "=== SIGNING SELESAI ==="
           ls -la build-output/
 
-      - name: 11. Upload Artifacts APK (Bisa Langsung Di-install di HP)
+      - name: 11. Upload Artifacts APK
         uses: actions/upload-artifact@v4
         with:
           name: WaliAsuhku-APK-Release
           path: build-output/*.apk
           retention-days: 30
 
-      - name: 12. Upload Artifacts AAB (Siap Upload ke Google Play Console)
+      - name: 12. Upload Artifacts AAB (Google Play Console)
         uses: actions/upload-artifact@v4
         with:
           name: WaliAsuhku-AAB-PlayStore
           path: build-output/*.aab
           retention-days: 30
 
-      - name: 13. Upload Keystore Backup (Penting untuk Simpan Key)
+      - name: 13. Upload Keystore Backup
         uses: actions/upload-artifact@v4
         with:
           name: Keystore-Backup-Simpan-Aman

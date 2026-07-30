@@ -64,10 +64,10 @@ export default function Header({
               <HeartHandshake className="w-5.5 h-5.5" />
             </div>
             <div>
-              <span className="font-extrabold text-lg bg-gradient-to-r from-indigo-600 to-pink-600 bg-clip-text text-transparent">
+              <span className="font-extrabold text-lg bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 bg-clip-text text-transparent">
                 WaliAsuhku
               </span>
-              <p className="text-[10px] text-slate-400 font-semibold tracking-wider uppercase">Portal Aman</p>
+              <p className="text-[10px] text-emerald-600 font-bold tracking-wider uppercase">Sekolah Rakyat</p>
             </div>
           </div>
 

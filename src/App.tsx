@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { User, Report, AppNotification, Reply, ReportType, Broadcast, SavingsTransaction, ChatMessage } from './types';
 import { initialUsers, getInitialReports, getInitialNotifications } from './data/mockData';
 import LoginScreen from './components/LoginScreen';
+import SplashScreen from './components/SplashScreen';
 import Header from './components/Header';
 import SuperAdminDashboard from './components/SuperAdminDashboard';
 import WaliAsuhDashboard from './components/WaliAsuhDashboard';
@@ -29,6 +30,7 @@ export default function App() {
 
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [viewportMode, setViewportMode] = useState<'mobile' | 'desktop'>('desktop');
+  const [showSplash, setShowSplash] = useState(true);
   
   // Real-time Active Toast Banner
   const [activeToast, setActiveToast] = useState<{ id: string; title: string; message: string } | null>(null);
@@ -965,6 +967,11 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 antialiased selection:bg-indigo-500 selection:text-white pb-12 transition-colors duration-300">
+      
+      {/* Animated App Splash Screen */}
+      {showSplash && (
+        <SplashScreen onFinish={() => setShowSplash(false)} />
+      )}
       
       {/* Firestore Quota Exceeded Banner */}
       {quotaExceeded && (
