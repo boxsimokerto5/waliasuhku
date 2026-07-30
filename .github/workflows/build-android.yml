@@ -76,24 +76,40 @@ jobs:
         id: setup_keystore
         env:
           B64_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          SEC_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          SEC_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          SEC_KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           mkdir -p android/app/keystore
+          USE_SECRET=false
           
           if [ -n "$B64_KEYSTORE" ]; then
-            echo "=== Menggunakan Keystore dari GitHub Secrets ==="
+            echo "=== Memeriksa Keystore dari GitHub Secrets ==="
             node -e "
               const fs = require('fs');
               const b64 = process.env.B64_KEYSTORE || '';
               const cleanB64 = b64.replace(/\s+/g, '');
               const buf = Buffer.from(cleanB64, 'base64');
               fs.writeFileSync('android/app/keystore/release.jks', buf);
-              console.log('Keystore dari Secret berhasil didecode, ukuran:', buf.length, 'bytes');
+              console.log('Keystore dari Secret didecode, ukuran:', buf.length, 'bytes');
             "
-            echo "KEYSTORE_FILE=$(pwd)/android/app/keystore/release.jks" >> $GITHUB_ENV
-            echo "KEYSTORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
-            echo "KEYSTORE_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}" >> $GITHUB_ENV
-            echo "KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}" >> $GITHUB_ENV
-          else
+            
+            # Verifikasi apakah keystore valid menggunakan keytool
+            if keytool -list -keystore android/app/keystore/release.jks -storepass "$SEC_PASS" > /dev/null 2>&1; then
+              echo "✓ Keystore dari GitHub Secrets Valid!"
+              USE_SECRET=true
+              echo "KEYSTORE_FILE=$(pwd)/android/app/keystore/release.jks" >> $GITHUB_ENV
+              echo "KEYSTORE_PASSWORD=$SEC_PASS" >> $GITHUB_ENV
+              echo "KEYSTORE_ALIAS=$SEC_ALIAS" >> $GITHUB_ENV
+              echo "KEY_PASSWORD=$SEC_KEY_PASS" >> $GITHUB_ENV
+            else
+              echo "⚠️ PERINGATAN: ANDROID_KEYSTORE_BASE64 di GitHub Secrets korup atau tidak valid!"
+              echo "Sistem akan beralih secara otomatis ke pembuatan Keystore resmi yang valid."
+              rm -f android/app/keystore/release.jks
+            fi
+          fi
+
+          if [ "$USE_SECRET" = "false" ]; then
             echo "=== Menggenerasi Keystore Otomatis untuk Rilis ==="
             KEY_PASS="WaliAsuhkuSecure2026Pass"
             KEY_ALIAS="waliasuhku_key"
