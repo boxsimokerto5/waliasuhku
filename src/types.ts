@@ -40,6 +40,7 @@ export interface User {
   healthNotes?: string;
   monthlyActivities?: string;
   characterNotes?: string;
+  monthlyReports?: MonthlyReportRecord[];
 
   // Galeri Foto Kegiatan Siswa
   activityPhotos?: {
@@ -48,6 +49,18 @@ export interface User {
     caption: string;
     date: string;
   }[];
+}
+
+export interface MonthlyReportRecord {
+  id: string; // Unique ID, e.g. "2026-04" or uuid
+  month: string; // "01".."12" or "April"
+  year: number; // 2026
+  monthYearLabel: string; // "April 2026"
+  healthStatus?: string;
+  healthNotes?: string;
+  monthlyActivities?: string;
+  characterNotes?: string;
+  updatedAt?: string;
 }
 
 export interface SavingsTransaction {

@@ -322,6 +322,11 @@ export interface PDFExportOptions {
   includeKkNik?: boolean;
   includeDocPhotos?: boolean;
   includeInitialAssessment?: boolean;
+  selectedMonthYear?: string;
+  customHealthStatus?: string;
+  customHealthNotes?: string;
+  customMonthlyActivities?: string;
+  customCharacterNotes?: string;
 }
 
 /**
@@ -896,6 +901,11 @@ export const generateStudentMonthlyReportPDF = async (student: User, users: User
     includeAddress = true,
     includeKkNik = true,
     includeDocPhotos = false,
+    selectedMonthYear,
+    customHealthStatus,
+    customHealthNotes,
+    customMonthlyActivities,
+    customCharacterNotes,
   } = options || {};
 
   const isF4 = paperSize === 'f4';
@@ -912,7 +922,7 @@ export const generateStudentMonthlyReportPDF = async (student: User, users: User
   const waliAsuh = users.find(u => u.id === student.waliAsuhId && u.role === 'wali_asuh');
   const waliAsuhName = waliAsuh ? waliAsuh.name : 'Belum ditentukan';
   
-  const currentMonthYear = new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+  const currentMonthYear = selectedMonthYear || new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
 
   const drawHeaderBlock = (pageNumber: number) => {
     // Top colored band
@@ -926,13 +936,24 @@ export const generateStudentMonthlyReportPDF = async (student: User, users: User
     // Title & Subtitle
     doc.setTextColor(255, 255, 255);
     doc.setFont('Helvetica', 'bold');
-    doc.setFontSize(14);
-    doc.text('LAPORAN PERKEMBANGAN BULANAN SISWA', 15, 11);
+    doc.setFontSize(13);
+    doc.text('LAPORAN PERKEMBANGAN BULANAN SISWA', 15, 10.5);
     
     doc.setFont('Helvetica', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(224, 242, 254); // Light blue
-    doc.text(`Bentuk Pertanggungjawaban Pembinaan dan Pengasuhan Asrama WaliAsuhku - Periode: ${currentMonthYear}`, 15, 17);
+    doc.text('Bentuk Pertanggungjawaban Pembinaan & Pengasuhan Asrama WaliAsuhku', 15, 16);
+
+    // Prominent Period Badge on top right of header
+    doc.setFillColor(255, 255, 255);
+    doc.roundedRect(width - 80, 4, 65, 17, 2, 2, 'F');
+    doc.setTextColor(79, 70, 229); // Indigo 600
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(6.5);
+    doc.text('PERIODE LAPORAN BULANAN', width - 76, 9);
+    doc.setFontSize(9);
+    doc.setTextColor(15, 23, 42); // Slate 900
+    doc.text(currentMonthYear.toUpperCase(), width - 76, 16);
 
     // Page indicator
     doc.setFontSize(7.5);
@@ -1109,8 +1130,8 @@ export const generateStudentMonthlyReportPDF = async (student: User, users: User
   currentY += 10;
 
   // Status Kesehatan Badge
-  const hStatus = student.healthStatus || 'Sangat Sehat';
-  const hNotes = student.healthNotes || 'Siswa dalam kondisi sangat baik dan fit. Selalu menjaga kebersihan diri serta lingkungan asrama.';
+  const hStatus = customHealthStatus || student.healthStatus || 'Sangat Sehat';
+  const hNotes = customHealthNotes || student.healthNotes || 'Siswa dalam kondisi sangat baik dan fit. Selalu menjaga kebersihan diri serta lingkungan asrama.';
 
   doc.setFillColor(240, 253, 244); // Green 50
   doc.setDrawColor(74, 222, 128); // Green 400
@@ -1157,7 +1178,7 @@ export const generateStudentMonthlyReportPDF = async (student: User, users: User
 
   currentY += 10;
 
-  const actNotes = student.monthlyActivities || 'Siswa aktif mengikuti rangkaian ibadah wajib berjamaah, program kebersihan berkala di asrama, kajian keislaman malam hari, serta bimbingan belajar rutin mingguan.';
+  const actNotes = customMonthlyActivities || student.monthlyActivities || 'Siswa aktif mengikuti rangkaian ibadah wajib berjamaah, program kebersihan berkala di asrama, kajian keislaman malam hari, serta bimbingan belajar rutin mingguan.';
   
   doc.setFillColor(248, 250, 252); // Slate 50
   doc.setDrawColor(241, 245, 249);
@@ -1195,7 +1216,7 @@ export const generateStudentMonthlyReportPDF = async (student: User, users: User
 
   currentY += 10;
 
-  const charNotes = student.characterNotes || 'Menunjukkan sikap yang sopan santun kepada pengurus, rukun dengan sesama teman satu kamar, dan selalu tanggap dalam melaksanakan arahan dari Wali Asuh.';
+  const charNotes = customCharacterNotes || student.characterNotes || 'Menunjukkan sikap yang sopan santun kepada pengurus, rukun dengan sesama teman satu kamar, dan selalu tanggap dalam melaksanakan arahan dari Wali Asuh.';
   
   doc.setFillColor(253, 244, 255); // Purple 50
   doc.setDrawColor(240, 215, 253);
@@ -1235,23 +1256,15 @@ export const generateStudentMonthlyReportPDF = async (student: User, users: User
   doc.setFont('Helvetica', 'italic');
   doc.text(`Dicetak secara otomatis melalui portal asrama WaliAsuhku pada ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`, 15, currentY - 1);
 
-  // Left Signee: Head of Dormitory
+  // Signee: Wali Asuh ONLY
   doc.setFontSize(8.5);
   doc.setTextColor(71, 85, 105);
   doc.setFont('Helvetica', 'normal');
-  doc.text('Mengetahui,', 25, currentY + 5);
-  doc.text('Kepala Asrama WaliAsuhku', 25, currentY + 9);
-  doc.line(25, currentY + 28, 75, currentY + 28);
+  doc.text('Tertanda / Mengetahui,', width - 75, currentY + 5);
+  doc.text('Wali Asuh Pendamping', width - 75, currentY + 9);
+  doc.line(width - 75, currentY + 28, width - 20, currentY + 28);
   doc.setFont('Helvetica', 'bold');
-  doc.text('Ustadz Pembina Utama, M.Pd.', 25, currentY + 32);
-
-  // Right Signee: Wali Asuh
-  doc.setFont('Helvetica', 'normal');
-  doc.text('Tertanda,', width - 70, currentY + 5);
-  doc.text('Wali Asuh Pendamping', width - 70, currentY + 9);
-  doc.line(width - 70, currentY + 28, width - 20, currentY + 28);
-  doc.setFont('Helvetica', 'bold');
-  doc.text(waliAsuhName, width - 70, currentY + 32);
+  doc.text(waliAsuhName, width - 75, currentY + 32);
 
   // APPEND DOCUMENT PHOTOS IF REQUESTED
   if (includeDocPhotos) {

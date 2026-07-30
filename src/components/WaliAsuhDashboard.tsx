@@ -13,6 +13,7 @@ import { ChecklistManagement } from './ChecklistManagement';
 import { EventChecklistManagement } from './EventChecklistManagement';
 import BiodataDetailModal from './BiodataDetailModal';
 import DailyQuoteBanner from './DailyQuoteBanner';
+import MonthlyReportManagement from './MonthlyReportManagement';
 
 interface WaliAsuhDashboardProps {
   currentUser: User;
@@ -439,6 +440,10 @@ export default function WaliAsuhDashboard({
     subPageTitle = "Ceklist Acara & Perlombaan";
     subPageSubtitle = "Kelola partisipasi acara khusus atau perlombaan dengan kustomisasi label & ikon status";
     subPageIcon = <Trophy className="w-5 h-5 text-amber-600" />;
+  } else if (activeSubPage === 'laporan_bulanan') {
+    subPageTitle = "Laporan Bulanan Pembinaan Siswa";
+    subPageSubtitle = "Kelola, perbarui, dan cetak laporan perkembangan siswa per periode bulan (April, Mei, Juni, dst.)";
+    subPageIcon = <Calendar className="w-5 h-5 text-indigo-600" />;
   }
 
   return (
@@ -478,7 +483,7 @@ export default function WaliAsuhDashboard({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-9 gap-3 pt-1">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-10 gap-3 pt-1">
             {/* 1. Akun Anak Asuh */}
             <button
               type="button"
@@ -659,6 +664,20 @@ export default function WaliAsuhDashboard({
                 <Trophy className="w-5 h-5 text-amber-600" />
               </div>
               <span className="text-[11px] font-extrabold leading-tight">Ceklist Acara</span>
+            </button>
+
+            {/* 13. Laporan Bulanan Siswa */}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveSubPage('laporan_bulanan');
+              }}
+              className="flex flex-col items-center justify-center p-3 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-800 hover:bg-indigo-100/70 transition-all text-center cursor-pointer gap-1.5 shadow-xs"
+            >
+              <div className="p-2 bg-white rounded-xl shadow-xs">
+                <Calendar className="w-5 h-5 text-indigo-600" />
+              </div>
+              <span className="text-[11px] font-extrabold leading-tight">Laporan Bulanan</span>
             </button>
           </div>
         </div>
@@ -908,6 +927,20 @@ export default function WaliAsuhDashboard({
         <EventChecklistManagement
           currentUser={currentUser}
           users={users}
+        />
+      )}
+
+      {/* Laporan Bulanan Sub-Page */}
+      {activeSubPage === 'laporan_bulanan' && (
+        <MonthlyReportManagement
+          currentUser={currentUser}
+          users={users}
+          onUpdateChildBiodata={(childId, updatedFields) => {
+            if (onUpdateChildBiodata) {
+              onUpdateChildBiodata(childId, updatedFields);
+            }
+          }}
+          onBackToDashboard={() => setActiveSubPage(null)}
         />
       )}
 
