@@ -1,0 +1,183 @@
+name: Build & Sign Android APK & AAB (Google Play Store)
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Jenis Build'
+        required: true
+        default: 'both'
+        type: choice
+        options:
+          - both
+          - apk_only
+          - aab_only
+
+jobs:
+  build-android:
+    name: Build Android APK & AAB
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 1. Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 2. Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: 3. Setup Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: 17
+
+      - name: 4. Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: 5. Install Dependencies
+        run: npm ci
+
+      - name: 6. Build Web App (Vite React)
+        run: npm run build
+
+      - name: 7. Setup & Sync Capacitor Android
+        run: |
+          if [ ! -d "android" ]; then
+            echo "Membuat folder platform android dengan Capacitor..."
+            npx cap add android
+          else
+            echo "Platform android sudah ada."
+          fi
+          npx cap sync android
+
+      - name: 8. Setup Keystore (Otomatis / Secret)
+        id: setup_keystore
+        run: |
+          mkdir -p android/app/keystore
+          
+          if [ -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
+            echo "=== Menggunakan Keystore dari GitHub Secrets ==="
+            echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/keystore/release.jks
+            echo "KEYSTORE_FILE=android/app/keystore/release.jks" >> $GITHUB_ENV
+            echo "KEYSTORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
+            echo "KEYSTORE_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}" >> $GITHUB_ENV
+            echo "KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}" >> $GITHUB_ENV
+          else
+            echo "=== Menggenerasi Keystore Otomatis untuk Rilis ==="
+            KEY_PASS="WaliAsuhkuSecure2026Pass!"
+            KEY_ALIAS="waliasuhku_key"
+            
+            keytool -genkey -v \
+              -keystore android/app/keystore/release.jks \
+              -alias "$KEY_ALIAS" \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -storepass "$KEY_PASS" \
+              -keypass "$KEY_PASS" \
+              -dname "CN=WaliAsuhku, OU=Development, O=WaliAsuhku, L=Jakarta, ST=DKI Jakarta, C=ID"
+
+            echo "KEYSTORE_FILE=android/app/keystore/release.jks" >> $GITHUB_ENV
+            echo "KEYSTORE_PASSWORD=$KEY_PASS" >> $GITHUB_ENV
+            echo "KEYSTORE_ALIAS=$KEY_ALIAS" >> $GITHUB_ENV
+            echo "KEY_PASSWORD=$KEY_PASS" >> $GITHUB_ENV
+
+            # Simpan file informasi password keystore
+            cat <<EOF > android/app/keystore/KEYSTORE_INFO.txt
+=====================================================
+INFORMASI KEYSTORE PRODUKSI / PLAYSTORE WALIASUHKU
+=====================================================
+Nama File Keystore : release.jks
+Alias              : $KEY_ALIAS
+Password Keystore  : $KEY_PASS
+Password Key       : $KEY_PASS
+
+PENTING:
+Simpan file release.jks dan password di atas secara aman!
+Gunakan file release.jks ini untuk setiap update app di Google Play Store.
+EOF
+          fi
+
+      - name: 9. Build Release APK & AAB dengan Gradle
+        run: |
+          cd android
+          chmod +x gradlew
+          
+          # Build APK & AAB Unsigned terlebih dahulu
+          ./gradlew assembleRelease bundleRelease
+
+      - name: 10. Tandatangani (Sign) APK & AAB Otomatis
+        run: |
+          APK_PATH=$(find android/app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          AAB_PATH=$(find android/app/build/outputs/bundle/release -name "*.aab" | head -n 1)
+          
+          mkdir -p build-output
+          
+          echo "Atur nama output file..."
+          FINAL_APK="build-output/WaliAsuhku-v1.0.0.apk"
+          FINAL_AAB="build-output/WaliAsuhku-v1.0.0.aab"
+
+          # Sign APK
+          jarsigner -verbose \
+            -sigalg SHA256withRSA \
+            -digestalg SHA-256 \
+            -keystore $KEYSTORE_FILE \
+            -storepass "$KEYSTORE_PASSWORD" \
+            -keypass "$KEY_PASSWORD" \
+            $APK_PATH \
+            $KEYSTORE_ALIAS
+
+          # Align & Sign APK dengan apksigner jika tersedia
+          ANDROID_BUILD_TOOLS=$(find $ANDROID_HOME/build-tools -mindepth 1 -maxdepth 1 | sort -V | tail -n 1)
+          if [ -f "$ANDROID_BUILD_TOOLS/zipalign" ]; then
+            $ANDROID_BUILD_TOOLS/zipalign -v 4 $APK_PATH $FINAL_APK
+          else
+            cp $APK_PATH $FINAL_APK
+          fi
+
+          # Sign AAB (Android App Bundle untuk Play Store)
+          jarsigner -verbose \
+            -sigalg SHA256withRSA \
+            -digestalg SHA-256 \
+            -keystore $KEYSTORE_FILE \
+            -storepass "$KEYSTORE_PASSWORD" \
+            -keypass "$KEY_PASSWORD" \
+            $AAB_PATH \
+            $KEYSTORE_ALIAS
+
+          cp $AAB_PATH $FINAL_AAB
+
+          echo "=== SIGNING SELESAI ==="
+          ls -la build-output/
+
+      - name: 11. Upload Artifacts APK (Bisa Langsung Di-install di HP)
+        uses: actions/upload-artifact@v4
+        with:
+          name: WaliAsuhku-APK-Release
+          path: build-output/*.apk
+          retention-days: 30
+
+      - name: 12. Upload Artifacts AAB (Siap Upload ke Google Play Console)
+        uses: actions/upload-artifact@v4
+        with:
+          name: WaliAsuhku-AAB-PlayStore
+          path: build-output/*.aab
+          retention-days: 30
+
+      - name: 13. Upload Keystore Backup (Penting untuk Simpan Key)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Keystore-Backup-Simpan-Aman
+          path: android/app/keystore/
+          retention-days: 30
