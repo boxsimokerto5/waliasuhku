@@ -59,7 +59,7 @@ jobs:
           else
             echo "Platform android sudah ada."
           fi
-          npm run cap:assets || true
+          npm run cap:assets
           npx cap sync android
 
           # Sync Version Code and Version Name for Play Store Overwrite Updates
