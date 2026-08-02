@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { User, Report, AppNotification, Broadcast, SavingsTransaction, ChatMessage } from '../types';
-import { Plus, UserCheck, ShieldAlert, ClipboardList, RefreshCw, Key, Database, ShieldCheck, Eye, EyeOff, CheckCircle2, AlertTriangle, ArrowRight, Server, Code } from 'lucide-react';
+import { Plus, UserCheck, ShieldAlert, ClipboardList, RefreshCw, Key, Database, ShieldCheck, Eye, EyeOff, CheckCircle2, AlertTriangle, ArrowRight, Server, Code, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { decryptMessage } from '../utils/crypto';
 import { testSupabaseConnection } from '../lib/supabase';
 import { migrateDataToSupabase, MigrationSummary } from '../lib/supabaseMigration';
+import JadwalWaliAsuh from './JadwalWaliAsuh';
 
 interface SuperAdminDashboardProps {
   users: User[];
@@ -30,6 +31,7 @@ export default function SuperAdminDashboard({
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showRawDatabase, setShowRawDatabase] = useState(false);
+  const [showJadwalPiket, setShowJadwalPiket] = useState(false);
   const [dbDecryptKey, setDbDecryptKey] = useState('waliasuhku-secure-key');
   const [revealedReportId, setRevealedReportId] = useState<string | null>(null);
 
@@ -252,18 +254,33 @@ CREATE TABLE IF NOT EXISTS chat_messages (
       {/* Welcome Banner */}
       <div className="bg-gradient-to-r from-indigo-600 via-indigo-700 to-indigo-800 rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden shadow-lg">
         <div className="absolute -right-10 -bottom-10 w-44 h-44 bg-white/10 rounded-full blur-2xl"></div>
-        <div className="relative z-10 max-w-xl">
-          <span className="text-xs font-bold bg-indigo-500/40 text-indigo-100 px-3 py-1 rounded-full border border-indigo-400/20">
-            Dasbor Super Admin
-          </span>
-          <h2 className="text-2xl sm:text-3xl font-extrabold mt-3 tracking-tight">Kelola Ekosistem WaliAsuhku</h2>
-          <p className="text-indigo-100/80 text-sm mt-2 leading-relaxed">
-            Anda memiliki otoritas penuh untuk menambahkan Wali Asuh dan melihat statistik sistem secara real-time. Semua pesan aman terenkripsi demi privasi pengguna.
-          </p>
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 text-left">
+          <div className="max-w-xl">
+            <span className="text-xs font-bold bg-indigo-500/40 text-indigo-100 px-3 py-1 rounded-full border border-indigo-400/20">
+              Dasbor Super Admin
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-extrabold mt-3 tracking-tight">Kelola Ekosistem WaliAsuhku</h2>
+            <p className="text-indigo-100/80 text-sm mt-2 leading-relaxed">
+              Anda memiliki otoritas penuh untuk menambahkan Wali Asuh, memantau jadwal piket harian, dan melihat statistik sistem secara real-time.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowJadwalPiket(!showJadwalPiket)}
+            className="flex items-center gap-2 bg-white text-slate-800 hover:bg-slate-100 px-4 py-2.5 rounded-2xl text-xs font-black shadow-md transition-all shrink-0 cursor-pointer"
+          >
+            <Calendar className="w-4 h-4 text-emerald-600" />
+            <span>{showJadwalPiket ? 'Kembali ke Dasbor' : 'Jadwal Piket Wali Asuh (Agustus 2026)'}</span>
+          </button>
         </div>
       </div>
 
-      {/* Stats Cards Row */}
+      {showJadwalPiket ? (
+        <JadwalWaliAsuh onBack={() => setShowJadwalPiket(false)} />
+      ) : (
+        <>
+          {/* Stats Cards Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1 */}
         <div className="bg-white border border-slate-100 p-5 rounded-2xl shadow-sm hover:shadow-md transition-all flex items-center gap-4">
@@ -694,6 +711,8 @@ CREATE TABLE IF NOT EXISTS chat_messages (
         </div>
 
       </div>
+        </>
+      )}
     </div>
   );
 }

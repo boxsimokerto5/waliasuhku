@@ -1948,3 +1948,555 @@ export const generateEventChecklistPDF = async (checklist: EventChecklist, users
   doc.save(`ceklist_acara_${safeTitle}_${safeDate}.pdf`);
 };
 
+/**
+ * Generate official PDF for Jadwal Pembagian Shift Wali Asuh (Agustus 2026)
+ * Landscape A4 format matching the official institutional schedule document
+ */
+export const generateJadwalWaliAsuhPDF = async () => {
+  const doc = new jsPDF({
+    orientation: 'landscape',
+    unit: 'mm',
+    format: 'a4'
+  }); // 297mm x 210mm
+
+  const pageWidth = 297;
+  const pageHeight = 210;
+
+  // 1. Official Kop Surat Header
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(15, 23, 42); // slate 900
+  doc.text('KEMENTERIAN SOSIAL REPUBLIK INDONESIA', pageWidth / 2, 12, { align: 'center' });
+
+  doc.setFontSize(9);
+  doc.text('PUSAT PENDIDIKAN PELATIHAN DAN PENGEMBANGAN PROFESI', pageWidth / 2, 16.5, { align: 'center' });
+
+  doc.setFontSize(10);
+  doc.setTextColor(16, 185, 129); // emerald 600
+  doc.text('SEKOLAH RAKYAT MENENGAH ATAS 24 KEDIRI', pageWidth / 2, 21, { align: 'center' });
+
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(71, 85, 105);
+  doc.text('Gedung Balai Pengembangan Kompetensi Aparatur Sipil Negara', pageWidth / 2, 25, { align: 'center' });
+  doc.text('Gg. 2 Bulusari Utara, Bulusari, Kec. Tarokan, Kab. Kediri, Jawa Timur | Pos-el: srma24kediri@gmail.com Kode Pos: 64152', pageWidth / 2, 28.5, { align: 'center' });
+
+  // Double Line Separator
+  doc.setDrawColor(15, 23, 42);
+  doc.setLineWidth(0.6);
+  doc.line(12, 31, pageWidth - 12, 31);
+  doc.setLineWidth(0.2);
+  doc.line(12, 32, pageWidth - 12, 32);
+
+  // 2. Document Title
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(15, 23, 42);
+  doc.text('JADWAL PEMBAGIAN SHIF WALI ASUH', pageWidth / 2, 37.5, { align: 'center' });
+  doc.text('AGUSTUS 2026', pageWidth / 2, 42, { align: 'center' });
+
+  // 3. Matrix Table
+  const startX = 12;
+  let currentY = 46;
+
+  const colWidthNo = 7;
+  const colWidthName = 38;
+  const colWidthDay = 5.6; // 31 days * 5.6 = 173.6mm
+  const colWidthStat = 5.2; // 10 stats * 5.2 = 52mm
+  // Total width = 7 + 38 + 173.6 + 52 = 270.6mm (Leaves ~13mm margins left & right)
+
+  const rowHeight = 4.8;
+
+  // Table Header
+  doc.setFillColor(30, 41, 59); // Dark Slate 800
+  doc.rect(startX, currentY, 270.6, rowHeight, 'F');
+
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(6.5);
+  doc.setTextColor(255, 255, 255);
+
+  doc.text('No', startX + (colWidthNo / 2), currentY + 3.2, { align: 'center' });
+  doc.text('Nama Wali Asuh', startX + colWidthNo + 2, currentY + 3.2);
+
+  // Day Headers 1..31
+  let xPos = startX + colWidthNo + colWidthName;
+  for (let d = 1; d <= 31; d++) {
+    doc.text(String(d), xPos + (colWidthDay / 2), currentY + 3.2, { align: 'center' });
+    xPos += colWidthDay;
+  }
+
+  // Stat Headers
+  const statHeaders = ['P', 'FUL', 'S', 'M', 'LP', 'OFF', 'P1', 'P2', 'P3', 'JK'];
+  statHeaders.forEach(sh => {
+    doc.text(sh, xPos + (colWidthStat / 2), currentY + 3.2, { align: 'center' });
+    xPos += colWidthStat;
+  });
+
+  currentY += rowHeight;
+
+  // Schedule Data
+  const schedules = [
+    { id: 1, name: "Suhariyono", shifts: ["M", "LP", "O", "P2", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "S", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S"], totals: { P: 6, FUL: 13, S: 4, M: 4, LP: 4, OFF: 0, P1: 6, P2: 0, P3: 0, JK: 207 } },
+    { id: 2, name: "Rindani", shifts: ["LP", "O", "P2", "P2", "S", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S"], totals: { P: 8, FUL: 12, S: 3, M: 4, LP: 4, OFF: 0, P1: 8, P2: 0, P3: 0, JK: 199 } },
+    { id: 3, name: "Hariadi", shifts: ["O", "P2", "S", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "S", "S", "S", "S", "M"], totals: { P: 6, FUL: 14, S: 4, M: 3, LP: 4, OFF: 0, P1: 6, P2: 0, P3: 0, JK: 214 } },
+    { id: 4, name: "Moch. Chabib", shifts: ["P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "S", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP"], totals: { P: 7, FUL: 13, S: 4, M: 4, LP: 3, OFF: 0, P1: 7, P2: 0, P3: 0, JK: 215 } },
+    { id: 5, name: "Dewi Askinu", shifts: ["P2", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "S", "S", "S", "S", "M", "LP", "O"], totals: { P: 6, FUL: 13, S: 4, M: 4, LP: 4, OFF: 0, P1: 6, P2: 0, P3: 0, JK: 207 } },
+    { id: 6, name: "Aris Mahmud Syafi'i", shifts: ["S", "S", "S", "M", "LP", "O", "P2", "S", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2"], totals: { P: 6, FUL: 13, S: 4, M: 4, LP: 4, OFF: 0, P1: 6, P2: 0, P3: 0, JK: 207 } },
+    { id: 7, name: "Erna Rizkiani", shifts: ["S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "P2"], totals: { P: 8, FUL: 11, S: 4, M: 4, LP: 4, OFF: 0, P1: 8, P2: 0, P3: 0, JK: 209 } },
+    { id: 8, name: "Chusfia Hanik Wihayati", shifts: ["S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "S", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S"], totals: { P: 7, FUL: 12, S: 4, M: 4, LP: 4, OFF: 0, P1: 7, P2: 0, P3: 0, JK: 208 } },
+    { id: 9, name: "A. Zainudin Sholeh", shifts: ["M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "S", "S", "S", "M", "LP", "O", "P3", "P3", "S", "S", "S", "M", "LP", "O", "P", "S", "S", "S", "S"], totals: { P: 6, FUL: 13, S: 4, M: 4, LP: 4, OFF: 1, P1: 3, P2: 2, P3: 0, JK: 208 } },
+    { id: 10, name: "Abisarwan Rafif", shifts: ["LP", "O", "P", "S", "S", "S", "S", "M", "LP", "O", "C", "C", "C", "C", "C", "C", "M", "LP", "O", "P3", "S", "S", "S", "S", "M", "LP", "O", "P", "S", "S", "S"], totals: { P: 3, FUL: 11, S: 3, M: 4, LP: 4, OFF: 2, P1: 0, P2: 1, P3: 6, JK: 154 } },
+    { id: 11, name: "Dwi Chusnul Mufid", shifts: ["O", "P2", "P", "S", "S", "S", "M", "LP", "O", "P", "P3", "S", "S", "S", "M", "LP", "O", "P3", "P3", "S", "S", "S", "M", "LP", "O", "P3", "P3", "S", "S", "S", "M"], totals: { P: 8, FUL: 12, S: 4, M: 3, LP: 4, OFF: 2, P1: 1, P2: 5, P3: 0, JK: 218 } },
+    { id: 12, name: "Amirul Mu'minin Rofico P.K.", shifts: ["P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "P", "S", "S", "S", "M", "LP", "O", "P", "S", "S", "S", "S", "M", "LP", "O", "P2", "S", "S", "S", "S", "M", "LP"], totals: { P: 6, FUL: 14, S: 4, M: 4, LP: 3, OFF: 2, P1: 4, P2: 0, P3: 0, JK: 216 } },
+    { id: 13, name: "Nanang Arifin", shifts: ["P2", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "S", "S", "S", "S", "M", "LP", "O", "P", "P2", "S", "S", "S", "M", "LP", "O"], totals: { P: 6, FUL: 13, S: 4, M: 4, LP: 4, OFF: 1, P1: 5, P2: 0, P3: 0, JK: 208 } },
+    { id: 14, name: "Muji Santoso", shifts: ["S", "S", "S", "M", "LP", "O", "P3", "P2", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "S", "S", "S", "S", "M", "LP", "O", "P"], totals: { P: 6, FUL: 13, S: 4, M: 4, LP: 4, OFF: 1, P1: 4, P2: 1, P3: 0, JK: 208 } },
+    { id: 15, name: "Deni Furitrinofi", shifts: ["S", "S", "M", "LP", "O", "P3", "P3", "S", "S", "S", "M", "LP", "O", "P3", "S", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "P"], totals: { P: 7, FUL: 12, S: 4, M: 4, LP: 4, OFF: 1, P1: 3, P2: 3, P3: 0, JK: 209 } },
+    { id: 16, name: "Eko Wahyudi", shifts: ["S", "M", "LP", "O", "P3", "S", "S", "S", "S", "M", "LP", "O", "P3", "P3", "S", "S", "S", "M", "LP", "O", "P3", "S", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S"], totals: { P: 6, FUL: 13, S: 4, M: 4, LP: 4, OFF: 0, P1: 2, P2: 4, P3: 0, JK: 207 } },
+    { id: 17, name: "Eky Venty Pricilia", shifts: ["M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S"], totals: { P: 8, FUL: 11, S: 4, M: 4, LP: 4, OFF: 0, P1: 8, P2: 0, P3: 0, JK: 209 } },
+    { id: 18, name: "Teguh Cahyono", shifts: ["O", "P2", "P", "S", "S", "S", "M", "LP", "O", "P", "P3", "S", "S", "S", "M", "LP", "O", "P3", "S", "S", "S", "S", "M", "LP", "O", "P3", "P3", "S", "S", "S", "M"], totals: { P: 7, FUL: 13, S: 4, M: 3, LP: 4, OFF: 2, P1: 1, P2: 4, P3: 0, JK: 217 } },
+    { id: 19, name: "Akhmad Fadkhurriza I", shifts: ["S", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P", "P2", "S", "S", "S", "M", "LP", "O"], totals: { P: 6, FUL: 13, S: 4, M: 4, LP: 4, OFF: 1, P1: 5, P2: 0, P3: 0, JK: 208 } },
+    { id: 20, name: "Afida Saidatul Fuadia", shifts: ["S", "S", "M", "LP", "O", "P2", "S", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "S"], totals: { P: 6, FUL: 13, S: 4, M: 4, LP: 4, OFF: 0, P1: 6, P2: 0, P3: 0, JK: 207 } }
+  ];
+
+  const getShiftFillColor = (code: string): [number, number, number] => {
+    switch (code) {
+      case 'P': return [16, 185, 129]; // Emerald
+      case 'P2': return [20, 184, 166]; // Teal
+      case 'P3': return [22, 163, 74]; // Green
+      case 'S': return [245, 158, 11]; // Amber
+      case 'M': return [79, 70, 229]; // Indigo
+      case 'LP': return [224, 242, 254]; // Light Sky
+      case 'O': return [239, 68, 68]; // Red (Off)
+      case 'C': return [168, 85, 247]; // Purple (Cuti)
+      default: return [241, 245, 249];
+    }
+  };
+
+  const getShiftTextColor = (code: string): [number, number, number] => {
+    if (['P', 'P2', 'P3', 'S', 'M', 'O'].includes(code)) {
+      return [255, 255, 255]; // white for dark pills
+    }
+    return [30, 41, 59]; // dark text for light pills
+  };
+
+  doc.setFontSize(5.5);
+  doc.setLineWidth(0.15);
+  doc.setDrawColor(203, 213, 225); // slate 300
+
+  schedules.forEach((staff, idx) => {
+    const isEven = idx % 2 === 0;
+    
+    // Row background
+    doc.setFillColor(isEven ? 255 : 248, isEven ? 255 : 250, isEven ? 255 : 252);
+    doc.rect(startX, currentY, 270.6, rowHeight, 'F');
+
+    // Grid lines
+    doc.rect(startX, currentY, 270.6, rowHeight, 'S');
+
+    // No & Name
+    doc.setTextColor(30, 41, 59);
+    doc.setFont('Helvetica', 'normal');
+    doc.text(String(idx + 1), startX + (colWidthNo / 2), currentY + 3.2, { align: 'center' });
+    
+    doc.setFont('Helvetica', 'bold');
+    doc.text(staff.name, startX + colWidthNo + 1.5, currentY + 3.2);
+
+    // Shifts
+    let cellX = startX + colWidthNo + colWidthName;
+    staff.shifts.forEach((sh) => {
+      const [r, g, b] = getShiftFillColor(sh);
+      doc.setFillColor(r, g, b);
+      // draw pill rectangle
+      doc.roundedRect(cellX + 0.4, currentY + 0.6, colWidthDay - 0.8, rowHeight - 1.2, 0.5, 0.5, 'F');
+
+      const [tr, tg, tb] = getShiftTextColor(sh);
+      doc.setTextColor(tr, tg, tb);
+      doc.setFont('Helvetica', 'bold');
+      doc.text(sh, cellX + (colWidthDay / 2), currentY + 3.2, { align: 'center' });
+
+      cellX += colWidthDay;
+    });
+
+    // Stat totals
+    doc.setFont('Helvetica', 'bold');
+    doc.setTextColor(30, 41, 59);
+
+    const stats = [
+      staff.totals.P,
+      staff.totals.FUL,
+      staff.totals.S,
+      staff.totals.M,
+      staff.totals.LP,
+      staff.totals.OFF,
+      staff.totals.P1,
+      staff.totals.P2,
+      staff.totals.P3,
+      staff.totals.JK
+    ];
+
+    stats.forEach((st) => {
+      doc.text(String(st), cellX + (colWidthStat / 2), currentY + 3.2, { align: 'center' });
+      cellX += colWidthStat;
+    });
+
+    currentY += rowHeight;
+  });
+
+  // 4. Legend & Signatures Section at the bottom
+  currentY += 4;
+
+  // PETUNJUK Legend Box (Left)
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(7);
+  doc.setTextColor(15, 23, 42);
+  doc.text('PETUNJUK SHIFT:', startX, currentY);
+
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(6.5);
+  doc.setTextColor(51, 65, 85);
+
+  const legends = [
+    'P  : Jaga Pagi (07:00 - 16:00)',
+    'S  : Jaga Sore (15:00 - 22:00)',
+    'M  : Jaga Malam (15:00 - 08:00)',
+    'LP : Lepas Piket Pasca Malam',
+    'O  : Off / Libur Piket'
+  ];
+
+  let legendY = currentY + 3.5;
+  legends.forEach(leg => {
+    doc.text(leg, startX, legendY);
+    legendY += 3.2;
+  });
+
+  // Signature Block (Right)
+  const sigX = 220;
+  let sigY = currentY;
+
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(7);
+  doc.setTextColor(30, 41, 59);
+  doc.text('Kediri, 31 Juli 2026', sigX, sigY);
+
+  doc.setFont('Helvetica', 'bold');
+  doc.text('KEPALA', sigX, sigY + 4);
+  doc.text('SEKOLAH RAKYAT TERINTEGRASI 1', sigX, sigY + 7.5);
+  doc.text('KABUPATEN KEDIRI', sigX, sigY + 11);
+
+  // Generate Automatic Verification QR Code for document authenticity
+  try {
+    const qrDataStr = `DOKUMEN RESMI RESMI WALIASUHKU\nJadwal Pembagian Shift Wali Asuh - Agustus 2026\nSekolah Rakyat Menengah Atas 24 Kediri\nKepala Sekolah: FADELI, S.Pd., M.Pd.`;
+    const qrDataUrl = await QRCode.toDataURL(qrDataStr, { margin: 1, width: 120 });
+    doc.addImage(qrDataUrl, 'PNG', sigX - 22, sigY + 2, 18, 18);
+  } catch (err) {
+    console.warn('QR Code generation failed for schedule:', err);
+  }
+
+  // Signature Line
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.text('FADELI, S.Pd., M.Pd.', sigX, sigY + 26);
+
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(7);
+  doc.text('NIP. 19690521 199203 1 008', sigX, sigY + 29.5);
+
+  // Save Document
+  doc.save('Jadwal_Pembagian_Shift_Wali_Asuh_Agustus_2026.pdf');
+};
+
+/**
+ * Generate official PDF for Daily Duty Schedule (Piket Harian Wali Asuh)
+ * Portrait A4 format with clean tables, officer names, shift details, and signature
+ */
+export const generateJadwalPiketHarianPDF = async (selectedDay: number = 1) => {
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4'
+  }); // 210mm x 297mm
+
+  const pageWidth = 210;
+
+  // 1. Official Kop Surat Header
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(15, 23, 42); // slate 900
+  doc.text('KEMENTERIAN SOSIAL REPUBLIK INDONESIA', pageWidth / 2, 14, { align: 'center' });
+
+  doc.setFontSize(9.5);
+  doc.text('PUSAT PENDIDIKAN PELATIHAN DAN PENGEMBANGAN PROFESI', pageWidth / 2, 19, { align: 'center' });
+
+  doc.setFontSize(11);
+  doc.setTextColor(16, 185, 129); // emerald 600
+  doc.text('SEKOLAH RAKYAT MENENGAH ATAS 24 KEDIRI', pageWidth / 2, 24, { align: 'center' });
+
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(71, 85, 105);
+  doc.text('Gedung Balai Pengembangan Kompetensi Aparatur Sipil Negara', pageWidth / 2, 28.5, { align: 'center' });
+  doc.text('Gg. 2 Bulusari Utara, Bulusari, Kec. Tarokan, Kab. Kediri, Jawa Timur | Kode Pos: 64152', pageWidth / 2, 32.5, { align: 'center' });
+
+  // Double Line Separator
+  doc.setDrawColor(15, 23, 42);
+  doc.setLineWidth(0.6);
+  doc.line(14, 35.5, pageWidth - 14, 35.5);
+  doc.setLineWidth(0.2);
+  doc.line(14, 36.5, pageWidth - 14, 36.5);
+
+  // 2. Document Title
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.setTextColor(15, 23, 42);
+  doc.text('DAFTAR PETUGAS PIKET WALI ASUH HARIAN', pageWidth / 2, 43, { align: 'center' });
+
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(16, 185, 129);
+  doc.text(`TANGGAL: ${selectedDay} AGUSTUS 2026`, pageWidth / 2, 48, { align: 'center' });
+
+  // Schedule Data Source
+  const schedules = [
+    { id: 1, name: "Suhariyono", shifts: ["M", "LP", "O", "P2", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "S", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S"] },
+    { id: 2, name: "Rindani", shifts: ["LP", "O", "P2", "P2", "S", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S"] },
+    { id: 3, name: "Hariadi", shifts: ["O", "P2", "S", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "S", "S", "S", "S", "M"] },
+    { id: 4, name: "Moch. Chabib", shifts: ["P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "S", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP"] },
+    { id: 5, name: "Dewi Askinu", shifts: ["P2", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "S", "S", "S", "S", "M", "LP", "O"] },
+    { id: 6, name: "Aris Mahmud Syafi'i", shifts: ["S", "S", "S", "M", "LP", "O", "P2", "S", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2"] },
+    { id: 7, name: "Erna Rizkiani", shifts: ["S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "P2"] },
+    { id: 8, name: "Chusfia Hanik Wihayati", shifts: ["S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "S", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S"] },
+    { id: 9, name: "A. Zainudin Sholeh", shifts: ["M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "S", "S", "S", "M", "LP", "O", "P3", "P3", "S", "S", "S", "M", "LP", "O", "P", "S", "S", "S", "S"] },
+    { id: 10, name: "Abisarwan Rafif", shifts: ["LP", "O", "P", "S", "S", "S", "S", "M", "LP", "O", "C", "C", "C", "C", "C", "C", "M", "LP", "O", "P3", "S", "S", "S", "S", "M", "LP", "O", "P", "S", "S", "S"] },
+    { id: 11, name: "Dwi Chusnul Mufid", shifts: ["O", "P2", "P", "S", "S", "S", "M", "LP", "O", "P", "P3", "S", "S", "S", "M", "LP", "O", "P3", "P3", "S", "S", "S", "M", "LP", "O", "P3", "P3", "S", "S", "S", "M"] },
+    { id: 12, name: "Amirul Mu'minin Rofico P.K.", shifts: ["P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "P", "S", "S", "S", "M", "LP", "O", "P", "S", "S", "S", "S", "M", "LP", "O", "P2", "S", "S", "S", "S", "M", "LP"] },
+    { id: 13, name: "Nanang Arifin", shifts: ["P2", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "S", "S", "S", "S", "M", "LP", "O", "P", "P2", "S", "S", "S", "M", "LP", "O"] },
+    { id: 14, name: "Muji Santoso", shifts: ["S", "S", "S", "M", "LP", "O", "P3", "P2", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "S", "S", "S", "S", "M", "LP", "O", "P"] },
+    { id: 15, name: "Deni Furitrinofi", shifts: ["S", "S", "M", "LP", "O", "P3", "P3", "S", "S", "S", "M", "LP", "O", "P3", "S", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "P"] },
+    { id: 16, name: "Eko Wahyudi", shifts: ["S", "M", "LP", "O", "P3", "S", "S", "S", "S", "M", "LP", "O", "P3", "P3", "S", "S", "S", "M", "LP", "O", "P3", "S", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S"] },
+    { id: 17, name: "Eky Venty Pricilia", shifts: ["M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S"] },
+    { id: 18, name: "Teguh Cahyono", shifts: ["O", "P2", "P", "S", "S", "S", "M", "LP", "O", "P", "P3", "S", "S", "S", "M", "LP", "O", "P3", "S", "S", "S", "S", "M", "LP", "O", "P3", "P3", "S", "S", "S", "M"] },
+    { id: 19, name: "Akhmad Fadkhurriza I", shifts: ["S", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P", "P2", "S", "S", "S", "M", "LP", "O"] },
+    { id: 20, name: "Afida Saidatul Fuadia", shifts: ["S", "S", "M", "LP", "O", "P2", "S", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "P2", "S", "S", "S", "M", "LP", "O", "P2", "S"] }
+  ];
+
+  const shiftDetailsMap: Record<string, { label: string; time: string; desc: string }> = {
+    P: { label: 'Jaga Pagi (P1)', time: '07:00 - 15:00 WIB', desc: 'Piket Pendampingan Pagi' },
+    P1: { label: 'Jaga Pagi (P1)', time: '07:00 - 15:00 WIB', desc: 'Piket Pendampingan Pagi' },
+    P2: { label: 'Jaga Pagi (P2)', time: '07:00 - 16:00 WIB', desc: 'Piket Pendampingan Pagi' },
+    P3: { label: 'Jaga Pagi (P3)', time: '07:00 - 16:00 WIB', desc: 'Piket Pendampingan Pagi' },
+    S: { label: 'Jaga Sore', time: '15:00 - 22:00 WIB', desc: 'Piket Pendampingan Sore / Malam' },
+    M: { label: 'Jaga Malam', time: '15:00 - 08:00 WIB', desc: 'Piket Pengawasan Malam Utama' },
+    LP: { label: 'Lepas Piket', time: 'Pasca Malam', desc: 'Bebas Tugas Pasca Piket Malam' },
+    O: { label: 'Off / Libur', time: 'Bebas Tugas', desc: 'Hari Libur / Off' },
+    C: { label: 'Cuti Resmi', time: 'Izin Cuti', desc: 'Cuti Alasan Penting' }
+  };
+
+  const dayIndex = selectedDay - 1;
+
+  const pagiOfficers: { name: string; shiftCode: string }[] = [];
+  const soreOfficers: { name: string; shiftCode: string }[] = [];
+  const malamOfficers: { name: string; shiftCode: string }[] = [];
+  const offOfficers: { name: string; shiftCode: string }[] = [];
+
+  schedules.forEach(s => {
+    const code = s.shifts[dayIndex] || 'O';
+    if (['P', 'P1', 'P2', 'P3'].includes(code)) {
+      pagiOfficers.push({ name: s.name, shiftCode: code });
+    } else if (code === 'S') {
+      soreOfficers.push({ name: s.name, shiftCode: code });
+    } else if (code === 'M') {
+      malamOfficers.push({ name: s.name, shiftCode: code });
+    } else {
+      offOfficers.push({ name: s.name, shiftCode: code });
+    }
+  });
+
+  const totalBertugas = pagiOfficers.length + soreOfficers.length + malamOfficers.length;
+
+  // 3. Summary Stat Box
+  const startX = 14;
+  let currentY = 53;
+
+  doc.setFillColor(240, 253, 244); // light emerald background
+  doc.setDrawColor(187, 247, 208);
+  doc.roundedRect(startX, currentY, 182, 14, 2, 2, 'FD');
+
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(22, 101, 52); // emerald 800
+  doc.text(`RINGKASAN PETUGAS BERTUGAS: ${totalBertugas} PERSONEL WALI ASUH`, startX + 4, currentY + 5.5);
+
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(51, 65, 85);
+  doc.text(`☀️ Shift Pagi: ${pagiOfficers.length} Personel   |   🌆 Shift Sore: ${soreOfficers.length} Personel   |   🌙 Shift Malam: ${malamOfficers.length} Personel   |   🏖️ Lepas/Off: ${offOfficers.length} Personel`, startX + 4, currentY + 10.5);
+
+  currentY += 19;
+
+  // Helper function to render a neat section table
+  const renderShiftTable = (
+    title: string,
+    badgeText: string,
+    officers: { name: string; shiftCode: string }[],
+    headerBgColor: [number, number, number],
+    accentColor: [number, number, number]
+  ) => {
+    doc.setFillColor(...headerBgColor);
+    doc.rect(startX, currentY, 182, 6.5, 'F');
+
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.setTextColor(255, 255, 255);
+    doc.text(title, startX + 4, currentY + 4.5);
+    doc.text(badgeText, startX + 178, currentY + 4.5, { align: 'right' });
+
+    currentY += 6.5;
+
+    // Table Column Headers
+    doc.setFillColor(248, 250, 252);
+    doc.rect(startX, currentY, 182, 5.5, 'F');
+
+    doc.setDrawColor(203, 213, 225);
+    doc.setLineWidth(0.15);
+    doc.rect(startX, currentY, 182, 5.5, 'S');
+
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(7.5);
+    doc.setTextColor(51, 65, 85);
+
+    doc.text('No', startX + 4, currentY + 3.8);
+    doc.text('Nama Wali Asuh', startX + 16, currentY + 3.8);
+    doc.text('Kode Shift', startX + 90, currentY + 3.8);
+    doc.text('Jam Operasional', startX + 120, currentY + 3.8);
+    doc.text('Keterangan Tugas', startX + 152, currentY + 3.8);
+
+    currentY += 5.5;
+
+    if (officers.length === 0) {
+      doc.setFillColor(255, 255, 255);
+      doc.rect(startX, currentY, 182, 6, 'F');
+      doc.rect(startX, currentY, 182, 6, 'S');
+
+      doc.setFont('Helvetica', 'italic');
+      doc.setFontSize(7.5);
+      doc.setTextColor(148, 163, 184);
+      doc.text('Tidak ada petugas bertugas pada shift ini', startX + 91, currentY + 4, { align: 'center' });
+
+      currentY += 6;
+    } else {
+      officers.forEach((off, idx) => {
+        const isEven = idx % 2 === 0;
+        doc.setFillColor(isEven ? 255 : 248, isEven ? 255 : 250, isEven ? 255 : 252);
+        doc.rect(startX, currentY, 182, 5.5, 'F');
+        doc.rect(startX, currentY, 182, 5.5, 'S');
+
+        const shiftInfo = shiftDetailsMap[off.shiftCode] || { label: off.shiftCode, time: '-', desc: '-' };
+
+        doc.setFont('Helvetica', 'normal');
+        doc.setFontSize(7.5);
+        doc.setTextColor(30, 41, 59);
+
+        // No
+        doc.text(String(idx + 1), startX + 4, currentY + 3.8);
+
+        // Name
+        doc.setFont('Helvetica', 'bold');
+        doc.text(off.name, startX + 16, currentY + 3.8);
+
+        // Shift Code
+        doc.setFont('Helvetica', 'bold');
+        doc.setTextColor(...accentColor);
+        doc.text(off.shiftCode, startX + 90, currentY + 3.8);
+
+        // Time
+        doc.setFont('Helvetica', 'normal');
+        doc.setTextColor(71, 85, 105);
+        doc.text(shiftInfo.time, startX + 120, currentY + 3.8);
+
+        // Description
+        doc.text(shiftInfo.desc, startX + 152, currentY + 3.8);
+
+        currentY += 5.5;
+      });
+    }
+
+    currentY += 3.5; // spacing between sections
+  };
+
+  // Render 1. Shift Pagi
+  renderShiftTable(
+    `1. SHIFT JAGA PAGI (${pagiOfficers.length} Personel)`,
+    'Jam Kerja: 07:00 - 16:00 WIB',
+    pagiOfficers,
+    [16, 185, 129], // Emerald 600
+    [5, 150, 105]
+  );
+
+  // Render 2. Shift Sore
+  renderShiftTable(
+    `2. SHIFT JAGA SORE (${soreOfficers.length} Personel)`,
+    'Jam Kerja: 15:00 - 22:00 WIB',
+    soreOfficers,
+    [217, 119, 6], // Amber 600
+    [180, 83, 9]
+  );
+
+  // Render 3. Shift Malam
+  renderShiftTable(
+    `3. SHIFT JAGA MALAM (${malamOfficers.length} Personel)`,
+    'Jam Kerja: 15:00 - 08:00 WIB (Besok)',
+    malamOfficers,
+    [79, 70, 229], // Indigo 600
+    [67, 56, 202]
+  );
+
+  // Render 4. Off / Lepas Piket
+  renderShiftTable(
+    `4. LEPAS PIKET / LIBUR / CUTI (${offOfficers.length} Personel)`,
+    'Bebas Tugas Piket',
+    offOfficers,
+    [100, 116, 139], // Slate 500
+    [71, 85, 105]
+  );
+
+  // Signatures Section at the bottom
+  currentY = Math.max(currentY + 2, 235);
+
+  const sigX = 140;
+
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(30, 41, 59);
+  doc.text(`Kediri, ${selectedDay} Agustus 2026`, sigX, currentY);
+
+  doc.setFont('Helvetica', 'bold');
+  doc.text('KEPALA', sigX, currentY + 4.5);
+  doc.text('SEKOLAH RAKYAT TERINTEGRASI 1', sigX, currentY + 8.5);
+  doc.text('KABUPATEN KEDIRI', sigX, currentY + 12.5);
+
+  // Verification QR Code
+  try {
+    const qrDataStr = `DOKUMEN RESMI PIKET HARIAN WALIASUHKU\nTanggal: ${selectedDay} Agustus 2026\nPetugas Bertugas: ${totalBertugas} Personel\nKepala Sekolah: FADELI, S.Pd., M.Pd.`;
+    const qrDataUrl = await QRCode.toDataURL(qrDataStr, { margin: 1, width: 120 });
+    doc.addImage(qrDataUrl, 'PNG', sigX - 22, currentY + 3, 18, 18);
+  } catch (err) {
+    console.warn('QR Code generation failed:', err);
+  }
+
+  // Signature Line
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(15, 23, 42);
+  doc.text('FADELI, S.Pd., M.Pd.', sigX, currentY + 28);
+
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(71, 85, 105);
+  doc.text('NIP. 19690521 199203 1 008', sigX, currentY + 32);
+
+  // Save PDF Document
+  doc.save(`Daftar_Piket_Harian_WaliAsuh_${selectedDay}_Agustus_2026.pdf`);
+};
+
+
+

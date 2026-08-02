@@ -1,0 +1,18 @@
+# Auto detect text files and perform LF normalization
+* text=auto eol=lf
+
+# Explicitly mark binary files so Git never modifies line endings or corrupts them
+*.jar binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.svg text eol=lf
+*.keystore binary
+*.jks binary
+*.aab binary
+*.apk binary
+*.zip binary
+*.tar.gz binary

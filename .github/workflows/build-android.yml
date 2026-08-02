@@ -148,6 +148,18 @@ jobs:
       - name: 9. Build Release APK & AAB dengan Gradle
         run: |
           cd android
+          
+          # Periksa dan perbaiki gradle-wrapper.jar jika korup atau hilang
+          if [ ! -f "gradle/wrapper/gradle-wrapper.jar" ] || ! unzip -t gradle/wrapper/gradle-wrapper.jar > /dev/null 2>&1; then
+            echo "⚠️ gradle-wrapper.jar terdeteksi korup atau tidak valid! Mengunduh ulang gradle-wrapper.jar resmi..."
+            mkdir -p gradle/wrapper
+            curl -sSL -o gradle/wrapper/gradle-wrapper.jar https://raw.githubusercontent.com/gradle/gradle/v8.12.1/gradle/wrapper/gradle-wrapper.jar || \
+            curl -sSL -o gradle/wrapper/gradle-wrapper.jar https://repo.maven.apache.org/maven2/org/gradle/gradle-wrapper/8.12.1/gradle-wrapper-8.12.1.jar
+            echo "✓ gradle-wrapper.jar berhasil diperbarui."
+          else
+            echo "✓ gradle-wrapper.jar valid."
+          fi
+
           chmod +x gradlew
           ./gradlew assembleRelease bundleRelease
 

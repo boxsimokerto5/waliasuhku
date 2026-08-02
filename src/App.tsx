@@ -10,7 +10,9 @@ import AnakAsuhDashboard from './components/AnakAsuhDashboard';
 import OrangTuaDashboard from './components/OrangTuaDashboard';
 import NotificationCenter from './components/NotificationCenter';
 import PWAInstallWidget from './components/PWAInstallWidget';
+import JadwalWaliAsuh from './components/JadwalWaliAsuh';
 import { encryptMessage } from './utils/crypto';
+import { cleanFirestoreData } from './utils/cleanFirestoreData';
 import { Bell, Lock, ShieldAlert, Monitor, Phone, HeartHandshake } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { collection, onSnapshot, setDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
@@ -29,6 +31,7 @@ export default function App() {
   const [quotaExceeded, setQuotaExceeded] = useState<boolean>(false);
 
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [showGlobalJadwalModal, setShowGlobalJadwalModal] = useState(false);
   const [viewportMode, setViewportMode] = useState<'mobile' | 'desktop'>('desktop');
   const [showSplash, setShowSplash] = useState(true);
   
@@ -282,7 +285,7 @@ export default function App() {
       upsertSupabaseRecord('users', newWali);
 
       try {
-        await setDoc(doc(db, 'users', newWali.id), newWali);
+        await setDoc(doc(db, 'users', newWali.id), cleanFirestoreData(newWali));
       } catch (err) {
         handleFirestoreError(err, OperationType.WRITE, `users/${newWali.id}`);
       }
@@ -342,7 +345,7 @@ export default function App() {
       upsertSupabaseRecord('users', newAnak);
 
       try {
-        await setDoc(doc(db, 'users', newAnak.id), newAnak);
+        await setDoc(doc(db, 'users', newAnak.id), cleanFirestoreData(newAnak));
       } catch (err) {
         handleFirestoreError(err, OperationType.WRITE, `users/${newAnak.id}`);
       }
@@ -405,7 +408,7 @@ export default function App() {
   // Action: Update Child Biodata (Wali Asuh action)
   const handleUpdateChildBiodata = async (childId: string, updatedFields: Partial<User>) => {
     try {
-      await updateDoc(doc(db, 'users', childId), updatedFields);
+      await updateDoc(doc(db, 'users', childId), cleanFirestoreData(updatedFields));
       showToast('Biodata Diperbarui', 'Data pribadi anak asuh berhasil diperbarui.');
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, `users/${childId}`);
@@ -465,7 +468,7 @@ export default function App() {
     };
 
     try {
-      await setDoc(doc(db, 'users', newOrangTua.id), newOrangTua);
+      await setDoc(doc(db, 'users', newOrangTua.id), cleanFirestoreData(newOrangTua));
 
       // Create a real-time notification
       const notif: AppNotification = {
@@ -538,11 +541,11 @@ export default function App() {
       isEncrypted: true,
       createdAt: new Date().toISOString(),
       replies: [],
-      parentApprovalStatus: reportData.type === 'pesan_ortu' ? 'pending' : undefined
+      ...(reportData.type === 'pesan_ortu' ? { parentApprovalStatus: 'pending' as const } : {})
     };
 
     try {
-      await setDoc(doc(db, 'reports', newReport.id), newReport);
+      await setDoc(doc(db, 'reports', newReport.id), cleanFirestoreData(newReport));
 
       // Create notification for their Wali Asuh
       const notif: AppNotification = {
@@ -753,7 +756,7 @@ export default function App() {
     };
 
     try {
-      await setDoc(doc(db, 'broadcasts', newBroadcast.id), newBroadcast);
+      await setDoc(doc(db, 'broadcasts', newBroadcast.id), cleanFirestoreData(newBroadcast));
       showToast('Siaran Dikirim', 'Pesan siaran berhasil dikirim ke semua anak asuh Anda.');
     } catch (err) {
       handleFirestoreError(err, OperationType.WRITE, `broadcasts/${newBroadcast.id}`);
@@ -1026,6 +1029,7 @@ export default function App() {
             onLogout={() => setCurrentUser(null)}
             notifications={notifications}
             onOpenNotifications={() => setIsNotificationOpen(true)}
+            onOpenJadwalPiket={() => setShowGlobalJadwalModal(true)}
           />
 
           {/* VP Toggles & Layout Options */}
@@ -1110,6 +1114,27 @@ export default function App() {
           <PWAInstallWidget />
         </div>
       )}
+
+      {/* Global Jadwal Piket Wali Asuh Modal */}
+      <AnimatePresence>
+        {showGlobalJadwalModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 overflow-y-auto p-3 sm:p-6 flex items-start justify-center"
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              className="w-full max-w-7xl my-4"
+            >
+              <JadwalWaliAsuh onBack={() => setShowGlobalJadwalModal(false)} />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Footer Branding */}
       <footer className="text-center text-slate-400 text-xs font-semibold py-8 mt-12 border-t border-slate-200/50 max-w-7xl mx-auto">

@@ -1,3 +1,4 @@
+import { Calendar } from 'lucide-react';
 import { User, AppNotification } from '../types';
 import { HeartHandshake, LogOut, Bell, Shield, UserCheck, Baby, Heart } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -7,13 +8,15 @@ interface HeaderProps {
   onLogout: () => void;
   notifications: AppNotification[];
   onOpenNotifications: () => void;
+  onOpenJadwalPiket?: () => void;
 }
 
 export default function Header({ 
   currentUser, 
   onLogout, 
   notifications, 
-  onOpenNotifications
+  onOpenNotifications,
+  onOpenJadwalPiket
 }: HeaderProps) {
   const unreadCount = notifications.filter(n => n.userId === currentUser.id && !n.isRead).length;
 
@@ -95,6 +98,20 @@ export default function Header({
         {/* Utilities & Action buttons */}
         <div className="flex items-center justify-end gap-3 shrink-0">
           <div className="flex items-center gap-2">
+            {(currentUser.role === 'wali_asuh' || currentUser.role === 'super_admin') && onOpenJadwalPiket && (
+              <button
+                onClick={onOpenJadwalPiket}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/80 rounded-xl transition-all cursor-pointer text-xs font-extrabold shadow-2xs group"
+                title="Lihat Jadwal Piket Wali Asuh"
+              >
+                <Calendar className="w-4 h-4 text-emerald-600 group-hover:scale-110 transition-transform" />
+                <span className="hidden sm:inline">Jadwal Piket</span>
+                <span className="bg-emerald-600 text-white text-[9px] px-1.5 py-0.2 rounded-full font-black">
+                  Agt
+                </span>
+              </button>
+            )}
+
             {/* Notification trigger button */}
             <button
               onClick={onOpenNotifications}

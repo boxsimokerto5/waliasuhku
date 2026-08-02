@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, ActivityChecklist, ChecklistStudentStatus } from '../types';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
+import { cleanFirestoreData } from '../utils/cleanFirestoreData';
 import { collection, onSnapshot, setDoc, doc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { Plus, Trash2, Download, Check, X, Calendar, Clipboard, CheckCircle, AlertCircle, Sparkles, CheckSquare, Square } from 'lucide-react';
 import { generateChecklistPDF } from '../utils/pdfGenerator';
@@ -111,7 +112,7 @@ export function ChecklistManagement({ currentUser, users }: ChecklistManagementP
     };
 
     try {
-      await setDoc(doc(db, 'activity_checklists', checklistId), newChecklist);
+      await setDoc(doc(db, 'activity_checklists', checklistId), cleanFirestoreData(newChecklist));
       setNewTitle('');
       setSelectedChecklist(newChecklist);
       showLocalToast('Ceklist Dibuat', `Ceklist "${newChecklist.title}" berhasil diinisialisasi.`);

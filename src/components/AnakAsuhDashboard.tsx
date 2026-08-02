@@ -56,7 +56,7 @@ export default function AnakAsuhDashboard({
   const [reportType, setReportType] = useState<ReportType>('pengaduan');
   const [photoUrl, setPhotoUrl] = useState<string>('');
   const [customPhotoName, setCustomPhotoName] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'form' | 'history' | 'tabungan' | 'chat' | 'biodata'>('form');
+  const [activeTab, setActiveTab] = useState<'form' | 'history' | 'tabungan' | 'chat' | 'biodata' | 'jadwal'>('form');
   const [chatInputText, setChatInputText] = useState('');
   const chatEndRef = useRef<HTMLDivElement>(null);
 

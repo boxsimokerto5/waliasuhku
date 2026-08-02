@@ -14,6 +14,7 @@ import { EventChecklistManagement } from './EventChecklistManagement';
 import BiodataDetailModal from './BiodataDetailModal';
 import DailyQuoteBanner from './DailyQuoteBanner';
 import MonthlyReportManagement from './MonthlyReportManagement';
+import JadwalWaliAsuh from './JadwalWaliAsuh';
 
 interface WaliAsuhDashboardProps {
   currentUser: User;
@@ -444,6 +445,10 @@ export default function WaliAsuhDashboard({
     subPageTitle = "Laporan Bulanan Pembinaan Siswa";
     subPageSubtitle = "Kelola, perbarui, dan cetak laporan perkembangan siswa per periode bulan (April, Mei, Juni, dst.)";
     subPageIcon = <Calendar className="w-5 h-5 text-indigo-600" />;
+  } else if (activeSubPage === 'jadwal_piket') {
+    subPageTitle = "Jadwal Pembagian Shift Wali Asuh";
+    subPageSubtitle = "Pantau jadwal piket harian, jam tugas, dan kehadiran seluruh 20 personel Wali Asuh";
+    subPageIcon = <Calendar className="w-5 h-5 text-emerald-600" />;
   }
 
   return (
@@ -484,6 +489,20 @@ export default function WaliAsuhDashboard({
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-10 gap-3 pt-1">
+            {/* 0. Jadwal Piket Wali Asuh */}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveSubPage('jadwal_piket');
+              }}
+              className="flex flex-col items-center justify-center p-3 rounded-2xl bg-emerald-500 text-white hover:bg-emerald-600 transition-all text-center cursor-pointer gap-1.5 shadow-md shadow-emerald-500/20 col-span-2 sm:col-span-1 border border-emerald-400"
+            >
+              <div className="p-2 bg-white/20 rounded-xl backdrop-blur-md">
+                <Calendar className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-[11px] font-black leading-tight">Jadwal Piket</span>
+            </button>
+
             {/* 1. Akun Anak Asuh */}
             <button
               type="button"
@@ -681,6 +700,11 @@ export default function WaliAsuhDashboard({
             </button>
           </div>
         </div>
+      )}
+
+      {/* Jadwal Piket Sub-Page */}
+      {activeSubPage === 'jadwal_piket' && (
+        <JadwalWaliAsuh onBack={() => setActiveSubPage(null)} />
       )}
 
       {/* 1. Register Anak Asuh Sub-Page */}

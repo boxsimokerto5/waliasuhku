@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, EventChecklist, EventChecklistOption, EventChecklistStudentStatus } from '../types';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
+import { cleanFirestoreData } from '../utils/cleanFirestoreData';
 import { collection, onSnapshot, setDoc, doc, deleteDoc, updateDoc } from 'firebase/firestore';
 import {
   Plus, Trash2, Download, Check, X, Calendar, Trophy, AlertCircle, Sparkles,
@@ -273,7 +274,7 @@ export function EventChecklistManagement({ currentUser, users }: EventChecklistM
     };
 
     try {
-      await setDoc(doc(db, 'event_checklists', checklistId), newEventChecklist);
+      await setDoc(doc(db, 'event_checklists', checklistId), cleanFirestoreData(newEventChecklist));
       setNewTitle('');
       setSelectedChecklist(newEventChecklist);
       showLocalToast('Ceklist Acara Dibuat', `Ceklist "${newEventChecklist.title}" berhasil diinisialisasi.`);

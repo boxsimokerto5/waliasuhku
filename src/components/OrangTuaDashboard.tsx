@@ -79,25 +79,27 @@ export default function OrangTuaDashboard({
       {/* Welcome Banner */}
       <div className="bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden shadow-lg">
         <div className="absolute -right-10 -bottom-10 w-44 h-44 bg-white/10 rounded-full blur-2xl"></div>
-        <div className="relative z-10 max-w-2xl text-left">
-          <span className="text-xs font-bold bg-amber-400/40 text-amber-50 px-3 py-1 rounded-full border border-amber-300/20 flex items-center gap-1.5 w-fit">
-            <Heart className="w-3.5 h-3.5 fill-white" />
-            Halaman Orang Tua Siswa
-          </span>
-          <h2 className="text-2xl sm:text-3xl font-extrabold mt-3 tracking-tight">
-            Selamat Datang, Ayah / Bunda {currentUser.name}
-          </h2>
-          <p className="text-amber-50/90 text-xs sm:text-sm mt-2 leading-relaxed font-light">
-            {myChild ? (
-              <span>
-                Menghubungkan Anda secara aman dengan buah hati Anda, <strong>{myChild.name}</strong>. Anda dapat melihat pesan-pesan yang telah dikirimkan oleh {myChild.name} dan disetujui oleh Wali Asuh demi keamanan bersama.
-              </span>
-            ) : (
-              <span>
-                Akun Orang Tua terhubung dengan sistem. Mohon hubungi Wali Asuh untuk memastikan tautan siswa sudah benar.
-              </span>
-            )}
-          </p>
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 text-left">
+          <div className="max-w-2xl">
+            <span className="text-xs font-bold bg-amber-400/40 text-amber-50 px-3 py-1 rounded-full border border-amber-300/20 flex items-center gap-1.5 w-fit">
+              <Heart className="w-3.5 h-3.5 fill-white" />
+              Halaman Orang Tua Siswa
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-extrabold mt-3 tracking-tight">
+              Selamat Datang, Ayah / Bunda {currentUser.name}
+            </h2>
+            <p className="text-amber-50/90 text-xs sm:text-sm mt-2 leading-relaxed font-light">
+              {myChild ? (
+                <span>
+                  Menghubungkan Anda secara aman dengan buah hati Anda, <strong>{myChild.name}</strong>. Anda dapat melihat pesan-pesan yang telah dikirimkan oleh {myChild.name} dan disetujui oleh Wali Asuh demi keamanan bersama.
+                </span>
+              ) : (
+                <span>
+                  Akun Orang Tua terhubung dengan sistem. Mohon hubungi Wali Asuh untuk memastikan tautan siswa sudah benar.
+                </span>
+              )}
+            </p>
+          </div>
         </div>
       </div>
 
