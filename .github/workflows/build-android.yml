@@ -160,7 +160,7 @@ jobs:
           fi
 
           chmod +x gradlew
-          ./gradlew assembleRelease bundleRelease
+          ./gradlew assembleRelease bundleRelease --no-daemon --stacktrace
 
       - name: 10. Tandatangani (Sign) APK & AAB dengan apksigner (v1, v2, v3 Scheme)
         run: |
