@@ -106,9 +106,6 @@ export const CounselingManagement: React.FC<CounselingManagementProps> = ({
     return true; // superadmin or others
   });
 
-  const allStudents = users.filter(u => u.role === 'anak_asuh');
-  const otherStudents = allStudents.filter(u => u.waliAsuhId !== currentUser.id);
-
   // Filter records based on role and filters
   const filteredRecords = records.filter(rec => {
     // Role accessibility guard
@@ -171,7 +168,7 @@ export const CounselingManagement: React.FC<CounselingManagementProps> = ({
       setFormParentNotified(existing.parentNotified || false);
     } else {
       setEditingRecord(null);
-      setFormStudentId(myChildren.length > 0 ? myChildren[0].id : (allStudents.length > 0 ? allStudents[0].id : '__custom__'));
+      setFormStudentId(myChildren.length > 0 ? myChildren[0].id : '__custom__');
       setFormCustomStudentName('');
       setFormSessionDate(new Date().toISOString().split('T')[0]);
       setFormCategory('Emosional & Diri');
@@ -946,25 +943,10 @@ export const CounselingManagement: React.FC<CounselingManagementProps> = ({
                       className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-2xl font-medium focus:ring-2 focus:ring-violet-500 text-xs"
                     >
                       <option value="" disabled>-- Pilih Anak Asuh --</option>
-                      {myChildren.length > 0 && (
-                        <optgroup label="Binaan Kelompok Saya">
-                          {myChildren.map(child => (
-                            <option key={child.id} value={child.id}>{child.name}</option>
-                          ))}
-                        </optgroup>
-                      )}
-                      {otherStudents.length > 0 && (
-                        <optgroup label="Anak Asuh Kelompok / Wali Asuh Lain">
-                          {otherStudents.map(child => (
-                            <option key={child.id} value={child.id}>
-                              {child.name} ({users.find(u => u.id === child.waliAsuhId)?.name || 'Wali Asuh Lain'})
-                            </option>
-                          ))}
-                        </optgroup>
-                      )}
-                      <optgroup label="Opsi Tambahan">
-                        <option value="__custom__">➕ Ketik Nama Siswa Manual / Anak Asuh Luar</option>
-                      </optgroup>
+                      {myChildren.map(child => (
+                        <option key={child.id} value={child.id}>{child.name}</option>
+                      ))}
+                      <option value="__custom__">➕ Ketik Nama Siswa Manual / Anak Asuh Luar</option>
                     </select>
                   </div>
 
