@@ -1,19 +1,23 @@
 import React, { useState } from 'react';
-import { User, Report, Reply, SavingsTransaction, InitialAssessment } from '../types';
-import { Heart, Lock, Calendar, MessageSquare, Send, CheckCircle2, User as UserIcon, ShieldCheck, Mail, RefreshCw, Coins, ArrowUpRight, ArrowDownLeft, Eye, FileText, X, ImageIcon, ClipboardList, AlertCircle, Check } from 'lucide-react';
+import { User, Report, Reply, SavingsTransaction, InitialAssessment, CounselingRecord, CounselingRequest } from '../types';
+import { Heart, Lock, Calendar, MessageSquare, Send, CheckCircle2, User as UserIcon, ShieldCheck, Mail, RefreshCw, Coins, ArrowUpRight, ArrowDownLeft, Eye, FileText, X, ImageIcon, ClipboardList, AlertCircle, Check, HeartHandshake } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { decryptMessage, formatDate } from '../utils/crypto';
 import { generateStudentPortfolioPDF, generateStudentMonthlyReportPDF } from '../utils/pdfGenerator';
 import InitialAssessmentModal from './InitialAssessmentModal';
 import DailyQuoteBanner from './DailyQuoteBanner';
+import CounselingManagement from './CounselingManagement';
 
 interface OrangTuaDashboardProps {
   currentUser: User;
   users: User[];
   reports: Report[];
   savingsTransactions: SavingsTransaction[];
+  counselingRecords?: CounselingRecord[];
+  counselingRequests?: CounselingRequest[];
   onAddReply: (reportId: string, replyContent: string) => void;
   onUpdateChildBiodata?: (childId: string, updatedFields: Partial<User>) => void;
+  onAddCounselingRequest?: (request: Omit<CounselingRequest, 'id' | 'createdAt'>) => void;
 }
 
 export default function OrangTuaDashboard({
@@ -21,8 +25,11 @@ export default function OrangTuaDashboard({
   users,
   reports,
   savingsTransactions,
+  counselingRecords = [],
+  counselingRequests = [],
   onAddReply,
-  onUpdateChildBiodata
+  onUpdateChildBiodata,
+  onAddCounselingRequest
 }: OrangTuaDashboardProps) {
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [replyText, setReplyText] = useState('');
@@ -30,6 +37,7 @@ export default function OrangTuaDashboard({
   const [showSavingsHistory, setShowSavingsHistory] = useState(false);
   const [showChildDetail, setShowChildDetail] = useState(false);
   const [showAssessmentModal, setShowAssessmentModal] = useState(false);
+  const [showCounselingModal, setShowCounselingModal] = useState(false);
   const [zoomImage, setZoomImage] = useState<string | null>(null);
   const [isPrinting, setIsPrinting] = useState(false);
 
@@ -251,6 +259,20 @@ export default function OrangTuaDashboard({
                     </span>
                     <span className="text-[10px] text-amber-600 underline">
                       {myChild.initialAssessment ? 'Ubah Respon' : 'Isi Sekarang'}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowCounselingModal(true)}
+                    className="w-full flex items-center justify-between text-[11px] font-extrabold text-slate-600 hover:text-slate-800 cursor-pointer bg-violet-50 hover:bg-violet-100 p-2.5 rounded-xl transition-all border border-violet-200/50"
+                  >
+                    <span className="flex items-center gap-1.5 text-violet-800">
+                      <HeartHandshake className="w-4 h-4 text-violet-600" />
+                      <span>Bimbingan & Konseling Ananda</span>
+                    </span>
+                    <span className="text-[10px] text-violet-600 font-bold underline">
+                      Lihat Catatan / Ajukan
                     </span>
                   </button>
 
@@ -670,6 +692,52 @@ export default function OrangTuaDashboard({
               }
             }}
           />
+        )}
+      </AnimatePresence>
+
+      {/* COUNSELING MANAGEMENT MODAL */}
+      <AnimatePresence>
+        {showCounselingModal && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-2 sm:p-4 my-auto box-border overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-slate-50 rounded-3xl w-full max-w-5xl max-h-[90vh] overflow-y-auto p-4 sm:p-6 shadow-2xl relative border border-slate-200"
+            >
+              <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-200">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-violet-100 text-violet-700 rounded-2xl">
+                    <HeartHandshake className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-extrabold text-slate-800">Bimbingan & Konseling Ananda</h3>
+                    <p className="text-xs text-slate-500 font-medium">Catatan pendampingan psikososial dan pengajuan sesi konseling dari Wali Murid</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowCounselingModal(false)}
+                  className="p-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl transition-all cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <CounselingManagement
+                currentUser={currentUser}
+                users={users}
+                records={counselingRecords}
+                requests={counselingRequests}
+                onAddRecord={() => {}}
+                onUpdateRecord={() => {}}
+                onDeleteRecord={() => {}}
+                onAddRequest={onAddCounselingRequest || (() => {})}
+                onUpdateRequestStatus={() => {}}
+                viewMode="parent"
+              />
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 

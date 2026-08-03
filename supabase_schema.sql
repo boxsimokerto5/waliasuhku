@@ -107,6 +107,39 @@ CREATE TABLE IF NOT EXISTS public.activity_checklists (
   "createdAt" TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 8. TABEL COUNSELING RECORDS
+CREATE TABLE IF NOT EXISTS public.counseling_records (
+  id TEXT PRIMARY KEY,
+  "studentId" TEXT NOT NULL,
+  "studentName" TEXT NOT NULL,
+  "counselorId" TEXT NOT NULL,
+  "counselorName" TEXT NOT NULL,
+  date TEXT NOT NULL,
+  category TEXT NOT NULL,
+  topic TEXT NOT NULL,
+  notes TEXT NOT NULL,
+  "actionPlan" TEXT,
+  "followUpDate" TEXT,
+  status TEXT DEFAULT 'Berjalan',
+  "isPrivate" BOOLEAN DEFAULT FALSE,
+  "createdAt" TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 9. TABEL COUNSELING REQUESTS
+CREATE TABLE IF NOT EXISTS public.counseling_requests (
+  id TEXT PRIMARY KEY,
+  "requesterId" TEXT NOT NULL,
+  "requesterName" TEXT NOT NULL,
+  "requesterRole" TEXT NOT NULL,
+  "studentId" TEXT NOT NULL,
+  "studentName" TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  "preferredDate" TEXT,
+  status TEXT DEFAULT 'Menunggu',
+  notes TEXT,
+  "createdAt" TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- DISABLE ROW LEVEL SECURITY (RLS) UNTUK MEMUDAHKAN AKSES CLIENT KLIEN/ANON
 ALTER TABLE public.users DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reports DISABLE ROW LEVEL SECURITY;
@@ -115,3 +148,5 @@ ALTER TABLE public.broadcasts DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.savings_transactions DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.chat_messages DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.activity_checklists DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.counseling_records DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.counseling_requests DISABLE ROW LEVEL SECURITY;

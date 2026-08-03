@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { User, Report, Reply, Broadcast, SavingsTransaction, ChatMessage } from '../types';
-import { Plus, UserPlus, FileText, Send, Lock, ShieldAlert, Heart, Clipboard, HelpCircle, Eye, CheckCircle2, MessageSquare, Image as ImageIcon, MessageCircle, ZoomIn, ZoomOut, RotateCw, X, Download, Maximize2, Megaphone, Trash2, Link, ChevronDown, ChevronUp, Calendar, MoreVertical, Tag, Filter, Check, FolderOpen, Mail, ArrowLeft, Home, Coins, Trophy } from 'lucide-react';
+import { User, Report, Reply, Broadcast, SavingsTransaction, ChatMessage, CounselingRecord, CounselingRequest } from '../types';
+import { Plus, UserPlus, FileText, Send, Lock, ShieldAlert, Heart, Clipboard, HelpCircle, Eye, CheckCircle2, MessageSquare, Image as ImageIcon, MessageCircle, ZoomIn, ZoomOut, RotateCw, X, Download, Maximize2, Megaphone, Trash2, Link, ChevronDown, ChevronUp, Calendar, MoreVertical, Tag, Filter, Check, FolderOpen, Mail, ArrowLeft, Home, Coins, Trophy, HeartHandshake } from 'lucide-react';
 import { generateSingleCardPDF, generateAllCardsPDF } from '../utils/pdfGenerator';
 import { motion, AnimatePresence } from 'motion/react';
 import { decryptMessage, encryptMessage, formatDate, getStatusBadge, getTypeBadge } from '../utils/crypto';
@@ -15,6 +15,7 @@ import BiodataDetailModal from './BiodataDetailModal';
 import DailyQuoteBanner from './DailyQuoteBanner';
 import MonthlyReportManagement from './MonthlyReportManagement';
 import JadwalWaliAsuh from './JadwalWaliAsuh';
+import CounselingManagement from './CounselingManagement';
 
 interface WaliAsuhDashboardProps {
   currentUser: User;
@@ -23,6 +24,8 @@ interface WaliAsuhDashboardProps {
   broadcasts: Broadcast[];
   savingsTransactions: SavingsTransaction[];
   chatMessages: ChatMessage[];
+  counselingRecords?: CounselingRecord[];
+  counselingRequests?: CounselingRequest[];
   onCreateAnakAsuh: (username: string, name: string, waliAsuhId: string, additionalData?: any) => void;
   onCreateOrangTua: (username: string, name: string, waliAsuhId: string, anakAsuhId: string) => void;
   onUpdateReportStatus: (reportId: string, status: 'pending' | 'processed' | 'resolved') => void;
@@ -39,6 +42,11 @@ interface WaliAsuhDashboardProps {
   onUpdateChildBiodata?: (childId: string, updatedFields: Partial<User>) => Promise<void> | void;
   onAddPortfolio?: (childId: string, title: string, description: string, date: string, category: any) => Promise<void> | void;
   onDeletePortfolio?: (childId: string, portfolioId: string) => Promise<void> | void;
+  onAddCounselingRecord?: (record: Omit<CounselingRecord, 'id' | 'createdAt'>) => void;
+  onUpdateCounselingRecord?: (id: string, updatedFields: Partial<CounselingRecord>) => void;
+  onDeleteCounselingRecord?: (id: string) => void;
+  onAddCounselingRequest?: (request: Omit<CounselingRequest, 'id' | 'createdAt'>) => void;
+  onUpdateCounselingRequestStatus?: (id: string, status: 'Menunggu' | 'Disetujui' | 'Selesai' | 'Ditolak', notes?: string) => void;
 }
 
 export default function WaliAsuhDashboard({
@@ -63,7 +71,14 @@ export default function WaliAsuhDashboard({
   onSendChatMessage,
   onUpdateChildBiodata,
   onAddPortfolio,
-  onDeletePortfolio
+  onDeletePortfolio,
+  counselingRecords = [],
+  counselingRequests = [],
+  onAddCounselingRecord,
+  onUpdateCounselingRecord,
+  onDeleteCounselingRecord,
+  onAddCounselingRequest,
+  onUpdateCounselingRequestStatus
 }: WaliAsuhDashboardProps) {
   const [newUsername, setNewUsername] = useState('');
   const [newName, setNewName] = useState('');
@@ -449,6 +464,10 @@ export default function WaliAsuhDashboard({
     subPageTitle = "Jadwal Pembagian Shift Wali Asuh";
     subPageSubtitle = "Pantau jadwal piket harian, jam tugas, dan kehadiran seluruh 20 personel Wali Asuh";
     subPageIcon = <Calendar className="w-5 h-5 text-emerald-600" />;
+  } else if (activeSubPage === 'konseling') {
+    subPageTitle = "Layanan Bimbingan & Konseling Anak Asuh";
+    subPageSubtitle = "Pusat pencatatan bimbingan psikososial, penanganan kendala emosi, dan pendampingan karakter anak asuh";
+    subPageIcon = <HeartHandshake className="w-5 h-5 text-violet-600" />;
   }
 
   return (
@@ -489,6 +508,20 @@ export default function WaliAsuhDashboard({
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-10 gap-3 pt-1">
+            {/* 0. Konseling & Bimbingan (Prominent) */}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveSubPage('konseling');
+              }}
+              className="flex flex-col items-center justify-center p-3 rounded-2xl bg-violet-600 text-white hover:bg-violet-700 transition-all text-center cursor-pointer gap-1.5 shadow-md shadow-violet-600/20 col-span-2 sm:col-span-1 border border-violet-500"
+            >
+              <div className="p-2 bg-white/20 rounded-xl backdrop-blur-md">
+                <HeartHandshake className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-[11px] font-black leading-tight">Konseling Anak</span>
+            </button>
+
             {/* 0. Jadwal Piket Wali Asuh */}
             <button
               type="button"
@@ -936,6 +969,22 @@ export default function WaliAsuhDashboard({
             })()}
           </div>
         </div>
+      )}
+
+      {/* Layanan Konseling & Bimbingan Sub-Page */}
+      {activeSubPage === 'konseling' && (
+        <CounselingManagement
+          currentUser={currentUser}
+          users={users}
+          records={counselingRecords}
+          requests={counselingRequests}
+          onAddRecord={onAddCounselingRecord || (() => {})}
+          onUpdateRecord={onUpdateCounselingRecord || (() => {})}
+          onDeleteRecord={onDeleteCounselingRecord || (() => {})}
+          onAddRequest={onAddCounselingRequest || (() => {})}
+          onUpdateRequestStatus={onUpdateCounselingRequestStatus || (() => {})}
+          viewMode="full"
+        />
       )}
 
       {/* Checklist & Kehadiran Kegiatan Sub-Page */}

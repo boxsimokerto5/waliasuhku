@@ -241,5 +241,54 @@ export interface InitialAssessment {
   filledBy?: string;
 }
 
+export type CounselingCategory = 
+  | 'Akademik' 
+  | 'Perilaku & Kedisiplinan' 
+  | 'Emosional & Diri' 
+  | 'Hubungan Sosial & Teman' 
+  | 'Penyesuaian Asrama' 
+  | 'Motivasi & Cita-cita' 
+  | 'Keluarga & Pribadi' 
+  | 'Lainnya';
+
+export type CounselingConfidentiality = 'Publik' | 'Terbatas' | 'Sangat Rahasia';
+
+export type CounselingStatus = 'Selesai' | 'Dalam Proses' | 'Perlu Pemantauan' | 'Dirujuk (Referral)';
+
+export interface CounselingRecord {
+  id: string;
+  studentId: string;
+  studentName: string;
+  waliAsuhId: string;
+  waliAsuhName: string;
+  sessionDate: string; // YYYY-MM-DD or datetime
+  category: CounselingCategory;
+  confidentiality: CounselingConfidentiality;
+  summary: string; // Permasalahan / Latar belakang
+  actionPlan: string; // Solusi / Rencana Tindak Lanjut
+  status: CounselingStatus;
+  followUpDate?: string;
+  notes?: string;
+  parentNotified?: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface CounselingRequest {
+  id: string;
+  requesterId: string;
+  requesterName: string;
+  requesterRole: 'anak_asuh' | 'orang_tua';
+  studentId: string;
+  studentName: string;
+  preferredDate?: string;
+  topic: string;
+  urgency: 'Biasa' | 'Penting' | 'Mendesak / Darurat';
+  status: 'Menunggu' | 'Disetujui' | 'Selesai' | 'Ditolak';
+  notes?: string;
+  waliAsuhId: string;
+  createdAt: string;
+}
+
 
 

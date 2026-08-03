@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Report, AppNotification, Reply, ReportType, Broadcast, SavingsTransaction, ChatMessage } from './types';
+import { User, Report, AppNotification, Reply, ReportType, Broadcast, SavingsTransaction, ChatMessage, CounselingRecord, CounselingRequest } from './types';
 import { initialUsers, getInitialReports, getInitialNotifications } from './data/mockData';
 import LoginScreen from './components/LoginScreen';
 import SplashScreen from './components/SplashScreen';
@@ -11,6 +11,7 @@ import OrangTuaDashboard from './components/OrangTuaDashboard';
 import NotificationCenter from './components/NotificationCenter';
 import PWAInstallWidget from './components/PWAInstallWidget';
 import JadwalWaliAsuh from './components/JadwalWaliAsuh';
+import CounselingManagement from './components/CounselingManagement';
 import { encryptMessage } from './utils/crypto';
 import { cleanFirestoreData } from './utils/cleanFirestoreData';
 import { Bell, Lock, ShieldAlert, Monitor, Phone, HeartHandshake } from 'lucide-react';
@@ -28,6 +29,8 @@ export default function App() {
   const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
   const [savingsTransactions, setSavingsTransactions] = useState<SavingsTransaction[]>([]);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [counselingRecords, setCounselingRecords] = useState<CounselingRecord[]>([]);
+  const [counselingRequests, setCounselingRequests] = useState<CounselingRequest[]>([]);
   const [quotaExceeded, setQuotaExceeded] = useState<boolean>(false);
 
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
@@ -71,6 +74,16 @@ export default function App() {
         const parsed = JSON.parse(localChats);
         if (Array.isArray(parsed)) setChatMessages(parsed);
       }
+      const localCounselingRecs = localStorage.getItem('waliasuhku_local_counseling_records');
+      if (localCounselingRecs) {
+        const parsed = JSON.parse(localCounselingRecs);
+        if (Array.isArray(parsed)) setCounselingRecords(parsed);
+      }
+      const localCounselingReqs = localStorage.getItem('waliasuhku_local_counseling_requests');
+      if (localCounselingReqs) {
+        const parsed = JSON.parse(localCounselingReqs);
+        if (Array.isArray(parsed)) setCounselingRequests(parsed);
+      }
     } catch (e) {
       console.warn('Error reading local backup state:', e);
     }
@@ -95,6 +108,12 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('waliasuhku_local_chats', JSON.stringify(chatMessages));
   }, [chatMessages]);
+  useEffect(() => {
+    localStorage.setItem('waliasuhku_local_counseling_records', JSON.stringify(counselingRecords));
+  }, [counselingRecords]);
+  useEffect(() => {
+    localStorage.setItem('waliasuhku_local_counseling_requests', JSON.stringify(counselingRequests));
+  }, [counselingRequests]);
 
   // Load data from Supabase if connected
   useEffect(() => {
@@ -122,6 +141,12 @@ export default function App() {
 
       const supaChats = await fetchSupabaseTable<ChatMessage>('chat_messages');
       if (supaChats && supaChats.length > 0) setChatMessages(supaChats);
+
+      const supaCounselingRecs = await fetchSupabaseTable<CounselingRecord>('counseling_records');
+      if (supaCounselingRecs && supaCounselingRecs.length > 0) setCounselingRecords(supaCounselingRecs);
+
+      const supaCounselingReqs = await fetchSupabaseTable<CounselingRequest>('counseling_requests');
+      if (supaCounselingReqs && supaCounselingReqs.length > 0) setCounselingRequests(supaCounselingReqs);
     };
 
     loadSupabaseData();
@@ -251,6 +276,36 @@ export default function App() {
       setChatMessages(fetchedMessages);
     }, (error) => {
       handleListenerError(error, 'chat_messages');
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Synchronize Counseling Records from Firestore in Real-Time
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, 'counseling_records'), (snapshot) => {
+      const fetched: CounselingRecord[] = [];
+      snapshot.forEach((doc) => {
+        fetched.push(doc.data() as CounselingRecord);
+      });
+      fetched.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setCounselingRecords(fetched);
+    }, (error) => {
+      handleListenerError(error, 'counseling_records');
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Synchronize Counseling Requests from Firestore in Real-Time
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, 'counseling_requests'), (snapshot) => {
+      const fetched: CounselingRequest[] = [];
+      snapshot.forEach((doc) => {
+        fetched.push(doc.data() as CounselingRequest);
+      });
+      fetched.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setCounselingRequests(fetched);
+    }, (error) => {
+      handleListenerError(error, 'counseling_requests');
     });
     return () => unsubscribe();
   }, []);
@@ -892,6 +947,74 @@ export default function App() {
     }
   };
 
+  // Counseling Handlers
+  const handleAddCounselingRecord = async (recordData: Omit<CounselingRecord, 'id' | 'createdAt'>) => {
+    const newRecord: CounselingRecord = {
+      ...recordData,
+      id: generateId('counseling_rec'),
+      createdAt: new Date().toISOString()
+    };
+
+    setCounselingRecords(prev => [newRecord, ...prev]);
+
+    try {
+      await setDoc(doc(db, 'counseling_records', newRecord.id), cleanFirestoreData(newRecord));
+    } catch (e) {
+      console.warn('Firestore write error for counseling_records:', e);
+    }
+    await upsertSupabaseRecord('counseling_records', newRecord);
+  };
+
+  const handleUpdateCounselingRecord = async (id: string, updatedFields: Partial<CounselingRecord>) => {
+    setCounselingRecords(prev => prev.map(rec => rec.id === id ? { ...rec, ...updatedFields } : rec));
+
+    try {
+      await updateDoc(doc(db, 'counseling_records', id), cleanFirestoreData(updatedFields));
+    } catch (e) {
+      console.warn('Firestore update error for counseling_records:', e);
+    }
+    await upsertSupabaseRecord('counseling_records', { id, ...updatedFields });
+  };
+
+  const handleDeleteCounselingRecord = async (id: string) => {
+    setCounselingRecords(prev => prev.filter(rec => rec.id !== id));
+
+    try {
+      await deleteDoc(doc(db, 'counseling_records', id));
+    } catch (e) {
+      console.warn('Firestore delete error for counseling_records:', e);
+    }
+    await deleteSupabaseRecord('counseling_records', id);
+  };
+
+  const handleAddCounselingRequest = async (requestData: Omit<CounselingRequest, 'id' | 'createdAt'>) => {
+    const newReq: CounselingRequest = {
+      ...requestData,
+      id: generateId('counseling_req'),
+      createdAt: new Date().toISOString()
+    };
+
+    setCounselingRequests(prev => [newReq, ...prev]);
+
+    try {
+      await setDoc(doc(db, 'counseling_requests', newReq.id), cleanFirestoreData(newReq));
+    } catch (e) {
+      console.warn('Firestore write error for counseling_requests:', e);
+    }
+    await upsertSupabaseRecord('counseling_requests', newReq);
+  };
+
+  const handleUpdateCounselingRequestStatus = async (id: string, status: 'Menunggu' | 'Disetujui' | 'Selesai' | 'Ditolak', notes?: string) => {
+    setCounselingRequests(prev => prev.map(req => req.id === id ? { ...req, status, notes } : req));
+
+    try {
+      await updateDoc(doc(db, 'counseling_requests', id), cleanFirestoreData({ status, notes }));
+    } catch (e) {
+      console.warn('Firestore update error for counseling_requests:', e);
+    }
+    await upsertSupabaseRecord('counseling_requests', { id, status, notes });
+  };
+
 
   // Render appropriate dashboard depending on role
   const renderDashboard = () => {
@@ -919,6 +1042,8 @@ export default function App() {
             broadcasts={broadcasts}
             savingsTransactions={savingsTransactions}
             chatMessages={chatMessages}
+            counselingRecords={counselingRecords}
+            counselingRequests={counselingRequests}
             onCreateAnakAsuh={handleCreateAnakAsuh}
             onCreateOrangTua={handleCreateOrangTua}
             onUpdateReportStatus={handleUpdateReportStatus}
@@ -935,6 +1060,11 @@ export default function App() {
             onUpdateChildBiodata={handleUpdateChildBiodata}
             onAddPortfolio={handleAddPortfolio}
             onDeletePortfolio={handleDeletePortfolio}
+            onAddCounselingRecord={handleAddCounselingRecord}
+            onUpdateCounselingRecord={handleUpdateCounselingRecord}
+            onDeleteCounselingRecord={handleDeleteCounselingRecord}
+            onAddCounselingRequest={handleAddCounselingRequest}
+            onUpdateCounselingRequestStatus={handleUpdateCounselingRequestStatus}
           />
         );
       case 'anak_asuh':
@@ -946,10 +1076,13 @@ export default function App() {
             broadcasts={broadcasts}
             savingsTransactions={savingsTransactions}
             chatMessages={chatMessages}
+            counselingRecords={counselingRecords}
+            counselingRequests={counselingRequests}
             onSubmitReport={handleSubmitReport}
             onAddReply={handleAddReply}
             onSendChatMessage={handleSendChatMessage}
             onUpdateBiodata={handleUpdateChildBiodata}
+            onAddCounselingRequest={handleAddCounselingRequest}
           />
         );
       case 'orang_tua':
@@ -959,8 +1092,11 @@ export default function App() {
             users={users}
             reports={reports}
             savingsTransactions={savingsTransactions}
+            counselingRecords={counselingRecords}
+            counselingRequests={counselingRequests}
             onAddReply={handleAddReply}
             onUpdateChildBiodata={handleUpdateChildBiodata}
+            onAddCounselingRequest={handleAddCounselingRequest}
           />
         );
       default:

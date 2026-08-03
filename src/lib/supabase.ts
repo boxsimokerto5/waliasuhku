@@ -134,13 +134,13 @@ export async function upsertSupabaseRecord<T extends { id: string }>(tableName: 
       // Fallback attempt with raw record
       const { error: camelError } = await client.from(tableName).upsert(record);
       if (camelError) {
-        console.error(`[Supabase Upsert Error] ${tableName}:`, error.message);
+        console.warn(`[Supabase Upsert Warning] ${tableName}:`, error.message);
         return false;
       }
     }
     return true;
   } catch (err) {
-    console.error(`[Supabase Upsert Exception] ${tableName}:`, err);
+    console.warn(`[Supabase Upsert Exception] ${tableName}:`, err);
     return false;
   }
 }
@@ -155,12 +155,12 @@ export async function deleteSupabaseRecord(tableName: string, id: string): Promi
   try {
     const { error } = await client.from(tableName).delete().eq('id', id);
     if (error) {
-      console.error(`[Supabase Delete Error] ${tableName}:`, error.message);
+      console.warn(`[Supabase Delete Warning] ${tableName}:`, error.message);
       return false;
     }
     return true;
   } catch (err) {
-    console.error(`[Supabase Delete Exception] ${tableName}:`, err);
+    console.warn(`[Supabase Delete Exception] ${tableName}:`, err);
     return false;
   }
 }

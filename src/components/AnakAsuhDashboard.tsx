@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { User, Report, ReportType, Broadcast, SavingsTransaction, ChatMessage } from '../types';
-import { Send, Upload, Lock, ShieldCheck, Heart, Clipboard, HelpCircle, FileText, AlertCircle, Trash2, CheckCircle, Clock, ShieldAlert, ImageIcon, MessageCircle, ZoomIn, ZoomOut, RotateCw, X, Download, Maximize2, Package, Megaphone, ExternalLink, Calendar, Coins, ArrowUpRight, ArrowDownLeft, Loader2 } from 'lucide-react';
+import { User, Report, ReportType, Broadcast, SavingsTransaction, ChatMessage, CounselingRecord, CounselingRequest } from '../types';
+import { Send, Upload, Lock, ShieldCheck, Heart, Clipboard, HelpCircle, FileText, AlertCircle, Trash2, CheckCircle, Clock, ShieldAlert, ImageIcon, MessageCircle, ZoomIn, ZoomOut, RotateCw, X, Download, Maximize2, Package, Megaphone, ExternalLink, Calendar, Coins, ArrowUpRight, ArrowDownLeft, Loader2, HeartHandshake } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { decryptMessage, encryptMessage, formatDate, getStatusBadge, getTypeBadge } from '../utils/crypto';
 import { uploadToImgBB } from '../utils/imgbb';
 import AnakAsuhBiodataTab from './AnakAsuhBiodataTab';
 import DailyQuoteBanner from './DailyQuoteBanner';
+import CounselingManagement from './CounselingManagement';
 
 interface AnakAsuhDashboardProps {
   currentUser: User;
@@ -14,6 +15,8 @@ interface AnakAsuhDashboardProps {
   broadcasts: Broadcast[];
   savingsTransactions: SavingsTransaction[];
   chatMessages: ChatMessage[];
+  counselingRecords?: CounselingRecord[];
+  counselingRequests?: CounselingRequest[];
   onSubmitReport: (reportData: {
     title: string;
     content: string;
@@ -23,6 +26,7 @@ interface AnakAsuhDashboardProps {
   onAddReply: (reportId: string, replyContent: string) => void;
   onSendChatMessage: (receiverId: string, content: string) => void;
   onUpdateBiodata?: (childId: string, updatedFields: Partial<User>) => Promise<void> | void;
+  onAddCounselingRequest?: (request: Omit<CounselingRequest, 'id' | 'createdAt'>) => void;
 }
 
 
@@ -46,17 +50,20 @@ export default function AnakAsuhDashboard({
   broadcasts,
   savingsTransactions,
   chatMessages,
+  counselingRecords = [],
+  counselingRequests = [],
   onSubmitReport,
   onAddReply,
   onSendChatMessage,
-  onUpdateBiodata
+  onUpdateBiodata,
+  onAddCounselingRequest
 }: AnakAsuhDashboardProps) {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [reportType, setReportType] = useState<ReportType>('pengaduan');
   const [photoUrl, setPhotoUrl] = useState<string>('');
   const [customPhotoName, setCustomPhotoName] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'form' | 'history' | 'tabungan' | 'chat' | 'biodata' | 'jadwal'>('form');
+  const [activeTab, setActiveTab] = useState<'form' | 'history' | 'tabungan' | 'chat' | 'biodata' | 'jadwal' | 'konseling'>('form');
   const [chatInputText, setChatInputText] = useState('');
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -339,6 +346,17 @@ export default function AnakAsuhDashboard({
           }`}
         >
           🪙 Tabunganku (Rp {(currentUser.savingsBalance || 0).toLocaleString('id-ID')})
+        </button>
+        <button
+          onClick={() => setActiveTab('konseling')}
+          className={`px-5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+            activeTab === 'konseling' 
+              ? 'bg-white text-indigo-600 shadow-sm' 
+              : 'text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <HeartHandshake className="w-4 h-4 text-rose-500" />
+          <span>Bimbingan & Konseling Saya</span>
         </button>
         <button
           onClick={() => setActiveTab('chat')}
@@ -1196,14 +1214,30 @@ export default function AnakAsuhDashboard({
               )}
             </div>
           </div>
-        ) : (
+        ) : activeTab === 'biodata' ? (
           /* BIODATA & PORTOFOLIO VIEW */
           <AnakAsuhBiodataTab
             currentUser={currentUser}
             onUpdateBiodata={onUpdateBiodata}
             users={users}
           />
-        )}
+        ) : activeTab === 'konseling' ? (
+          /* KONSELING & BIMBINGAN VIEW */
+          <div className="lg:col-span-12">
+            <CounselingManagement
+              currentUser={currentUser}
+              users={users}
+              records={counselingRecords}
+              requests={counselingRequests}
+              onAddRecord={() => {}}
+              onUpdateRecord={() => {}}
+              onDeleteRecord={() => {}}
+              onAddRequest={onAddCounselingRequest || (() => {})}
+              onUpdateRequestStatus={() => {}}
+              viewMode="student"
+            />
+          </div>
+        ) : null}
 
       </div>
 
