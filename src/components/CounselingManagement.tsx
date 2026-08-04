@@ -31,7 +31,9 @@ import {
   Sparkles,
   HelpCircle,
   MessageSquare,
-  ShieldCheck
+  ShieldCheck,
+  Mic,
+  MicOff
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -97,6 +99,60 @@ export const CounselingManagement: React.FC<CounselingManagementProps> = ({
   const [reqUrgency, setReqUrgency] = useState<'Biasa' | 'Penting' | 'Mendesak / Darurat'>('Biasa');
   const [reqError, setReqError] = useState('');
   const [reqSuccess, setReqSuccess] = useState('');
+
+  // Voice Speech Recognition State
+  const [listeningTarget, setListeningTarget] = useState<'summary' | 'actionPlan' | 'requestTopic' | null>(null);
+
+  const handleToggleSpeech = (target: 'summary' | 'actionPlan' | 'requestTopic') => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      alert('Browser ini tidak mendukung Web Speech API secara langsung. Silakan gunakan tombol Mikrofon (🎙️) pada Keyboard HP Android Anda (misal Gboard) untuk mendiktekan suara.');
+      return;
+    }
+
+    if (listeningTarget === target) {
+      setListeningTarget(null);
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'id-ID';
+      recognition.interimResults = false;
+      recognition.continuous = false;
+
+      setListeningTarget(target);
+
+      recognition.onresult = (event: any) => {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript;
+        }
+        if (target === 'summary') {
+          setFormSummary(prev => (prev ? prev.trim() + ' ' + transcript : transcript));
+        } else if (target === 'actionPlan') {
+          setFormActionPlan(prev => (prev ? prev.trim() + ' ' + transcript : transcript));
+        } else if (target === 'requestTopic') {
+          setReqTopic(prev => (prev ? prev.trim() + ' ' + transcript : transcript));
+        }
+      };
+
+      recognition.onerror = (event: any) => {
+        console.warn('Speech recognition error:', event.error);
+        setListeningTarget(null);
+      };
+
+      recognition.onend = () => {
+        setListeningTarget(null);
+      };
+
+      recognition.start();
+    } catch (err) {
+      console.error('Error starting speech recognition:', err);
+      setListeningTarget(null);
+    }
+  };
 
   // Filtered children list depending on role
   const myChildren = users.filter(u => {
@@ -1030,10 +1086,33 @@ export const CounselingManagement: React.FC<CounselingManagementProps> = ({
 
                 {/* Summary / Permasalahan */}
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1">Ringkasan Latar Belakang / Permasalahan <span className="text-rose-500">*</span></label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-slate-700 font-bold">Ringkasan Latar Belakang / Permasalahan <span className="text-rose-500">*</span></label>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleSpeech('summary')}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all cursor-pointer ${
+                        listeningTarget === 'summary'
+                          ? 'bg-rose-500 text-white animate-pulse shadow-xs'
+                          : 'bg-violet-100 text-violet-700 hover:bg-violet-200'
+                      }`}
+                    >
+                      {listeningTarget === 'summary' ? (
+                        <>
+                          <MicOff className="w-3.5 h-3.5" />
+                          <span>Merekam Suara... (Klik untuk Stop)</span>
+                        </>
+                      ) : (
+                        <>
+                          <Mic className="w-3.5 h-3.5" />
+                          <span>Dikte Suara (Voice to Text)</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                   <textarea
                     rows={3}
-                    placeholder="Uraikan kendala, cerita, atau poin emosi yang disampaikan anak..."
+                    placeholder="Uraikan kendala, cerita, atau poin emosi yang disampaikan anak... (bisa pakai Dikte Suara di atas)"
                     value={formSummary}
                     onChange={e => setFormSummary(e.target.value)}
                     required
@@ -1043,7 +1122,30 @@ export const CounselingManagement: React.FC<CounselingManagementProps> = ({
 
                 {/* Action Plan */}
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1">Rencana Solusi & Tindak Lanjut (Action Plan) <span className="text-rose-500">*</span></label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-slate-700 font-bold">Rencana Solusi & Tindak Lanjut (Action Plan) <span className="text-rose-500">*</span></label>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleSpeech('actionPlan')}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all cursor-pointer ${
+                        listeningTarget === 'actionPlan'
+                          ? 'bg-rose-500 text-white animate-pulse shadow-xs'
+                          : 'bg-violet-100 text-violet-700 hover:bg-violet-200'
+                      }`}
+                    >
+                      {listeningTarget === 'actionPlan' ? (
+                        <>
+                          <MicOff className="w-3.5 h-3.5" />
+                          <span>Merekam Suara... (Klik untuk Stop)</span>
+                        </>
+                      ) : (
+                        <>
+                          <Mic className="w-3.5 h-3.5" />
+                          <span>Dikte Suara (Voice to Text)</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                   <textarea
                     rows={3}
                     placeholder="Langkah-langkah perbaikan, kesepakatan komitmen anak, atau saran pendampingan..."
@@ -1143,10 +1245,33 @@ export const CounselingManagement: React.FC<CounselingManagementProps> = ({
 
               <form onSubmit={handleSubmitRequest} className="space-y-3 text-xs">
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1">Topik / Hal yang Ingin Didiskusikan <span className="text-rose-500">*</span></label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-slate-700 font-bold">Topik / Hal yang Ingin Didiskusikan <span className="text-rose-500">*</span></label>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleSpeech('requestTopic')}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all cursor-pointer ${
+                        listeningTarget === 'requestTopic'
+                          ? 'bg-rose-500 text-white animate-pulse shadow-xs'
+                          : 'bg-rose-100 text-rose-700 hover:bg-rose-200'
+                      }`}
+                    >
+                      {listeningTarget === 'requestTopic' ? (
+                        <>
+                          <MicOff className="w-3.5 h-3.5" />
+                          <span>Merekam...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Mic className="w-3.5 h-3.5" />
+                          <span>Dikte Suara</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                   <textarea
                     rows={3}
-                    placeholder="Tuliskan secara singkat topik atau hal yang ingin Anda diskusikan secara pribadi dengan Wali Asuh..."
+                    placeholder="Tuliskan secara singkat topik atau hal yang ingin Anda diskusikan secara pribadi..."
                     value={reqTopic}
                     onChange={e => setReqTopic(e.target.value)}
                     required

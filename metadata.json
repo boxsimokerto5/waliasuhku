@@ -1,6 +1,6 @@
 {
   "name": "WaliAsuhku",
   "description": "Wali Asuhku - Sekolah Rakyat: Aplikasi pelaporan, pengaduan, monitoring santri, dan pendampingan anak asuh dengan enkripsi pesan, notifikasi real-time, dan kelola akun berjenjang.",
-  "requestFramePermissions": [],
+  "requestFramePermissions": ["microphone"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
