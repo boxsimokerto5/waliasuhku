@@ -2667,6 +2667,225 @@ export const generateJadwalTendikWaliAsuhBaruPDF = async (selectedDay: string = 
   doc.save(`Jadwal_Kerja_18_Wali_Asuh_Baru_SE_4749_2026.pdf`);
 };
 
+/**
+ * Generate PDF for Rekapitulasi Jumlah Hari Kerja Bulanan 18 Tendik Wali Asuh Baru
+ */
+export const generateRekapHariKerjaTendikBaruPDF = async (
+  monthLabel: string = 'Agustus 2026',
+  totalMonthDays: number = 31,
+  rekapItems: any[] = []
+) => {
+  const doc = new jsPDF({
+    orientation: 'landscape',
+    unit: 'mm',
+    format: 'a4'
+  });
+
+  // Calculate Grand Totals
+  const totalTendik = rekapItems.length;
+  const grandTotalPagi = rekapItems.reduce((acc, curr) => acc + (curr.countPagi || 0), 0);
+  const grandTotalSore = rekapItems.reduce((acc, curr) => acc + (curr.countSore || 0), 0);
+  const grandTotalMalam = rekapItems.reduce((acc, curr) => acc + (curr.countMalam || 0), 0);
+  const grandTotalHariKerja = rekapItems.reduce((acc, curr) => acc + (curr.totalHariKerja || 0), 0);
+  const grandTotalLP = rekapItems.reduce((acc, curr) => acc + (curr.countLP || 0), 0);
+  const grandTotalJamKerja = rekapItems.reduce((acc, curr) => acc + (curr.totalJamKerja || 0), 0);
+  const avgHariKerja = totalTendik > 0 ? (grandTotalHariKerja / totalTendik).toFixed(1) : '0';
+
+  // 1. Header Banner Red/Rose
+  doc.setFillColor(190, 18, 60); // Rose 700
+  doc.rect(10, 10, 277, 14, 'F');
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(13);
+  doc.text('REKAPITULASI JUMLAH HARI KERJA BULANAN TENDIK WALI ASUH BARU', 148.5, 18.5, { align: 'center' });
+
+  // 2. Subtitle Banner Amber/Cream
+  doc.setFillColor(254, 243, 199); // Amber 100
+  doc.rect(10, 24, 277, 7, 'F');
+  doc.setTextColor(180, 83, 9); // Amber 700
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(8.5);
+  doc.text(`SRT 1 KABUPATEN KEDIRI  •  PERIODE: ${monthLabel.toUpperCase()} (${totalMonthDays} HARI)  •  SE NOMOR 4749/2026`, 148.5, 28.5, { align: 'center' });
+
+  // 3. Metric Summary Bar
+  let topY = 34;
+  doc.setFillColor(248, 250, 252);
+  doc.rect(10, topY, 277, 8, 'F');
+  doc.setDrawColor(226, 232, 240);
+  doc.setLineWidth(0.3);
+  doc.rect(10, topY, 277, 8, 'S');
+
+  doc.setFontSize(8);
+  doc.setFont('Helvetica', 'bold');
+  doc.setTextColor(15, 23, 42);
+  doc.text(`Total Personel: ${totalTendik} Tendik`, 15, topY + 5.2);
+  doc.text(`Total Shift Bertugas: ${grandTotalHariKerja} Shift`, 75, topY + 5.2);
+  doc.text(`Rata-rata Kerja: ${avgHariKerja} Hari/Tendik`, 145, topY + 5.2);
+  doc.text(`Akumulasi Jam Kerja: ${grandTotalJamKerja.toLocaleString('id-ID')} Jam`, 215, topY + 5.2);
+
+  // 4. Table Header
+  let tableY = 44;
+  doc.setFillColor(15, 23, 42); // Slate 900
+  doc.rect(10, tableY, 277, 8, 'F');
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(7.5);
+
+  const colX = {
+    no: 10,
+    nama: 18,
+    tandem: 70,
+    pagi: 118,
+    sore: 140,
+    malam: 162,
+    total: 184,
+    off: 214,
+    jam: 234,
+    beban: 259
+  };
+
+  doc.text('No', colX.no + 4, tableY + 5.2, { align: 'center' });
+  doc.text('Nama Tendik Wali Asuh', colX.nama + 2, tableY + 5.2);
+  doc.text('Tandem Pengasuhan', colX.tandem + 2, tableY + 5.2);
+  doc.text('Pagi (P)', colX.pagi + 11, tableY + 5.2, { align: 'center' });
+  doc.text('Sore (S)', colX.sore + 11, tableY + 5.2, { align: 'center' });
+  doc.text('Malam (M)', colX.malam + 11, tableY + 5.2, { align: 'center' });
+  doc.text('TOTAL HARI KERJA', colX.total + 15, tableY + 5.2, { align: 'center' });
+  doc.text('Off / LP', colX.off + 10, tableY + 5.2, { align: 'center' });
+  doc.text('Jam Kerja', colX.jam + 12.5, tableY + 5.2, { align: 'center' });
+  doc.text('Beban Kerja', colX.beban + 9, tableY + 5.2, { align: 'center' });
+
+  tableY += 8;
+
+  // 5. Table Rows
+  doc.setFontSize(7.5);
+  rekapItems.forEach((row: any, idx: number) => {
+    const bgCol = idx % 2 === 0 ? [255, 255, 255] : [248, 250, 252];
+    doc.setFillColor(bgCol[0], bgCol[1], bgCol[2]);
+    doc.rect(10, tableY, 277, 6.2, 'F');
+
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.2);
+    doc.line(10, tableY + 6.2, 287, tableY + 6.2);
+
+    // Columns
+    doc.setTextColor(71, 85, 105);
+    doc.setFont('Helvetica', 'normal');
+    doc.text(String(idx + 1), colX.no + 4, tableY + 4.2, { align: 'center' });
+
+    doc.setFont('Helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text(row.nama || '', colX.nama + 2, tableY + 4.2);
+
+    doc.setFont('Helvetica', 'normal');
+    doc.setTextColor(71, 85, 105);
+    doc.text(row.tandem || '', colX.tandem + 2, tableY + 4.2);
+
+    // Pagi
+    doc.setTextColor(6, 95, 70);
+    doc.text(`${row.countPagi || 0} H`, colX.pagi + 11, tableY + 4.2, { align: 'center' });
+
+    // Sore
+    doc.setTextColor(146, 64, 14);
+    doc.text(`${row.countSore || 0} H`, colX.sore + 11, tableY + 4.2, { align: 'center' });
+
+    // Malam
+    doc.setTextColor(55, 48, 163);
+    doc.text(`${row.countMalam || 0} H`, colX.malam + 11, tableY + 4.2, { align: 'center' });
+
+    // TOTAL HARI KERJA (Highlight)
+    doc.setFillColor(255, 241, 242); // Rose 50
+    doc.roundedRect(colX.total + 2, tableY + 0.8, 26, 4.6, 1, 1, 'F');
+    doc.setFont('Helvetica', 'bold');
+    doc.setTextColor(190, 18, 60); // Rose 700
+    doc.text(`${row.totalHariKerja || 0} Hari`, colX.total + 15, tableY + 4.2, { align: 'center' });
+
+    // Off
+    doc.setFont('Helvetica', 'normal');
+    doc.setTextColor(7, 89, 133);
+    doc.text(`${row.countLP || 0} H`, colX.off + 10, tableY + 4.2, { align: 'center' });
+
+    // Jam Kerja
+    doc.setTextColor(15, 23, 42);
+    doc.setFont('Helvetica', 'bold');
+    doc.text(`${row.totalJamKerja || 0} Jam`, colX.jam + 12.5, tableY + 4.2, { align: 'center' });
+
+    // Beban
+    doc.setTextColor(71, 85, 105);
+    doc.setFont('Helvetica', 'normal');
+    doc.text(`${row.percentageWork || 0}%`, colX.beban + 9, tableY + 4.2, { align: 'center' });
+
+    tableY += 6.2;
+  });
+
+  // 6. Table Total Footer Row
+  doc.setFillColor(226, 232, 240); // Slate 200
+  doc.rect(10, tableY, 277, 7, 'F');
+
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.setTextColor(15, 23, 42);
+  doc.text('TOTAL KESELURUHAN', colX.nama + 2, tableY + 4.8);
+
+  doc.setTextColor(6, 95, 70);
+  doc.text(`${grandTotalPagi} H`, colX.pagi + 11, tableY + 4.8, { align: 'center' });
+
+  doc.setTextColor(146, 64, 14);
+  doc.text(`${grandTotalSore} H`, colX.sore + 11, tableY + 4.8, { align: 'center' });
+
+  doc.setTextColor(55, 48, 163);
+  doc.text(`${grandTotalMalam} H`, colX.malam + 11, tableY + 4.8, { align: 'center' });
+
+  doc.setTextColor(190, 18, 60);
+  doc.text(`${grandTotalHariKerja} Hari`, colX.total + 15, tableY + 4.8, { align: 'center' });
+
+  doc.setTextColor(7, 89, 133);
+  doc.text(`${grandTotalLP} H`, colX.off + 10, tableY + 4.8, { align: 'center' });
+
+  doc.setTextColor(15, 23, 42);
+  doc.text(`${grandTotalJamKerja.toLocaleString('id-ID')} Jam`, colX.jam + 12.5, tableY + 4.8, { align: 'center' });
+
+  tableY += 10;
+
+  // 7. Signature & QR Stamp
+  const sigX = 220;
+  let sigY = tableY;
+
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(30, 41, 59);
+  doc.text('Kediri, ' + new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }), sigX, sigY);
+  doc.text('Mengetahui,', sigX, sigY + 4);
+  doc.setFont('Helvetica', 'bold');
+  doc.text('Kepala SRT 1 Kabupaten Kediri', sigX, sigY + 8);
+
+  // QR Code
+  try {
+    const qrStr = `REKAP HARI KERJA BULANAN 18 TENDIK BARU\nPERIODE: ${monthLabel}\nSRT 1 KABUPATEN KEDIRI\nKepala Sekolah: Fadeli, S.Pd., M.Pd.`;
+    const qrUrl = await QRCode.toDataURL(qrStr, { margin: 1, width: 100 });
+    doc.addImage(qrUrl, 'PNG', sigX - 22, sigY + 6, 17, 17);
+  } catch (err) {
+    console.warn('QR Code generation error:', err);
+  }
+
+  sigY += 24;
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(15, 23, 42);
+  doc.text('Fadeli, S.Pd., M.Pd.', sigX, sigY);
+
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(71, 85, 105);
+  doc.text('NIP. 196905211992031008', sigX, sigY + 4);
+
+  // Save PDF
+  const cleanMonth = monthLabel.replace(/\s+/g, '_');
+  doc.save(`Rekap_Hari_Kerja_Tendik_Baru_${cleanMonth}.pdf`);
+};
+
 
 
 

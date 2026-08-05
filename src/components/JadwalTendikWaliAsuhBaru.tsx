@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { Calendar, Clock, Search, UserCheck, Shield, ChevronLeft, ChevronRight, Printer, Sparkles, Sun, Sunset, Moon, Coffee, Filter, Info, X, Download, FileText, Loader2, Users } from 'lucide-react';
-import { generateJadwalTendikWaliAsuhBaruPDF } from '../utils/pdfGenerator';
+import React, { useState, useMemo } from 'react';
+import { Calendar, Clock, Search, UserCheck, Shield, ChevronLeft, ChevronRight, Printer, Sparkles, Sun, Sunset, Moon, Coffee, Filter, Info, X, Download, FileText, Loader2, Users, BarChart3, CheckCircle2, Briefcase, FileSpreadsheet, TrendingUp, ArrowUpDown } from 'lucide-react';
+import { generateJadwalTendikWaliAsuhBaruPDF, generateRekapHariKerjaTendikBaruPDF } from '../utils/pdfGenerator';
 
 export interface TendikWaliAsuhBaruItem {
   no: number;
@@ -138,6 +138,16 @@ export const SHIFT_LEGEND: Record<string, { label: string; desc: string; time: s
   LP: { label: 'Lepas Piket / Off (LP)', desc: 'Lepas Piket Pasca Shift / Off', time: 'Bebas Tugas Piket', color: 'sky', bg: 'bg-sky-100', textCol: 'text-sky-800', border: 'border-sky-300', icon: '🛌' }
 };
 
+export const MONTHS_CONFIG = [
+  { id: '2026-08', label: 'Agustus 2026', totalDays: 31, year: 2026, month: 7 },
+  { id: '2026-09', label: 'September 2026', totalDays: 30, year: 2026, month: 8 },
+  { id: '2026-10', label: 'Oktober 2026', totalDays: 31, year: 2026, month: 9 },
+  { id: '2026-11', label: 'November 2026', totalDays: 30, year: 2026, month: 10 },
+  { id: '2026-12', label: 'Desember 2026', totalDays: 31, year: 2026, month: 11 },
+  { id: '2027-01', label: 'Januari 2027', totalDays: 31, year: 2027, month: 0 },
+  { id: '2027-02', label: 'Februari 2027', totalDays: 28, year: 2027, month: 1 },
+];
+
 interface JadwalTendikWaliAsuhBaruProps {
   onBack?: () => void;
   compact?: boolean;
@@ -151,10 +161,119 @@ export default function JadwalTendikWaliAsuhBaru({ onBack, compact = false }: Ja
   const currentDayName = dayNameMapping[dayIndex];
 
   const [selectedDay, setSelectedDay] = useState<DayName>(currentDayName);
-  const [activeView, setActiveView] = useState<'daily' | 'matrix' | 'search'>('daily');
+  const [activeView, setActiveView] = useState<'daily' | 'matrix' | 'rekap' | 'search'>('daily');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterShift, setFilterShift] = useState<string>('all');
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+
+  // Month state for Rekap
+  const [selectedMonthId, setSelectedMonthId] = useState<string>('2026-08');
+  const [rekapSortKey, setRekapSortKey] = useState<'no' | 'nama' | 'totalKerja' | 'jamKerja' | 'malam'>('totalKerja');
+  const [rekapSortOrder, setRekapSortOrder] = useState<'asc' | 'desc'>('desc');
+
+  const selectedMonthConfig = useMemo(() => {
+    return MONTHS_CONFIG.find(m => m.id === selectedMonthId) || MONTHS_CONFIG[0];
+  }, [selectedMonthId]);
+
+  // Calculate day counts in selected month
+  const monthDayCounts = useMemo(() => {
+    const counts: Record<DayName, number> = {
+      Senin: 0,
+      Selasa: 0,
+      Rabu: 0,
+      Kamis: 0,
+      Jumat: 0,
+      Sabtu: 0,
+      Minggu: 0
+    };
+
+    const { year, month, totalDays } = selectedMonthConfig;
+    for (let d = 1; d <= totalDays; d++) {
+      const dt = new Date(year, month, d);
+      const name = dayNameMapping[dt.getDay()];
+      counts[name] = (counts[name] || 0) + 1;
+    }
+
+    return counts;
+  }, [selectedMonthConfig]);
+
+  // Calculate Monthly Rekap Data for each Tendik
+  const rekapData = useMemo(() => {
+    return TENDIK_WALI_ASUH_BARU_DATA.map(item => {
+      let countPagi = 0;
+      let countSore = 0;
+      let countMalam = 0;
+      let countLP = 0;
+
+      DAYS_LIST.forEach(d => {
+        const code = item.shifts[d];
+        const multiplier = monthDayCounts[d] || 0;
+        if (code === 'P') countPagi += multiplier;
+        else if (code === 'S') countSore += multiplier;
+        else if (code === 'M') countMalam += multiplier;
+        else if (code === 'LP') countLP += multiplier;
+      });
+
+      const totalHariKerja = countPagi + countSore + countMalam;
+      const totalJamKerja = totalHariKerja * 8; // 8 jam per shift
+      const percentageWork = Math.round((totalHariKerja / selectedMonthConfig.totalDays) * 100);
+
+      return {
+        ...item,
+        countPagi,
+        countSore,
+        countMalam,
+        countLP,
+        totalHariKerja,
+        totalJamKerja,
+        percentageWork
+      };
+    });
+  }, [monthDayCounts, selectedMonthConfig]);
+
+  // Filtered & Sorted Rekap Data
+  const sortedRekapData = useMemo(() => {
+    let result = [...rekapData];
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(item => item.nama.toLowerCase().includes(q) || item.tandem.toLowerCase().includes(q));
+    }
+
+    result.sort((a, b) => {
+      let valA: any = a[rekapSortKey as keyof typeof a];
+      let valB: any = b[rekapSortKey as keyof typeof b];
+
+      if (typeof valA === 'string') {
+        return rekapSortOrder === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      }
+      return rekapSortOrder === 'asc' ? valA - valB : valB - valA;
+    });
+
+    return result;
+  }, [rekapData, searchQuery, rekapSortKey, rekapSortOrder]);
+
+  // Summary Metrics for Rekap
+  const rekapMetrics = useMemo(() => {
+    const totalTendik = rekapData.length;
+    const grandTotalShiftKerja = rekapData.reduce((acc, curr) => acc + curr.totalHariKerja, 0);
+    const grandTotalJamKerja = rekapData.reduce((acc, curr) => acc + curr.totalJamKerja, 0);
+    const avgHariKerja = totalTendik > 0 ? (grandTotalShiftKerja / totalTendik).toFixed(1) : '0';
+    const grandTotalMalam = rekapData.reduce((acc, curr) => acc + curr.countMalam, 0);
+    const grandTotalSore = rekapData.reduce((acc, curr) => acc + curr.countSore, 0);
+    const grandTotalPagi = rekapData.reduce((acc, curr) => acc + curr.countPagi, 0);
+    const grandTotalLP = rekapData.reduce((acc, curr) => acc + curr.countLP, 0);
+
+    return {
+      totalTendik,
+      grandTotalShiftKerja,
+      grandTotalJamKerja,
+      avgHariKerja,
+      grandTotalMalam,
+      grandTotalSore,
+      grandTotalPagi,
+      grandTotalLP
+    };
+  }, [rekapData]);
 
   // Officers on selectedDay
   const officersOnDuty = TENDIK_WALI_ASUH_BARU_DATA.map(item => ({
@@ -197,6 +316,36 @@ export default function JadwalTendikWaliAsuhBaru({ onBack, compact = false }: Ja
     } catch (err) {
       console.error('Gagal membuat PDF Jadwal Tendik Baru:', err);
       alert('Terjadi kesalahan saat membuat file PDF. Silakan coba lagi.');
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
+
+  const handleExportRekapCSV = () => {
+    let csvContent = "data:text/csv;charset=utf-8,";
+    csvContent += "No,Nama Tendik Wali Asuh,Tandem Pengasuhan,Bulan,Total Hari Bulan,Shift Pagi (Hari),Shift Sore (Hari),Shift Malam (Hari),TOTAL HARI KERJA (Hari),Lepas Piket / Off (Hari),Total Jam Kerja (Jam),Beban Kerja (%)\n";
+    rekapData.forEach(item => {
+      csvContent += `"${item.no}","${item.nama}","${item.tandem}","${selectedMonthConfig.label}","${selectedMonthConfig.totalDays}","${item.countPagi}","${item.countSore}","${item.countMalam}","${item.totalHariKerja}","${item.countLP}","${item.totalJamKerja}","${item.percentageWork}%"\n`;
+    });
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `Rekap_Hari_Kerja_Tendik_Baru_${selectedMonthConfig.id}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handlePrintRekapPDF = async () => {
+    try {
+      setIsGeneratingPDF(true);
+      await generateRekapHariKerjaTendikBaruPDF(
+        selectedMonthConfig.label,
+        selectedMonthConfig.totalDays,
+        rekapData
+      );
+    } catch (err) {
+      console.error('Failed to generate Rekap PDF', err);
     } finally {
       setIsGeneratingPDF(false);
     }
@@ -304,7 +453,23 @@ export default function JadwalTendikWaliAsuhBaru({ onBack, compact = false }: Ja
             }`}
           >
             <Calendar className="w-4 h-4" />
-            <span>Tabel Matriks Mingguan (18 Tendik)</span>
+            <span>Tabel Matriks Mingguan</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveView('rekap')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer whitespace-nowrap ${
+              activeView === 'rekap'
+                ? 'bg-rose-700 text-white shadow-md shadow-rose-700/20'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+            }`}
+          >
+            <BarChart3 className="w-4 h-4 text-amber-300" />
+            <span>Rekap Hari Kerja Bulanan</span>
+            <span className="bg-amber-400 text-slate-900 text-[10px] px-1.5 py-0.5 rounded-full font-black">
+              {selectedMonthConfig.totalDays} Hari
+            </span>
           </button>
 
           <button
@@ -653,6 +818,222 @@ export default function JadwalTendikWaliAsuhBaru({ onBack, compact = false }: Ja
                 })}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW 2: REKAP HARI KERJA BULANAN */}
+      {activeView === 'rekap' && (
+        <div className="space-y-6">
+          {/* Top Control Bar for Month Selection & Export */}
+          <div className="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-rose-600" />
+                <span className="text-xs font-extrabold text-slate-800">Pilih Periode Bulan:</span>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                {MONTHS_CONFIG.map(m => (
+                  <button
+                    key={m.id}
+                    onClick={() => setSelectedMonthId(m.id)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                      selectedMonthId === m.id
+                        ? 'bg-rose-700 text-white shadow-xs'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {m.label} ({m.totalDays} H)
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0 flex-wrap">
+              <button
+                onClick={handlePrintRekapPDF}
+                disabled={isGeneratingPDF}
+                className="flex items-center gap-2 bg-rose-700 hover:bg-rose-800 text-white px-3.5 py-2 rounded-xl text-xs font-extrabold shadow-xs transition-all cursor-pointer disabled:opacity-50"
+              >
+                {isGeneratingPDF ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4" />
+                )}
+                <span>Cetak PDF Rekap</span>
+              </button>
+
+              <button
+                onClick={handleExportRekapCSV}
+                className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl text-xs font-extrabold shadow-xs transition-all cursor-pointer"
+              >
+                <FileSpreadsheet className="w-4 h-4" />
+                <span>Export CSV / Excel</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Metric Summary Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="bg-gradient-to-br from-rose-50 to-rose-100/60 p-4 rounded-2xl border border-rose-200/80 space-y-1">
+              <div className="flex items-center justify-between text-rose-700">
+                <span className="text-[11px] font-extrabold uppercase tracking-wide">Rata-rata Hari Kerja</span>
+                <Briefcase className="w-4 h-4" />
+              </div>
+              <p className="text-2xl font-black text-rose-900">{rekapMetrics.avgHariKerja} <span className="text-xs font-bold text-rose-700">Hari / Tendik</span></p>
+              <p className="text-[10px] text-rose-600 font-semibold">Selama {selectedMonthConfig.label}</p>
+            </div>
+
+            <div className="bg-gradient-to-br from-indigo-50 to-indigo-100/60 p-4 rounded-2xl border border-indigo-200/80 space-y-1">
+              <div className="flex items-center justify-between text-indigo-700">
+                <span className="text-[11px] font-extrabold uppercase tracking-wide">Total Jam Kerja</span>
+                <Clock className="w-4 h-4" />
+              </div>
+              <p className="text-2xl font-black text-indigo-900">{rekapMetrics.grandTotalJamKerja.toLocaleString('id-ID')} <span className="text-xs font-bold text-indigo-700">Jam</span></p>
+              <p className="text-[10px] text-indigo-600 font-semibold">18 Tendik (8 jam/shift)</p>
+            </div>
+
+            <div className="bg-gradient-to-br from-amber-50 to-amber-100/60 p-4 rounded-2xl border border-amber-200/80 space-y-1">
+              <div className="flex items-center justify-between text-amber-700">
+                <span className="text-[11px] font-extrabold uppercase tracking-wide">Total Shift Bertugas</span>
+                <CheckCircle2 className="w-4 h-4" />
+              </div>
+              <p className="text-2xl font-black text-amber-900">{rekapMetrics.grandTotalShiftKerja} <span className="text-xs font-bold text-amber-700">Shift</span></p>
+              <p className="text-[10px] text-amber-700 font-semibold">Pagi, Sore & Malam</p>
+            </div>
+
+            <div className="bg-gradient-to-br from-sky-50 to-sky-100/60 p-4 rounded-2xl border border-sky-200/80 space-y-1">
+              <div className="flex items-center justify-between text-sky-700">
+                <span className="text-[11px] font-extrabold uppercase tracking-wide">Total Off / Lepas Piket</span>
+                <Coffee className="w-4 h-4" />
+              </div>
+              <p className="text-2xl font-black text-sky-900">{rekapMetrics.grandTotalLP} <span className="text-xs font-bold text-sky-700">Hari Off</span></p>
+              <p className="text-[10px] text-sky-600 font-semibold">Istirahat & Bebas Piket</p>
+            </div>
+          </div>
+
+          {/* Search & Sort Table Bar */}
+          <div className="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Cari nama Tendik atau Tandem..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-rose-500/20 font-medium"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+                <span className="text-xs font-bold text-slate-500 shrink-0 flex items-center gap-1">
+                  <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" /> Sort:
+                </span>
+                {[
+                  { key: 'totalKerja', label: 'Hari Kerja' },
+                  { key: 'nama', label: 'Nama' },
+                  { key: 'jamKerja', label: 'Jam Kerja' },
+                  { key: 'malam', label: 'Shift Malam' }
+                ].map(s => (
+                  <button
+                    key={s.key}
+                    onClick={() => {
+                      if (rekapSortKey === s.key) {
+                        setRekapSortOrder(rekapSortOrder === 'asc' ? 'desc' : 'asc');
+                      } else {
+                        setRekapSortKey(s.key as any);
+                        setRekapSortOrder('desc');
+                      }
+                    }}
+                    className={`px-3 py-1 rounded-xl text-xs font-extrabold transition-all cursor-pointer shrink-0 ${
+                      rekapSortKey === s.key
+                        ? 'bg-rose-700 text-white shadow-xs'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {s.label} {rekapSortKey === s.key ? (rekapSortOrder === 'desc' ? '↓' : '↑') : ''}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Main Table for Monthly Work Days Rekap */}
+            <div className="overflow-x-auto rounded-2xl border border-slate-200">
+              <table className="w-full text-xs text-left">
+                <thead>
+                  <tr className="bg-slate-900 text-white font-black uppercase text-[10px] tracking-wider">
+                    <th className="px-3 py-3 text-center border-r border-slate-800 w-12">No</th>
+                    <th className="px-4 py-3 border-r border-slate-800">Nama Tendik Wali Asuh</th>
+                    <th className="px-4 py-3 border-r border-slate-800">Tandem Pengasuhan</th>
+                    <th className="px-3 py-3 text-center bg-emerald-900 border-r border-slate-800" title="Shift Pagi (07.00 - 15.00)">Shift Pagi (P)</th>
+                    <th className="px-3 py-3 text-center bg-amber-900 border-r border-slate-800" title="Shift Sore (15.00 - 23.00)">Shift Sore (S)</th>
+                    <th className="px-3 py-3 text-center bg-indigo-900 border-r border-slate-800" title="Shift Malam (23.00 - 07.00)">Shift Malam (M)</th>
+                    <th className="px-4 py-3 text-center bg-rose-800 text-white border-r border-slate-800">TOTAL HARI KERJA</th>
+                    <th className="px-3 py-3 text-center bg-sky-900 border-r border-slate-800">Off / LP</th>
+                    <th className="px-3 py-3 text-center border-r border-slate-800">Total Jam Kerja</th>
+                    <th className="px-3 py-3 text-center">Beban Kerja</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 bg-white">
+                  {sortedRekapData.map((item, idx) => {
+                    return (
+                      <tr key={item.no} className="hover:bg-rose-50/30 transition-colors">
+                        <td className="px-3 py-3 text-center font-bold text-slate-400 border-r border-slate-200">
+                          {idx + 1}
+                        </td>
+                        <td className="px-4 py-3 font-extrabold text-slate-900 border-r border-slate-200">
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-xl bg-rose-100 text-rose-800 font-black text-xs flex items-center justify-center shrink-0">
+                              {item.no}
+                            </div>
+                            <span>{item.nama}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 font-medium text-slate-600 border-r border-slate-200">
+                          <div className="flex items-center gap-1.5">
+                            <Users className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            <span>{item.tandem}</span>
+                          </div>
+                        </td>
+                        <td className="px-3 py-3 text-center font-bold text-emerald-800 bg-emerald-50/60 border-r border-slate-200">
+                          {item.countPagi} Hari
+                        </td>
+                        <td className="px-3 py-3 text-center font-bold text-amber-800 bg-amber-50/60 border-r border-slate-200">
+                          {item.countSore} Hari
+                        </td>
+                        <td className="px-3 py-3 text-center font-bold text-indigo-800 bg-indigo-50/60 border-r border-slate-200">
+                          {item.countMalam} Hari
+                        </td>
+                        <td className="px-4 py-3 text-center border-r border-slate-200 bg-rose-50/70">
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-rose-700 text-white font-black text-xs shadow-2xs">
+                            <Briefcase className="w-3.5 h-3.5" />
+                            <span>{item.totalHariKerja} Hari</span>
+                          </div>
+                        </td>
+                        <td className="px-3 py-3 text-center font-bold text-sky-800 bg-sky-50/60 border-r border-slate-200">
+                          {item.countLP} Hari
+                        </td>
+                        <td className="px-3 py-3 text-center font-extrabold text-slate-800 border-r border-slate-200">
+                          {item.totalJamKerja} Jam
+                        </td>
+                        <td className="px-3 py-3 text-center">
+                          <div className="flex flex-col items-center gap-1">
+                            <span className="font-extrabold text-slate-700">{item.percentageWork}%</span>
+                            <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
+                              <div
+                                className="h-full bg-rose-600 rounded-full"
+                                style={{ width: `${Math.min(item.percentageWork, 100)}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
