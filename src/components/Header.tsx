@@ -100,7 +100,7 @@ export default function Header({
         {/* Utilities & Action buttons */}
         <div className="flex items-center justify-end gap-3 shrink-0">
           <div className="flex items-center gap-2">
-            {(currentUser.role === 'wali_asuh' || currentUser.role === 'super_admin') && onOpenJadwalPiket && (
+            {currentUser.role === 'super_admin' && onOpenJadwalPiket && (
               <button
                 onClick={onOpenJadwalPiket}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/80 rounded-xl transition-all cursor-pointer text-xs font-extrabold shadow-2xs group"
@@ -114,7 +114,7 @@ export default function Header({
               </button>
             )}
 
-            {(currentUser.role === 'wali_asuh' || currentUser.role === 'super_admin') && onOpenJadwalTendikBaru && (
+            {currentUser.role === 'super_admin' && onOpenJadwalTendikBaru && (
               <button
                 onClick={onOpenJadwalTendikBaru}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200/80 rounded-xl transition-all cursor-pointer text-xs font-extrabold shadow-2xs group"

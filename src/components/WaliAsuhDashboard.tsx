@@ -14,8 +14,6 @@ import { EventChecklistManagement } from './EventChecklistManagement';
 import BiodataDetailModal from './BiodataDetailModal';
 import DailyQuoteBanner from './DailyQuoteBanner';
 import MonthlyReportManagement from './MonthlyReportManagement';
-import JadwalWaliAsuh from './JadwalWaliAsuh';
-import JadwalTendikWaliAsuhBaru from './JadwalTendikWaliAsuhBaru';
 import CounselingManagement from './CounselingManagement';
 
 interface WaliAsuhDashboardProps {
@@ -754,10 +752,6 @@ export default function WaliAsuhDashboard({
         </div>
       )}
 
-      {/* Jadwal Piket Sub-Page */}
-      {activeSubPage === 'jadwal_piket' && (
-        <JadwalWaliAsuh onBack={() => setActiveSubPage(null)} />
-      )}
 
       {/* 1. Register Anak Asuh Sub-Page */}
       {activeSubPage === 'register_anak_asuh' && (
@@ -1036,15 +1030,6 @@ export default function WaliAsuhDashboard({
         />
       )}
 
-      {/* Jadwal Pembagian Shift Wali Asuh Lama Sub-Page */}
-      {activeSubPage === 'jadwal_piket' && (
-        <JadwalWaliAsuh />
-      )}
-
-      {/* Jadwal Kerja 18 Tendik Wali Asuh Baru Sub-Page */}
-      {activeSubPage === 'jadwal_tendik_baru' && (
-        <JadwalTendikWaliAsuhBaru onBack={() => setActiveSubPage(null)} />
-      )}
 
       {/* 4. Account Management Sub-Page */}
       {activeSubPage === 'kelola_akun' && (

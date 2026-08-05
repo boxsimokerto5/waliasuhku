@@ -1256,7 +1256,7 @@ export default function App() {
 
       {/* Global Jadwal Piket Wali Asuh Modal */}
       <AnimatePresence>
-        {showGlobalJadwalModal && (
+        {showGlobalJadwalModal && currentUser?.role === 'super_admin' && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -1277,7 +1277,7 @@ export default function App() {
 
       {/* Global Jadwal Tendik Wali Asuh Baru Modal */}
       <AnimatePresence>
-        {showGlobalJadwalTendikModal && (
+        {showGlobalJadwalTendikModal && currentUser?.role === 'super_admin' && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
