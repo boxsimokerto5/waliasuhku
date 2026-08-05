@@ -9,6 +9,7 @@ interface HeaderProps {
   notifications: AppNotification[];
   onOpenNotifications: () => void;
   onOpenJadwalPiket?: () => void;
+  onOpenJadwalTendikBaru?: () => void;
 }
 
 export default function Header({ 
@@ -16,7 +17,8 @@ export default function Header({
   onLogout, 
   notifications, 
   onOpenNotifications,
-  onOpenJadwalPiket
+  onOpenJadwalPiket,
+  onOpenJadwalTendikBaru
 }: HeaderProps) {
   const unreadCount = notifications.filter(n => n.userId === currentUser.id && !n.isRead).length;
 
@@ -102,12 +104,26 @@ export default function Header({
               <button
                 onClick={onOpenJadwalPiket}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/80 rounded-xl transition-all cursor-pointer text-xs font-extrabold shadow-2xs group"
-                title="Lihat Jadwal Piket Wali Asuh"
+                title="Lihat Jadwal Piket Wali Asuh Lama"
               >
                 <Calendar className="w-4 h-4 text-emerald-600 group-hover:scale-110 transition-transform" />
                 <span className="hidden sm:inline">Jadwal Piket</span>
                 <span className="bg-emerald-600 text-white text-[9px] px-1.5 py-0.2 rounded-full font-black">
                   Agt
+                </span>
+              </button>
+            )}
+
+            {(currentUser.role === 'wali_asuh' || currentUser.role === 'super_admin') && onOpenJadwalTendikBaru && (
+              <button
+                onClick={onOpenJadwalTendikBaru}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200/80 rounded-xl transition-all cursor-pointer text-xs font-extrabold shadow-2xs group"
+                title="Lihat Jadwal Kerja 18 Tendik Wali Asuh Baru (SE No. 4749/2026)"
+              >
+                <Calendar className="w-4 h-4 text-rose-600 group-hover:scale-110 transition-transform" />
+                <span className="hidden sm:inline">Tendik Baru</span>
+                <span className="bg-rose-600 text-white text-[9px] px-1.5 py-0.2 rounded-full font-black">
+                  SE 4749
                 </span>
               </button>
             )}

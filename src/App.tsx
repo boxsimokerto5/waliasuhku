@@ -11,6 +11,7 @@ import OrangTuaDashboard from './components/OrangTuaDashboard';
 import NotificationCenter from './components/NotificationCenter';
 import PWAInstallWidget from './components/PWAInstallWidget';
 import JadwalWaliAsuh from './components/JadwalWaliAsuh';
+import JadwalTendikWaliAsuhBaru from './components/JadwalTendikWaliAsuhBaru';
 import CounselingManagement from './components/CounselingManagement';
 import { encryptMessage } from './utils/crypto';
 import { cleanFirestoreData } from './utils/cleanFirestoreData';
@@ -35,6 +36,7 @@ export default function App() {
 
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [showGlobalJadwalModal, setShowGlobalJadwalModal] = useState(false);
+  const [showGlobalJadwalTendikModal, setShowGlobalJadwalTendikModal] = useState(false);
   const [viewportMode, setViewportMode] = useState<'mobile' | 'desktop'>('desktop');
   const [showSplash, setShowSplash] = useState(true);
   
@@ -1166,6 +1168,7 @@ export default function App() {
             notifications={notifications}
             onOpenNotifications={() => setIsNotificationOpen(true)}
             onOpenJadwalPiket={() => setShowGlobalJadwalModal(true)}
+            onOpenJadwalTendikBaru={() => setShowGlobalJadwalTendikModal(true)}
           />
 
           {/* VP Toggles & Layout Options */}
@@ -1267,6 +1270,27 @@ export default function App() {
               className="w-full max-w-7xl my-4"
             >
               <JadwalWaliAsuh onBack={() => setShowGlobalJadwalModal(false)} />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Global Jadwal Tendik Wali Asuh Baru Modal */}
+      <AnimatePresence>
+        {showGlobalJadwalTendikModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 overflow-y-auto p-3 sm:p-6 flex items-start justify-center"
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              className="w-full max-w-7xl my-4"
+            >
+              <JadwalTendikWaliAsuhBaru onBack={() => setShowGlobalJadwalTendikModal(false)} />
             </motion.div>
           </motion.div>
         )}

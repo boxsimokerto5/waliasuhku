@@ -15,6 +15,7 @@ import BiodataDetailModal from './BiodataDetailModal';
 import DailyQuoteBanner from './DailyQuoteBanner';
 import MonthlyReportManagement from './MonthlyReportManagement';
 import JadwalWaliAsuh from './JadwalWaliAsuh';
+import JadwalTendikWaliAsuhBaru from './JadwalTendikWaliAsuhBaru';
 import CounselingManagement from './CounselingManagement';
 
 interface WaliAsuhDashboardProps {
@@ -464,6 +465,10 @@ export default function WaliAsuhDashboard({
     subPageTitle = "Jadwal Pembagian Shift Wali Asuh";
     subPageSubtitle = "Pantau jadwal piket harian, jam tugas, dan kehadiran seluruh 20 personel Wali Asuh";
     subPageIcon = <Calendar className="w-5 h-5 text-emerald-600" />;
+  } else if (activeSubPage === 'jadwal_tendik_baru') {
+    subPageTitle = "Jadwal Kerja 18 Tendik Wali Asuh Baru";
+    subPageSubtitle = "Jadwal piket individual & pasangan tandem pengasuhan siswa (SE No. 4749/2026)";
+    subPageIcon = <Calendar className="w-5 h-5 text-rose-600" />;
   } else if (activeSubPage === 'konseling') {
     subPageTitle = "Layanan Bimbingan & Konseling Anak Asuh";
     subPageSubtitle = "Pusat pencatatan bimbingan psikososial, penanganan kendala emosi, dan pendampingan karakter anak asuh";
@@ -534,6 +539,20 @@ export default function WaliAsuhDashboard({
                 <Calendar className="w-5 h-5 text-white" />
               </div>
               <span className="text-[11px] font-black leading-tight">Jadwal Piket</span>
+            </button>
+
+            {/* 0. Jadwal Tendik Wali Asuh Baru (SE 4749/2026) */}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveSubPage('jadwal_tendik_baru');
+              }}
+              className="flex flex-col items-center justify-center p-3 rounded-2xl bg-rose-700 text-white hover:bg-rose-800 transition-all text-center cursor-pointer gap-1.5 shadow-md shadow-rose-700/20 col-span-2 sm:col-span-1 border border-rose-600"
+            >
+              <div className="p-2 bg-white/20 rounded-xl backdrop-blur-md">
+                <Calendar className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-[11px] font-black leading-tight">Tendik Baru</span>
             </button>
 
             {/* 1. Akun Anak Asuh */}
@@ -1015,6 +1034,16 @@ export default function WaliAsuhDashboard({
           }}
           onBackToDashboard={() => setActiveSubPage(null)}
         />
+      )}
+
+      {/* Jadwal Pembagian Shift Wali Asuh Lama Sub-Page */}
+      {activeSubPage === 'jadwal_piket' && (
+        <JadwalWaliAsuh />
+      )}
+
+      {/* Jadwal Kerja 18 Tendik Wali Asuh Baru Sub-Page */}
+      {activeSubPage === 'jadwal_tendik_baru' && (
+        <JadwalTendikWaliAsuhBaru onBack={() => setActiveSubPage(null)} />
       )}
 
       {/* 4. Account Management Sub-Page */}

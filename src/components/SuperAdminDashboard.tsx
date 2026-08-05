@@ -6,6 +6,7 @@ import { decryptMessage } from '../utils/crypto';
 import { testSupabaseConnection } from '../lib/supabase';
 import { migrateDataToSupabase, MigrationSummary } from '../lib/supabaseMigration';
 import JadwalWaliAsuh from './JadwalWaliAsuh';
+import JadwalTendikWaliAsuhBaru from './JadwalTendikWaliAsuhBaru';
 
 interface SuperAdminDashboardProps {
   users: User[];
@@ -32,6 +33,7 @@ export default function SuperAdminDashboard({
   const [success, setSuccess] = useState('');
   const [showRawDatabase, setShowRawDatabase] = useState(false);
   const [showJadwalPiket, setShowJadwalPiket] = useState(false);
+  const [showJadwalTendikBaru, setShowJadwalTendikBaru] = useState(false);
   const [dbDecryptKey, setDbDecryptKey] = useState('waliasuhku-secure-key');
   const [revealedReportId, setRevealedReportId] = useState<string | null>(null);
 
@@ -265,19 +267,38 @@ CREATE TABLE IF NOT EXISTS chat_messages (
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setShowJadwalPiket(!showJadwalPiket)}
-            className="flex items-center gap-2 bg-white text-slate-800 hover:bg-slate-100 px-4 py-2.5 rounded-2xl text-xs font-black shadow-md transition-all shrink-0 cursor-pointer"
-          >
-            <Calendar className="w-4 h-4 text-emerald-600" />
-            <span>{showJadwalPiket ? 'Kembali ke Dasbor' : 'Jadwal Piket Wali Asuh (Agustus 2026)'}</span>
-          </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => {
+                setShowJadwalPiket(!showJadwalPiket);
+                setShowJadwalTendikBaru(false);
+              }}
+              className="flex items-center gap-2 bg-white text-slate-800 hover:bg-slate-100 px-4 py-2.5 rounded-2xl text-xs font-black shadow-md transition-all shrink-0 cursor-pointer"
+            >
+              <Calendar className="w-4 h-4 text-emerald-600" />
+              <span>{showJadwalPiket ? 'Kembali ke Dasbor' : 'Jadwal Piket Wali Asuh'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setShowJadwalTendikBaru(!showJadwalTendikBaru);
+                setShowJadwalPiket(false);
+              }}
+              className="flex items-center gap-2 bg-rose-500 text-white hover:bg-rose-600 px-4 py-2.5 rounded-2xl text-xs font-black shadow-md transition-all shrink-0 cursor-pointer border border-rose-400"
+            >
+              <Calendar className="w-4 h-4 text-white" />
+              <span>{showJadwalTendikBaru ? 'Kembali ke Dasbor' : 'Jadwal 18 Tendik Baru (SE 4749)'}</span>
+            </button>
+          </div>
         </div>
       </div>
 
       {showJadwalPiket ? (
         <JadwalWaliAsuh onBack={() => setShowJadwalPiket(false)} />
+      ) : showJadwalTendikBaru ? (
+        <JadwalTendikWaliAsuhBaru onBack={() => setShowJadwalTendikBaru(false)} />
       ) : (
         <>
           {/* Stats Cards Row */}

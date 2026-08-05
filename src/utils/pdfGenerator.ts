@@ -2498,5 +2498,175 @@ export const generateJadwalPiketHarianPDF = async (selectedDay: number = 1) => {
   doc.save(`Daftar_Piket_Harian_WaliAsuh_${selectedDay}_Agustus_2026.pdf`);
 };
 
+/**
+ * Generate PDF for Jadwal Kerja 18 Wali Asuh Baru (SE No. 4749/2026)
+ */
+export const generateJadwalTendikWaliAsuhBaruPDF = async (selectedDay: string = 'Senin') => {
+  const doc = new jsPDF({
+    orientation: 'landscape',
+    unit: 'mm',
+    format: 'a4'
+  });
+
+  const data = [
+    { no: 1, nama: "Moh. Asrofi", tandem: "Muji Santoso", shifts: { Senin: "M", Selasa: "LP", Rabu: "S", Kamis: "S", Jumat: "S", Sabtu: "S", Minggu: "P" } },
+    { no: 2, nama: "Ambikha Widya Asmara", tandem: "Dewi Askinu", shifts: { Senin: "S", Selasa: "S", Rabu: "S", Kamis: "M", Jumat: "LP", Sabtu: "S", Minggu: "P" } },
+    { no: 3, nama: "Prisilia Dwi Isnawati", tandem: "Eky Venty Pricillia", shifts: { Senin: "P", Selasa: "S", Rabu: "S", Kamis: "S", Jumat: "M", Sabtu: "LP", Minggu: "S" } },
+    { no: 4, nama: "Yusak Wasis Pratonggo", tandem: "A. Zainudin Sholeh", shifts: { Senin: "S", Selasa: "S", Rabu: "S", Kamis: "M", Jumat: "LP", Sabtu: "S", Minggu: "P" } },
+    { no: 5, nama: "Anita Kurniawati", tandem: "Eko Wahyudi", shifts: { Senin: "S", Selasa: "S", Rabu: "S", Kamis: "P", Jumat: "S", Sabtu: "M", Minggu: "LP" } },
+    { no: 6, nama: "Siti Maslukah", tandem: "Chusfia Hanik Wihayati", shifts: { Senin: "S", Selasa: "P", Rabu: "M", Kamis: "LP", Jumat: "S", Sabtu: "S", Minggu: "S" } },
+    { no: 7, nama: "Retnowati", tandem: "Teguh Cahyono", shifts: { Senin: "S", Selasa: "S", Rabu: "P", Kamis: "M", Jumat: "LP", Sabtu: "S", Minggu: "S" } },
+    { no: 8, nama: "Herlina Ratu Belia", tandem: "Dwi Chusnul Mufid", shifts: { Senin: "P", Selasa: "S", Rabu: "S", Kamis: "S", Jumat: "M", Sabtu: "LP", Minggu: "S" } },
+    { no: 9, nama: "Latifa Dyah Ratna Dewi", tandem: "Afida Saidatul Fuadia", shifts: { Senin: "S", Selasa: "S", Rabu: "M", Kamis: "LP", Jumat: "S", Sabtu: "P", Minggu: "S" } },
+    { no: 10, nama: "Adityo Rizky Winarno", tandem: "Ahmad Fadkhurriza Ivakhudin", shifts: { Senin: "M", Selasa: "LP", Rabu: "S", Kamis: "P", Jumat: "S", Sabtu: "S", Minggu: "S" } },
+    { no: 11, nama: "Chiva Uswahul Suci", tandem: "Deni Furitrinofi", shifts: { Senin: "S", Selasa: "M", Rabu: "LP", Kamis: "S", Jumat: "S", Sabtu: "P", Minggu: "S" } },
+    { no: 12, nama: "Theresa Inganta Ginting", tandem: "Abisarwan Rafif", shifts: { Senin: "S", Selasa: "M", Rabu: "LP", Kamis: "S", Jumat: "P", Sabtu: "S", Minggu: "S" } },
+    { no: 13, nama: "Anggelika Simanjuntak", tandem: "Suhariyono", shifts: { Senin: "S", Selasa: "S", Rabu: "M", Kamis: "LP", Jumat: "S", Sabtu: "P", Minggu: "S" } },
+    { no: 14, nama: "Tiara Devi Cristina Sihombing", tandem: "Amirul Mu’minin Rofico Putra Kurnia", shifts: { Senin: "S", Selasa: "S", Rabu: "P", Kamis: "S", Jumat: "M", Sabtu: "LP", Minggu: "S" } },
+    { no: 15, nama: "Hiras Mando Rajagukguk", tandem: "Aris Mahmud Syafi’i", shifts: { Senin: "P", Selasa: "M", Rabu: "LP", Kamis: "S", Jumat: "S", Sabtu: "S", Minggu: "S" } },
+    { no: 16, nama: "Rani Novita Asmi", tandem: "Hariyadi", shifts: { Senin: "S", Selasa: "P", Rabu: "M", Kamis: "LP", Jumat: "S", Sabtu: "S", Minggu: "S" } },
+    { no: 17, nama: "Ade Kurnia", tandem: "Moch. Chabib", shifts: { Senin: "M", Selasa: "LP", Rabu: "S", Kamis: "S", Jumat: "P", Sabtu: "S", Minggu: "S" } },
+    { no: 18, nama: "Inung Khuzaimatul Bariyah Y.", tandem: "Nanang Arifin", shifts: { Senin: "S", Selasa: "P", Rabu: "S", Kamis: "M", Jumat: "LP", Sabtu: "S", Minggu: "S" } }
+  ];
+
+  const daysList = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+
+  // Header Banner Red
+  doc.setFillColor(185, 28, 28); // Red 700
+  doc.rect(10, 10, 277, 14, 'F');
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.text('JADWAL KERJA 18 WALI ASUH BARU', 148.5, 19, { align: 'center' });
+
+  // Subtitle Banner Cream
+  doc.setFillColor(254, 243, 199); // Amber 100
+  doc.rect(10, 24, 277, 7, 'F');
+  doc.setTextColor(180, 83, 9); // Amber 700
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(8.5);
+  doc.text('SRT 1 KABUPATEN KEDIRI - Sesuai SE Nomor 4749/2026 - Pola 1P-4S-1M-1LP - M -> LP/Off -> Sore', 148.5, 28.5, { align: 'center' });
+
+  // Table Header
+  let tableY = 35;
+  doc.setFillColor(15, 23, 42); // Slate 900
+  doc.rect(10, tableY, 277, 8, 'F');
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(8);
+
+  doc.text('No.', 14, tableY + 5.5);
+  doc.text('Nama Wali Asuh', 26, tableY + 5.5);
+  doc.text('Tandem Pengasuhan', 92, tableY + 5.5);
+
+  const dayXStart = 160;
+  const dayColWidth = 17;
+
+  daysList.forEach((d, i) => {
+    const x = dayXStart + (i * dayColWidth);
+    doc.text(d, x + (dayColWidth / 2), tableY + 5.5, { align: 'center' });
+  });
+
+  // Table Body
+  tableY += 8;
+  doc.setFontSize(7.5);
+
+  data.forEach((row, idx) => {
+    const bgCol = idx % 2 === 0 ? [255, 255, 255] : [248, 250, 252];
+    doc.setFillColor(bgCol[0], bgCol[1], bgCol[2]);
+    doc.rect(10, tableY, 277, 6.5, 'F');
+
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.2);
+    doc.line(10, tableY + 6.5, 287, tableY + 6.5);
+
+    doc.setTextColor(15, 23, 42);
+    doc.setFont('Helvetica', 'normal');
+    doc.text(String(row.no), 14, tableY + 4.5);
+
+    doc.setFont('Helvetica', 'bold');
+    doc.text(row.nama, 26, tableY + 4.5);
+
+    doc.setFont('Helvetica', 'normal');
+    doc.setTextColor(71, 85, 105);
+    doc.text(row.tandem, 92, tableY + 4.5);
+
+    daysList.forEach((d, i) => {
+      const shift = row.shifts[d as keyof typeof row.shifts];
+      const x = dayXStart + (i * dayColWidth);
+
+      let shiftBg = [241, 245, 249];
+      let shiftText = [71, 85, 105];
+
+      if (shift === 'P') { shiftBg = [209, 250, 229]; shiftText = [6, 95, 70]; }
+      else if (shift === 'S') { shiftBg = [254, 243, 199]; shiftText = [146, 64, 14]; }
+      else if (shift === 'M') { shiftBg = [224, 231, 255]; shiftText = [55, 48, 163]; }
+      else if (shift === 'LP') { shiftBg = [224, 242, 254]; shiftText = [7, 89, 133]; }
+
+      doc.setFillColor(shiftBg[0], shiftBg[1], shiftBg[2]);
+      doc.roundedRect(x + 3, tableY + 1, 11, 4.5, 1, 1, 'F');
+
+      doc.setFont('Helvetica', 'bold');
+      doc.setTextColor(shiftText[0], shiftText[1], shiftText[2]);
+      doc.text(shift, x + (dayColWidth / 2), tableY + 4.2, { align: 'center' });
+    });
+
+    tableY += 6.5;
+  });
+
+  // Footer Legend Banner
+  tableY += 3;
+  doc.setFillColor(241, 245, 249);
+  doc.rect(10, tableY, 277, 6, 'F');
+
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(7.5);
+  doc.setTextColor(30, 41, 59);
+  doc.text('Kode shift: P = Pagi (07.00-15.00)  -  S = Sore (15.00-23.00)  -  M = Malam (23.00-07.00)  -  LP = Lepas Piket/Off', 148.5, tableY + 4, { align: 'center' });
+
+  // Note text
+  tableY += 8;
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(7);
+  doc.setTextColor(100, 116, 139);
+  doc.text('Catatan: Jadwal kerja bersifat individual; nama tandem menunjukkan pasangan pengasuhan siswa. Anita Kurniawati memperoleh LP hari Minggu untuk ibadah.', 10, tableY);
+
+  // Official Signature
+  const sigX = 220;
+  let sigY = tableY + 6;
+
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(30, 41, 59);
+  doc.text('Mengetahui,', sigX, sigY);
+  doc.setFont('Helvetica', 'bold');
+  doc.text('Kepala SRT 1 Kabupaten Kediri', sigX, sigY + 4);
+
+  // QR Code
+  try {
+    const qrStr = `DOKUMEN SE RESMI NO 4749/2026\nSRT 1 KABUPATEN KEDIRI\nJadwal Kerja 18 Wali Asuh Baru\nKepala Sekolah: Fadeli, S.Pd., M.Pd.`;
+    const qrUrl = await QRCode.toDataURL(qrStr, { margin: 1, width: 100 });
+    doc.addImage(qrUrl, 'PNG', sigX - 20, sigY + 2, 16, 16);
+  } catch (err) {
+    console.warn('QR Code generation error:', err);
+  }
+
+  sigY += 20;
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(15, 23, 42);
+  doc.text('Fadeli, S.Pd., M.Pd.', sigX, sigY);
+
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(71, 85, 105);
+  doc.text('NIP. 196905211992031008', sigX, sigY + 4);
+
+  doc.save(`Jadwal_Kerja_18_Wali_Asuh_Baru_SE_4749_2026.pdf`);
+};
+
+
 
 
