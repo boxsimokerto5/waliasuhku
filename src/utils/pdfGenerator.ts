@@ -2887,7 +2887,7 @@ export const generateRekapHariKerjaTendikBaruPDF = async (
 };
 
 /**
- * Generate PDF for Jadwal 38 Wali Asuh Dan Tandem
+ * Generate PDF for Jadwal 38 Wali Asuh
  */
 export const generateJadwal38WaliAsuhPDF = async (
   items: any[] = []
@@ -2905,7 +2905,7 @@ export const generateJadwal38WaliAsuhPDF = async (
   doc.setTextColor(255, 255, 255);
   doc.setFont('Helvetica', 'bold');
   doc.setFontSize(13);
-  doc.text('JADWAL 38 WALI ASUH DAN TANDEM', 148.5, 18, { align: 'center' });
+  doc.text('JADWAL 38 WALI ASUH', 148.5, 18, { align: 'center' });
 
   // 2. Subtitle
   doc.setFillColor(241, 245, 249); // Slate 100
@@ -2926,22 +2926,20 @@ export const generateJadwal38WaliAsuhPDF = async (
 
   const colX = {
     no: 10,
-    nama: 18,
-    tandem: 75,
+    nama: 22,
     days: {
-      Senin: 132,
-      Selasa: 154,
-      Rabu: 176,
-      Kamis: 198,
-      Jumat: 220,
-      Sabtu: 242,
-      Minggu: 264
+      Senin: 135,
+      Selasa: 157,
+      Rabu: 179,
+      Kamis: 201,
+      Jumat: 223,
+      Sabtu: 245,
+      Minggu: 267
     }
   };
 
-  doc.text('No.', colX.no + 3, tableY + 4.8, { align: 'center' });
+  doc.text('No.', colX.no + 5, tableY + 4.8, { align: 'center' });
   doc.text('Nama Wali Asuh', colX.nama + 2, tableY + 4.8);
-  doc.text('Tandem Pengasuhan', colX.tandem + 2, tableY + 4.8);
   doc.text('Senin', colX.days.Senin + 10, tableY + 4.8, { align: 'center' });
   doc.text('Selasa', colX.days.Selasa + 10, tableY + 4.8, { align: 'center' });
   doc.text('Rabu', colX.days.Rabu + 10, tableY + 4.8, { align: 'center' });
@@ -2953,11 +2951,10 @@ export const generateJadwal38WaliAsuhPDF = async (
   tableY += 7;
 
   // 4. Table Body
-  doc.setFontSize(7);
+  doc.setFontSize(7.5);
   const daysArr = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
 
   items.forEach((row: any, idx: number) => {
-    // If page overflow (38 rows can fit on 1 page with compact spacing, or split if needed)
     if (tableY > 180) {
       doc.addPage();
       tableY = 15;
@@ -2966,9 +2963,8 @@ export const generateJadwal38WaliAsuhPDF = async (
       doc.setTextColor(255, 255, 255);
       doc.setFont('Helvetica', 'bold');
       doc.setFontSize(7.5);
-      doc.text('No.', colX.no + 3, tableY + 4.8, { align: 'center' });
+      doc.text('No.', colX.no + 5, tableY + 4.8, { align: 'center' });
       doc.text('Nama Wali Asuh', colX.nama + 2, tableY + 4.8);
-      doc.text('Tandem Pengasuhan', colX.tandem + 2, tableY + 4.8);
       daysArr.forEach(d => {
         doc.text(d, (colX.days as any)[d] + 10, tableY + 4.8, { align: 'center' });
       });
@@ -2986,17 +2982,12 @@ export const generateJadwal38WaliAsuhPDF = async (
     // No
     doc.setFont('Helvetica', 'normal');
     doc.setTextColor(100, 116, 139);
-    doc.text(String(row.no || idx + 1), colX.no + 3, tableY + 3.2, { align: 'center' });
+    doc.text(String(row.no || idx + 1), colX.no + 5, tableY + 3.2, { align: 'center' });
 
     // Nama
     doc.setFont('Helvetica', 'bold');
     doc.setTextColor(15, 23, 42);
     doc.text(row.nama || '', colX.nama + 2, tableY + 3.2);
-
-    // Tandem
-    doc.setFont('Helvetica', 'normal');
-    doc.setTextColor(71, 85, 105);
-    doc.text(row.tandem || '', colX.tandem + 2, tableY + 3.2);
 
     // Days
     daysArr.forEach(d => {
@@ -3036,7 +3027,7 @@ export const generateJadwal38WaliAsuhPDF = async (
   doc.setTextColor(30, 41, 59);
   doc.text('Kode shift: P = Pagi (07.00–15.00) • S = Sore (15.00–23.00) • M = Malam (23.00–07.00) • Off = Lepas Piket/Off', 148.5, tableY + 3.5, { align: 'center' });
   doc.setFont('Helvetica', 'normal');
-  doc.text('Catatan: Nama tandem menunjukkan pasangan pengasuhan siswa. Jadwal kerja masing-masing tetap individual dan tidak harus berada pada shift yang sama.', 148.5, tableY + 7, { align: 'center' });
+  doc.text('Catatan: Anita Kurniawati ditetapkan Off pada hari Minggu untuk kegiatan ibadah rutin. Jadwal kerja individual sesuai SE Nomor 4749/2026.', 148.5, tableY + 7, { align: 'center' });
 
   tableY += 13;
 
@@ -3056,7 +3047,7 @@ export const generateJadwal38WaliAsuhPDF = async (
   doc.text('Kepala SRT 1 Kabupaten Kediri', sigX, tableY + 8);
 
   try {
-    const qrStr = `JADWAL 38 WALI ASUH DAN TANDEM\nSE NOMOR 4749/2026\nSRT 1 KABUPATEN KEDIRI\nKepala Sekolah: Fadeli, S.Pd., M.Pd.`;
+    const qrStr = `JADWAL 38 WALI ASUH\nSE NOMOR 4749/2026\nSRT 1 KABUPATEN KEDIRI\nKepala Sekolah: Fadeli, S.Pd., M.Pd.`;
     const qrUrl = await QRCode.toDataURL(qrStr, { margin: 1, width: 100 });
     doc.addImage(qrUrl, 'PNG', sigX - 22, tableY + 6, 16, 16);
   } catch (err) {
@@ -3074,7 +3065,7 @@ export const generateJadwal38WaliAsuhPDF = async (
   doc.setTextColor(71, 85, 105);
   doc.text('NIP. 196905211992031008', sigX, tableY + 4);
 
-  doc.save('Jadwal_38_Wali_Asuh_dan_Tandem.pdf');
+  doc.save('Jadwal_38_Wali_Asuh.pdf');
 };
 
 
