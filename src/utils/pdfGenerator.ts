@@ -3068,6 +3068,234 @@ export const generateJadwal38WaliAsuhPDF = async (
   doc.save('Jadwal_38_Wali_Asuh.pdf');
 };
 
+/**
+ * Render a single classified day page in jsPDF (Portrait A4)
+ */
+const renderClassifiedDayPDFPage = async (
+  doc: jsPDF,
+  dayName: string,
+  items: any[],
+  isFirstPage: boolean = true
+) => {
+  if (!isFirstPage) {
+    doc.addPage();
+  }
+
+  // 1. Header Bar
+  doc.setFillColor(15, 23, 42); // Slate 900
+  doc.rect(10, 10, 190, 13, 'F');
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.text(`KLASIFIKASI SHIFT PIKET WALI ASUH - HARI ${dayName.toUpperCase()}`, 105, 18, { align: 'center' });
+
+  // 2. Subtitle Bar
+  doc.setFillColor(241, 245, 249); // Slate 100
+  doc.rect(10, 23, 190, 6, 'F');
+  doc.setTextColor(51, 65, 85);
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(7.5);
+  doc.text(`SRT 1 KABUPATEN KEDIRI • SE NOMOR 4749/2026 • POLA SHIFT 1P–4S–1M–1Off`, 105, 27, { align: 'center' });
+
+  // Filter shifts for dayName
+  const shiftPagi = items.filter(i => (i.shifts ? i.shifts[dayName] === 'P' : false));
+  const shiftSore = items.filter(i => (i.shifts ? i.shifts[dayName] === 'S' : false));
+  const shiftMalam = items.filter(i => (i.shifts ? i.shifts[dayName] === 'M' : false));
+  const shiftOff = items.filter(i => (i.shifts ? (i.shifts[dayName] === 'Off' || i.shifts[dayName] === 'OFF') : false));
+
+  // Render 4 Shift Boxes in a 2x2 Grid
+  const boxes = [
+    {
+      title: 'SHIFT PAGI (07.00 – 15.00 WIB)',
+      items: shiftPagi,
+      x: 10,
+      y: 32,
+      w: 92,
+      h: 102,
+      headerBg: [5, 150, 105], // Emerald 600
+      bodyBg: [240, 253, 244], // Emerald 50
+      borderColor: [167, 243, 208], // Emerald 200
+      badgeText: `${shiftPagi.length} Personel`
+    },
+    {
+      title: 'SHIFT SORE (15.00 – 23.00 WIB)',
+      items: shiftSore,
+      x: 108,
+      y: 32,
+      w: 92,
+      h: 102,
+      headerBg: [217, 119, 6], // Amber 600
+      bodyBg: [254, 252, 232], // Amber 50
+      borderColor: [253, 230, 138], // Amber 200
+      badgeText: `${shiftSore.length} Personel`
+    },
+    {
+      title: 'SHIFT MALAM (23.00 – 07.00 WIB)',
+      items: shiftMalam,
+      x: 10,
+      y: 137,
+      w: 92,
+      h: 102,
+      headerBg: [67, 56, 202], // Indigo 700
+      bodyBg: [238, 242, 255], // Indigo 50
+      borderColor: [199, 210, 254], // Indigo 200
+      badgeText: `${shiftMalam.length} Personel`
+    },
+    {
+      title: 'LEPAS PIKET / OFF (Bebas Tugas)',
+      items: shiftOff,
+      x: 108,
+      y: 137,
+      w: 92,
+      h: 102,
+      headerBg: [225, 29, 72], // Rose 600
+      bodyBg: [255, 241, 242], // Rose 50
+      borderColor: [254, 205, 211], // Rose 200
+      badgeText: `${shiftOff.length} Personel`
+    }
+  ];
+
+  boxes.forEach(box => {
+    // Body Background
+    doc.setFillColor(box.bodyBg[0], box.bodyBg[1], box.bodyBg[2]);
+    doc.rect(box.x, box.y, box.w, box.h, 'F');
+
+    // Body Border
+    doc.setDrawColor(box.borderColor[0], box.borderColor[1], box.borderColor[2]);
+    doc.setLineWidth(0.3);
+    doc.rect(box.x, box.y, box.w, box.h, 'D');
+
+    // Header Background
+    doc.setFillColor(box.headerBg[0], box.headerBg[1], box.headerBg[2]);
+    doc.rect(box.x, box.y, box.w, 7.5, 'F');
+
+    // Header Title
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(7.5);
+    doc.text(box.title, box.x + 3, box.y + 5);
+
+    // Badge
+    doc.setFontSize(6.5);
+    doc.text(box.badgeText, box.x + box.w - 3, box.y + 5, { align: 'right' });
+
+    // Personnel List
+    let listY = box.y + 11.5;
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(7.5);
+
+    if (box.items.length === 0) {
+      doc.setFont('Helvetica', 'italic');
+      doc.setFontSize(7);
+      doc.setTextColor(148, 163, 184);
+      doc.text('- Tidak ada personel -', box.x + box.w / 2, listY + 5, { align: 'center' });
+    } else {
+      box.items.forEach((item: any, idx: number) => {
+        if (listY > box.y + box.h - 3) return; // Prevent overflow
+
+        // Subtle row striping
+        if (idx % 2 === 1) {
+          doc.setFillColor(255, 255, 255);
+          doc.rect(box.x + 1, listY - 3.2, box.w - 2, 4.2, 'F');
+        }
+
+        // Bullet number + Full Name
+        doc.setFont('Helvetica', 'bold');
+        doc.setTextColor(15, 23, 42);
+        doc.setFontSize(7.2);
+        const nameStr = `${idx + 1}.  ${item.nama}`;
+        
+        // Truncate if string exceeds box width
+        const maxStrWidth = box.w - 6;
+        let finalStr = nameStr;
+        if (doc.getTextWidth(finalStr) > maxStrWidth) {
+          while (doc.getTextWidth(finalStr + '...') > maxStrWidth && finalStr.length > 5) {
+            finalStr = finalStr.slice(0, -1);
+          }
+          finalStr += '...';
+        }
+
+        doc.text(finalStr, box.x + 3, listY);
+        listY += 4.3;
+      });
+    }
+  });
+
+  // Footer Info
+  const footerY = 242;
+  doc.setFillColor(241, 245, 249);
+  doc.rect(10, footerY, 190, 7, 'F');
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(6.5);
+  doc.setTextColor(30, 41, 59);
+  doc.text('Catatan: Anita Kurniawati ditetapkan Off pada hari Minggu untuk ibadah rutin. Seluruh 38 Wali Asuh mematuhi giliran kerja SE 4749/2026.', 105, footerY + 4.5, { align: 'center' });
+
+  // Signature Block
+  const sigY = 252;
+  const sigX = 145;
+
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(30, 41, 59);
+  doc.text('Kediri, ' + new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }), sigX, sigY);
+  doc.text('Mengetahui,', sigX, sigY + 4);
+  doc.setFont('Helvetica', 'bold');
+  doc.text('Kepala SRT 1 Kabupaten Kediri', sigX, sigY + 8);
+
+  try {
+    const qrStr = `JADWAL HARIAN 38 WALI ASUH\nHARI ${dayName.toUpperCase()}\nSRT 1 KABUPATEN KEDIRI\nKepala Sekolah: Fadeli, S.Pd., M.Pd.`;
+    const qrUrl = await QRCode.toDataURL(qrStr, { margin: 1, width: 100 });
+    doc.addImage(qrUrl, 'PNG', sigX - 22, sigY + 6, 16, 16);
+  } catch (err) {
+    console.warn('QR Code generation error:', err);
+  }
+
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(15, 23, 42);
+  doc.text('Fadeli, S.Pd., M.Pd.', sigX, sigY + 28);
+
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(71, 85, 105);
+  doc.text('NIP. 196905211992031008', sigX, sigY + 32);
+};
+
+/**
+ * Generate PDF for Jadwal 38 Wali Asuh Harian (Classified by Shift)
+ */
+export const generateJadwal38WaliAsuhHarianPDF = async (
+  dayName: string,
+  items: any[] = []
+) => {
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4'
+  });
+  await renderClassifiedDayPDFPage(doc, dayName, items, true);
+  doc.save(`Jadwal_Harian_Wali_Asuh_${dayName}.pdf`);
+};
+
+/**
+ * Generate PDF for Jadwal 38 Wali Asuh Seluruh Hari (7 Pages, 1 per day classified)
+ */
+export const generateJadwal38WaliAsuhSeluruhHariClassifiedPDF = async (
+  items: any[] = []
+) => {
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4'
+  });
+  const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+  for (let i = 0; i < days.length; i++) {
+    await renderClassifiedDayPDFPage(doc, days[i], items, i === 0);
+  }
+  doc.save(`Jadwal_Klasifikasi_Seluruh_Hari_38_Wali_Asuh.pdf`);
+};
+
 
 
 

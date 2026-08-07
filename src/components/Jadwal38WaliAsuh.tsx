@@ -1,6 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import { Calendar, Clock, Search, ChevronLeft, Download, Loader2, Users, FileSpreadsheet, Sun, Sunset, Moon, Coffee, Info, CheckCircle2 } from 'lucide-react';
-import { generateJadwal38WaliAsuhPDF } from '../utils/pdfGenerator';
+import { Calendar, Clock, Search, ChevronLeft, Download, Loader2, Users, FileSpreadsheet, Sun, Sunset, Moon, Coffee, Info, CheckCircle2, Printer, FileText } from 'lucide-react';
+import {
+  generateJadwal38WaliAsuhPDF,
+  generateJadwal38WaliAsuhHarianPDF,
+  generateJadwal38WaliAsuhSeluruhHariClassifiedPDF
+} from '../utils/pdfGenerator';
 
 export interface WaliAsuh38Item {
   no: number;
@@ -117,12 +121,34 @@ export default function Jadwal38WaliAsuh({ onBack }: Jadwal38WaliAsuhProps) {
     return result;
   }, [selectedDay, searchQuery]);
 
-  const handlePrintPDF = async () => {
+  const handlePrintPDFHarian = async () => {
+    try {
+      setIsGeneratingPDF(true);
+      await generateJadwal38WaliAsuhHarianPDF(selectedDay, WALI_ASUH_38_DATA);
+    } catch (err) {
+      console.error('Failed to generate daily classified PDF', err);
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
+
+  const handlePrintPDFSeluruhHari = async () => {
+    try {
+      setIsGeneratingPDF(true);
+      await generateJadwal38WaliAsuhSeluruhHariClassifiedPDF(WALI_ASUH_38_DATA);
+    } catch (err) {
+      console.error('Failed to generate all days classified PDF', err);
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
+
+  const handlePrintPDFMatriks = async () => {
     try {
       setIsGeneratingPDF(true);
       await generateJadwal38WaliAsuhPDF(WALI_ASUH_38_DATA);
     } catch (err) {
-      console.error('Failed to generate 38 Wali Asuh PDF', err);
+      console.error('Failed to generate 38 Wali Asuh matrix PDF', err);
     } finally {
       setIsGeneratingPDF(false);
     }
@@ -179,16 +205,29 @@ export default function Jadwal38WaliAsuh({ onBack }: Jadwal38WaliAsuhProps) {
             )}
 
             <button
-              onClick={handlePrintPDF}
+              onClick={handlePrintPDFHarian}
               disabled={isGeneratingPDF}
               className="flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white px-4 py-2.5 rounded-2xl text-xs font-black shadow-lg transition-all cursor-pointer disabled:opacity-50"
             >
               {isGeneratingPDF ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
-                <Download className="w-4 h-4" />
+                <Printer className="w-4 h-4" />
               )}
-              <span>Cetak PDF</span>
+              <span>Cetak PDF Hari {selectedDay}</span>
+            </button>
+
+            <button
+              onClick={handlePrintPDFSeluruhHari}
+              disabled={isGeneratingPDF}
+              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-2xl text-xs font-black shadow-lg transition-all cursor-pointer disabled:opacity-50"
+            >
+              {isGeneratingPDF ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <FileText className="w-4 h-4" />
+              )}
+              <span>Cetak PDF Seluruh Hari</span>
             </button>
 
             <button
@@ -247,11 +286,32 @@ export default function Jadwal38WaliAsuh({ onBack }: Jadwal38WaliAsuhProps) {
       {/* MAIN CLASSIFIED VIEW */}
       {activeView === 'classified' && (
         <div className="space-y-5">
-          {/* Day Selector Buttons */}
+          {/* Day Selector Buttons & Print Action */}
           <div className="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-xs space-y-2">
-            <span className="text-[11px] font-black uppercase text-slate-500 tracking-wider block px-1">
-              Pilih Hari Tugas:
-            </span>
+            <div className="flex items-center justify-between gap-2 flex-wrap px-1">
+              <span className="text-[11px] font-black uppercase text-slate-500 tracking-wider">
+                Pilih Hari Tugas:
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handlePrintPDFHarian}
+                  disabled={isGeneratingPDF}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-black transition-all cursor-pointer border border-rose-200 shrink-0"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>Cetak PDF Hari {selectedDay}</span>
+                </button>
+                <button
+                  onClick={handlePrintPDFSeluruhHari}
+                  disabled={isGeneratingPDF}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-black transition-all cursor-pointer border border-indigo-200 shrink-0"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>Cetak 7 Hari</span>
+                </button>
+              </div>
+            </div>
+
             <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
               {DAYS_LIST.map(d => {
                 const isToday = d === currentDayName;
@@ -461,14 +521,24 @@ export default function Jadwal38WaliAsuh({ onBack }: Jadwal38WaliAsuhProps) {
       {/* MATRIX VIEW TABLE */}
       {activeView === 'matrix' && (
         <div className="bg-white rounded-3xl border border-slate-200 p-4 shadow-xs space-y-3">
-          <div className="flex items-center justify-between px-1">
+          <div className="flex items-center justify-between gap-2 flex-wrap px-1">
             <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
               <Users className="w-4 h-4 text-indigo-600" />
               <span>Matriks Pekanan 38 Wali Asuh</span>
             </h3>
-            <span className="text-xs font-bold text-slate-500">
-              Menampilkan {filteredMatrixData.length} Personel
-            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handlePrintPDFMatriks}
+                disabled={isGeneratingPDF}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-black transition-all cursor-pointer border border-slate-300 shrink-0"
+              >
+                <Printer className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Cetak PDF Matriks Pekanan</span>
+              </button>
+              <span className="text-xs font-bold text-slate-500">
+                {filteredMatrixData.length} Personel
+              </span>
+            </div>
           </div>
 
           <div className="overflow-x-auto rounded-2xl border border-slate-200">
