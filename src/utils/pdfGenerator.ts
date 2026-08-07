@@ -3313,6 +3313,412 @@ export const generateJadwal38WaliAsuhSeluruhHariClassifiedPDF = async (
   doc.save(`Jadwal_Klasifikasi_Seluruh_Hari_38_Wali_Asuh.pdf`);
 };
 
+/**
+ * Generate PDF for Rekap Jam Kerja Bulanan (47 Personel)
+ */
+export const generateRekapJamKerjaBulananPDF = async (
+  items: any[] = [],
+  daysInMonth: number = 30
+) => {
+  const doc = new jsPDF({
+    orientation: 'landscape',
+    unit: 'mm',
+    format: 'a4'
+  });
+
+  // Header Banner
+  doc.setFillColor(15, 23, 42); // Slate 900
+  doc.rect(0, 0, 297, 24, 'F');
+
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.setTextColor(255, 255, 255);
+  doc.text('REKAPITULASI JAM KERJA BULANAN PERSONEL (38 WALI ASUH & 9 WALI ASRAMA)', 14, 11);
+
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(8.5);
+  doc.setTextColor(226, 232, 240);
+  doc.text(`SRT 1 KABUPATEN KEDIRI | Ketentuan Shift: 8 Jam/Shift | Basis Perhitungan: ${daysInMonth} Hari Dalam Sebulan`, 14, 18);
+
+  // Table Headers
+  const tableYStart = 30;
+  const rowHeight = 4.6;
+  const colX = {
+    no: 10,
+    nama: 20,
+    kategori: 82,
+    pagi: 115,
+    sore: 128,
+    malam: 141,
+    off: 154,
+    totalShift: 167,
+    jamPekanan: 192,
+    hariKerja: 222,
+    jamBulanan: 252
+  };
+
+  // Draw Table Header
+  doc.setFillColor(30, 41, 59);
+  doc.rect(colX.no, tableYStart, 277, 8, 'F');
+
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(7);
+  doc.setTextColor(255, 255, 255);
+  doc.text('NO', colX.no + 1, tableYStart + 5.5);
+  doc.text('NAMA PERSONEL', colX.nama + 2, tableYStart + 5.5);
+  doc.text('KATEGORI', colX.kategori + 2, tableYStart + 5.5);
+  doc.text('PAGI (8j)', colX.pagi + 1, tableYStart + 5.5);
+  doc.text('SORE (8j)', colX.sore + 1, tableYStart + 5.5);
+  doc.text('MALAM (8j)', colX.malam + 1, tableYStart + 5.5);
+  doc.text('OFF', colX.off + 2, tableYStart + 5.5);
+  doc.text('SHIFT/WK', colX.totalShift + 2, tableYStart + 5.5);
+  doc.text('JAM/PEKAN', colX.jamPekanan + 2, tableYStart + 5.5);
+  doc.text(`HARI MASUK (${daysInMonth}j)`, colX.hariKerja + 1, tableYStart + 5.5);
+  doc.text(`TOTAL JAM/${daysInMonth}j`, colX.jamBulanan + 1, tableYStart + 5.5);
+
+  let currentY = tableYStart + 8;
+  const pageHeight = 210;
+
+  const daysList = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+
+  items.forEach((item, index) => {
+    // Check page break
+    if (currentY + rowHeight > pageHeight - 35) {
+      doc.addPage();
+      currentY = 20;
+
+      // Repeat Table Header
+      doc.setFillColor(30, 41, 59);
+      doc.rect(colX.no, currentY, 277, 8, 'F');
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(7);
+      doc.setTextColor(255, 255, 255);
+      doc.text('NO', colX.no + 1, currentY + 5.5);
+      doc.text('NAMA PERSONEL', colX.nama + 2, currentY + 5.5);
+      doc.text('KATEGORI', colX.kategori + 2, currentY + 5.5);
+      doc.text('PAGI (8j)', colX.pagi + 1, currentY + 5.5);
+      doc.text('SORE (8j)', colX.sore + 1, currentY + 5.5);
+      doc.text('MALAM (8j)', colX.malam + 1, currentY + 5.5);
+      doc.text('OFF', colX.off + 2, currentY + 5.5);
+      doc.text('SHIFT/WK', colX.totalShift + 2, currentY + 5.5);
+      doc.text('JAM/PEKAN', colX.jamPekanan + 2, currentY + 5.5);
+      doc.text(`HARI MASUK (${daysInMonth}j)`, colX.hariKerja + 1, currentY + 5.5);
+      doc.text(`TOTAL JAM/${daysInMonth}j`, colX.jamBulanan + 1, currentY + 5.5);
+      currentY += 8;
+    }
+
+    // Calculate shift counts
+    let pCount = 0;
+    let sCount = 0;
+    let mCount = 0;
+    let offCount = 0;
+
+    daysList.forEach(d => {
+      const shift = item.shifts[d];
+      if (shift === 'P') pCount++;
+      else if (shift === 'S') sCount++;
+      else if (shift === 'M') mCount++;
+      else offCount++;
+    });
+
+    const totalShiftWk = pCount + sCount + mCount;
+    const jamPekanan = totalShiftWk * 8;
+    const hariKerjaBulanan = Math.round((totalShiftWk / 7) * daysInMonth * 10) / 10;
+    const jamBulanan = Math.round((jamPekanan / 7) * daysInMonth * 10) / 10;
+
+    // Row Background
+    if (item.isWaliAsrama) {
+      doc.setFillColor(243, 232, 255); // Purple 100
+      doc.rect(colX.no, currentY, 277, rowHeight, 'F');
+    } else if (index % 2 === 1) {
+      doc.setFillColor(248, 250, 252); // Slate 50
+      doc.rect(colX.no, currentY, 277, rowHeight, 'F');
+    }
+
+    // Border
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.15);
+    doc.line(colX.no, currentY + rowHeight, colX.no + 277, currentY + rowHeight);
+
+    // Text rendering
+    doc.setFontSize(7);
+
+    // No
+    doc.setFont('Helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.text(String(index + 1), colX.no + 2, currentY + 3.4);
+
+    // Nama
+    doc.setFont('Helvetica', 'bold');
+    if (item.isWaliAsrama) {
+      doc.setTextColor(107, 33, 168); // Purple 800
+      doc.text(`${item.nama} (Wali Asrama)`, colX.nama + 2, currentY + 3.4);
+    } else {
+      doc.setTextColor(15, 23, 42);
+      doc.text(item.nama || '', colX.nama + 2, currentY + 3.4);
+    }
+
+    // Kategori
+    doc.setFont('Helvetica', 'normal');
+    doc.setTextColor(51, 65, 85);
+    doc.text(item.isWaliAsrama ? 'Wali Asrama' : 'Wali Asuh', colX.kategori + 2, currentY + 3.4);
+
+    // Shift counts
+    doc.text(`${pCount} shift`, colX.pagi + 1, currentY + 3.4);
+    doc.text(`${sCount} shift`, colX.sore + 1, currentY + 3.4);
+    doc.text(`${mCount} shift`, colX.malam + 1, currentY + 3.4);
+    doc.text(`${offCount} hari`, colX.off + 2, currentY + 3.4);
+
+    // Totals
+    doc.setFont('Helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text(`${totalShiftWk} shift`, colX.totalShift + 2, currentY + 3.4);
+    doc.text(`${jamPekanan} Jam`, colX.jamPekanan + 2, currentY + 3.4);
+
+    doc.setTextColor(67, 56, 202); // Indigo 700
+    doc.text(`${hariKerjaBulanan} Hari`, colX.hariKerja + 2, currentY + 3.4);
+
+    doc.setTextColor(13, 148, 136); // Teal 600
+    doc.text(`${jamBulanan} Jam`, colX.jamBulanan + 2, currentY + 3.4);
+
+    currentY += rowHeight;
+  });
+
+  // Footer Signature on last page
+  const sigY = Math.min(currentY + 10, pageHeight - 35);
+  const sigX = 220;
+
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(30, 41, 59);
+  doc.text('Kediri, ' + new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }), sigX, sigY);
+  doc.text('Mengetahui,', sigX, sigY + 4);
+  doc.setFont('Helvetica', 'bold');
+  doc.text('Kepala SRT 1 Kabupaten Kediri', sigX, sigY + 8);
+
+  try {
+    const qrStr = `REKAP JAM KERJA BULANAN\n47 PERSONEL WALI ASUH & ASRAMA\nSRT 1 KABUPATEN KEDIRI\nFadeli, S.Pd., M.Pd.`;
+    const qrUrl = await QRCode.toDataURL(qrStr, { margin: 1, width: 100 });
+    doc.addImage(qrUrl, 'PNG', sigX - 22, sigY + 6, 16, 16);
+  } catch (err) {
+    console.warn('QR Code generation error:', err);
+  }
+
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(15, 23, 42);
+  doc.text('Fadeli, S.Pd., M.Pd.', sigX, sigY + 28);
+
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(71, 85, 105);
+  doc.text('NIP. 196905211992031008', sigX, sigY + 32);
+
+  doc.save(`Rekap_Jam_Kerja_Bulanan_47_Personel.pdf`);
+};
+
+/**
+ * Generate PDF for Khusus 9 Wali Asrama Schedule
+ */
+export const generateJadwalWaliAsramaPDF = async (
+  items: any[] = []
+) => {
+  const waliAsramaItems = items.filter(i => i.isWaliAsrama);
+  const doc = new jsPDF({
+    orientation: 'landscape',
+    unit: 'mm',
+    format: 'a4'
+  });
+
+  // Header Banner
+  doc.setFillColor(88, 28, 135); // Purple 900
+  doc.rect(0, 0, 297, 24, 'F');
+
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.setTextColor(255, 255, 255);
+  doc.text('JADWAL KERJA OPERASIONAL KHUSUS 9 WALI ASRAMA SRT 1 KABUPATEN KEDIRI', 14, 11);
+
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(8.5);
+  doc.setTextColor(243, 232, 255);
+  doc.text('Layanan Pengasuhan Asrama 24/7 | Sesuai SE Nomor 4749/2026 | Rotasi Shift: Pagi (P), Sore (S), Malam (M), Off', 14, 18);
+
+  const tableYStart = 32;
+  const rowHeight = 7;
+  const colX = {
+    no: 12,
+    nama: 22,
+    senin: 95,
+    selasa: 115,
+    rabu: 135,
+    kamis: 155,
+    jumat: 175,
+    sabtu: 195,
+    minggu: 215,
+    jamWk: 240
+  };
+
+  // Table Header
+  doc.setFillColor(58, 12, 92);
+  doc.rect(colX.no, tableYStart, 273, 9, 'F');
+
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.setTextColor(255, 255, 255);
+  doc.text('NO', colX.no + 2, tableYStart + 6);
+  doc.text('NAMA WALI ASRAMA', colX.nama + 2, tableYStart + 6);
+  doc.text('SENIN', colX.senin + 3, tableYStart + 6);
+  doc.text('SELASA', colX.selasa + 3, tableYStart + 6);
+  doc.text('RABU', colX.rabu + 4, tableYStart + 6);
+  doc.text('KAMIS', colX.kamis + 3, tableYStart + 6);
+  doc.text('JUMAT', colX.jumat + 3, tableYStart + 6);
+  doc.text('SABTU', colX.sabtu + 3, tableYStart + 6);
+  doc.text('MINGGU', colX.minggu + 2, tableYStart + 6);
+  doc.text('TOTAL JAM/WK', colX.jamWk + 2, tableYStart + 6);
+
+  let currentY = tableYStart + 9;
+  const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+
+  waliAsramaItems.forEach((item, index) => {
+    // Row background
+    if (index % 2 === 0) {
+      doc.setFillColor(250, 245, 255);
+      doc.rect(colX.no, currentY, 273, rowHeight, 'F');
+    } else {
+      doc.setFillColor(243, 232, 255);
+      doc.rect(colX.no, currentY, 273, rowHeight, 'F');
+    }
+
+    // Border
+    doc.setDrawColor(216, 180, 254);
+    doc.setLineWidth(0.2);
+    doc.line(colX.no, currentY + rowHeight, colX.no + 273, currentY + rowHeight);
+
+    doc.setFontSize(8);
+    doc.setFont('Helvetica', 'bold');
+    doc.setTextColor(88, 28, 135);
+    doc.text(String(index + 1), colX.no + 3, currentY + 4.8);
+    doc.text(item.nama, colX.nama + 2, currentY + 4.8);
+
+    let totalShift = 0;
+
+    days.forEach((day, dIdx) => {
+      const code = item.shifts[day] || 'Off';
+      const xPos = [colX.senin, colX.selasa, colX.rabu, colX.kamis, colX.jumat, colX.sabtu, colX.minggu][dIdx];
+
+      if (code === 'P') {
+        doc.setFillColor(209, 250, 229);
+        doc.setTextColor(6, 95, 70);
+        totalShift++;
+      } else if (code === 'S') {
+        doc.setFillColor(254, 243, 199);
+        doc.setTextColor(146, 64, 14);
+        totalShift++;
+      } else if (code === 'M') {
+        doc.setFillColor(224, 231, 255);
+        doc.setTextColor(55, 48, 163);
+        totalShift++;
+      } else {
+        doc.setFillColor(254, 226, 226);
+        doc.setTextColor(153, 27, 27);
+      }
+
+      doc.rect(xPos + 1, currentY + 1.2, 14, 4.6, 'F');
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(7.5);
+      doc.text(code, xPos + (code.length > 2 ? 2 : 5), currentY + 4.5);
+    });
+
+    // Total Jam / Pekan
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(107, 33, 168);
+    doc.text(`${totalShift * 8} Jam (${totalShift} shift)`, colX.jamWk + 2, currentY + 4.8);
+
+    currentY += rowHeight;
+  });
+
+  // Daily Summary Box
+  currentY += 8;
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(192, 132, 252);
+  doc.rect(colX.no, currentY, 273, 40, 'F');
+  doc.rect(colX.no, currentY, 273, 40, 'S');
+
+  doc.setFillColor(126, 34, 206);
+  doc.rect(colX.no, currentY, 273, 7, 'F');
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(8.5);
+  doc.setTextColor(255, 255, 255);
+  doc.text('RINCIAN PENUGASAN WALI ASRAMA PER HARI (SABTU HIGHLIGHT: NUKI SHIFT SORE)', colX.no + 4, currentY + 5);
+
+  let subY = currentY + 12;
+  doc.setFontSize(7.5);
+  doc.setFont('Helvetica', 'bold');
+
+  const dailyInfo = [
+    { day: 'Senin', info: 'Pagi: Sunarmi | Sore: Moh. Nursalim | Off: Eko W, Rio A | Malam: 5 Wali Asrama' },
+    { day: 'Selasa', info: 'Pagi: Moh. Nursalim | Sore: Eko W, Rio A | Off: Widiastutik | Malam: 5 Wali Asrama' },
+    { day: 'Rabu', info: 'Pagi: Eko Warasno | Sore: Widiastutik | Off: Hartor P | Malam: 6 Wali Asrama' },
+    { day: 'Kamis', info: 'Pagi: Widiastutik | Sore: Hartor P | Off: Priselia D | Malam: 6 Wali Asrama' },
+    { day: 'Jumat', info: 'Pagi: Hartor P | Sore: Priselia D | Off: Nukik (Nuki), Sifa N | Malam: 5 Wali Asrama' },
+    { day: 'Sabtu', info: 'Pagi: Priselia D | Sore: Nukik Riyan A (Nuki), Sifa N | Off: Sunarmi | Malam: 5 Wali Asrama' },
+    { day: 'Minggu', info: 'Pagi: Nukik Riyan A (Nuki) | Sore: Sunarmi | Off: Moh. Nursalim | Malam: 6 Wali Asrama' }
+  ];
+
+  dailyInfo.forEach((d, i) => {
+    const colLeft = i < 4 ? colX.no + 4 : colX.no + 140;
+    const rowLineY = subY + (i % 4) * 6.5;
+
+    doc.setTextColor(88, 28, 135);
+    doc.text(`${d.day}:`, colLeft, rowLineY);
+
+    if (d.day === 'Sabtu') {
+      doc.setTextColor(180, 83, 9); // Highlight Sabtu
+      doc.setFont('Helvetica', 'bold');
+    } else {
+      doc.setTextColor(30, 41, 59);
+      doc.setFont('Helvetica', 'normal');
+    }
+    doc.text(d.info, colLeft + 18, rowLineY);
+  });
+
+  // Footer Signature
+  const sigY = 160;
+  const sigX = 220;
+
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(30, 41, 59);
+  doc.text('Kediri, ' + new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }), sigX, sigY);
+  doc.text('Mengetahui,', sigX, sigY + 4);
+  doc.setFont('Helvetica', 'bold');
+  doc.text('Kepala SRT 1 Kabupaten Kediri', sigX, sigY + 8);
+
+  try {
+    const qrStr = `JADWAL KHUSUS WALI ASRAMA (9 STAFF)\nSRT 1 KABUPATEN KEDIRI\nFadeli, S.Pd., M.Pd.`;
+    const qrUrl = await QRCode.toDataURL(qrStr, { margin: 1, width: 100 });
+    doc.addImage(qrUrl, 'PNG', sigX - 22, sigY + 6, 16, 16);
+  } catch (err) {
+    console.warn('QR Code generation error:', err);
+  }
+
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(15, 23, 42);
+  doc.text('Fadeli, S.Pd., M.Pd.', sigX, sigY + 28);
+
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(71, 85, 105);
+  doc.text('NIP. 196905211992031008', sigX, sigY + 32);
+
+  doc.save(`Jadwal_Khusus_9_Wali_Asrama.pdf`);
+};
+
+
+
 
 
 

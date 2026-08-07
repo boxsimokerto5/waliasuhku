@@ -3,7 +3,9 @@ import { Calendar, Clock, Search, ChevronLeft, Loader2, Users, FileSpreadsheet, 
 import {
   generateJadwal38WaliAsuhPDF,
   generateJadwal38WaliAsuhHarianPDF,
-  generateJadwal38WaliAsuhSeluruhHariClassifiedPDF
+  generateJadwal38WaliAsuhSeluruhHariClassifiedPDF,
+  generateRekapJamKerjaBulananPDF,
+  generateJadwalWaliAsramaPDF
 } from '../utils/pdfGenerator';
 
 export interface PersonelJadwalItem {
@@ -66,8 +68,8 @@ export const WALI_ASUH_38_DATA: PersonelJadwalItem[] = [
   { no: 39, nama: "Eko Warasno", isWaliAsrama: true, shifts: { Senin: "Off", Selasa: "S", Rabu: "P", Kamis: "M", Jumat: "M", Sabtu: "M", Minggu: "M" } },
   { no: 40, nama: "Widiastutik", isWaliAsrama: true, shifts: { Senin: "M", Selasa: "Off", Rabu: "S", Kamis: "P", Jumat: "M", Sabtu: "M", Minggu: "M" } },
   { no: 41, nama: "Hartor Prasetyo Utomo", isWaliAsrama: true, shifts: { Senin: "M", Selasa: "M", Rabu: "Off", Kamis: "S", Jumat: "P", Sabtu: "M", Minggu: "M" } },
-  { no: 42, nama: "Nukik Riyan Aswanto (Nuki)", isWaliAsrama: true, shifts: { Senin: "M", Selasa: "M", Rabu: "M", Kamis: "Off", Jumat: "S", Sabtu: "P", Minggu: "M" } },
-  { no: 43, nama: "Priselia Dian Anggraini", isWaliAsrama: true, shifts: { Senin: "M", Selasa: "M", Rabu: "M", Kamis: "M", Jumat: "Off", Sabtu: "S", Minggu: "P" } },
+  { no: 42, nama: "Priselia Dian Anggraini", isWaliAsrama: true, shifts: { Senin: "M", Selasa: "M", Rabu: "M", Kamis: "Off", Jumat: "S", Sabtu: "P", Minggu: "M" } },
+  { no: 43, nama: "Nukik Riyan Aswanto (Nuki)", isWaliAsrama: true, shifts: { Senin: "M", Selasa: "M", Rabu: "M", Kamis: "M", Jumat: "Off", Sabtu: "S", Minggu: "P" } },
   { no: 44, nama: "Sunarmi", isWaliAsrama: true, shifts: { Senin: "P", Selasa: "M", Rabu: "M", Kamis: "M", Jumat: "M", Sabtu: "Off", Minggu: "S" } },
   { no: 45, nama: "Moh. Nursalim", isWaliAsrama: true, shifts: { Senin: "S", Selasa: "P", Rabu: "M", Kamis: "M", Jumat: "M", Sabtu: "M", Minggu: "Off" } },
   { no: 46, nama: "Rio Andriyono", isWaliAsrama: true, shifts: { Senin: "Off", Selasa: "S", Rabu: "M", Kamis: "M", Jumat: "M", Sabtu: "M", Minggu: "M" } },
@@ -97,7 +99,9 @@ export default function Jadwal38WaliAsuh({ onBack }: Jadwal38WaliAsuhProps) {
   const currentDayName = dayNameMapping[dayIndex];
 
   const [selectedDay, setSelectedDay] = useState<DayName>(currentDayName);
-  const [activeView, setActiveView] = useState<'classified' | 'matrix'>('classified');
+  const [activeView, setActiveView] = useState<'classified' | 'matrix' | 'wali_asrama' | 'rekap_jam'>('classified');
+  const [daysInMonth, setDaysInMonth] = useState<number>(30);
+  const [categoryFilter, setCategoryFilter] = useState<'all' | 'wali_asuh' | 'wali_asrama'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
@@ -134,6 +138,84 @@ export default function Jadwal38WaliAsuh({ onBack }: Jadwal38WaliAsuhProps) {
     return result;
   }, [selectedDay, searchQuery]);
 
+  // Rekap Jam Kerja Bulanan Data & Stats
+  const rekapJamData = useMemo(() => {
+    let list = [...WALI_ASUH_38_DATA];
+    if (categoryFilter === 'wali_asuh') {
+      list = list.filter(item => !item.isWaliAsrama);
+    } else if (categoryFilter === 'wali_asrama') {
+      list = list.filter(item => item.isWaliAsrama);
+    }
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter(item => item.nama.toLowerCase().includes(q));
+    }
+
+    return list.map((item) => {
+      let pCount = 0;
+      let sCount = 0;
+      let mCount = 0;
+      let offCount = 0;
+
+      DAYS_LIST.forEach(d => {
+        const shift = item.shifts[d];
+        if (shift === 'P') pCount++;
+        else if (shift === 'S') sCount++;
+        else if (shift === 'M') mCount++;
+        else offCount++;
+      });
+
+      const totalShiftWk = pCount + sCount + mCount;
+      const jamPekanan = totalShiftWk * 8;
+      const hariKerjaBulanan = Math.round((totalShiftWk / 7) * daysInMonth * 10) / 10;
+      const jamBulanan = Math.round((jamPekanan / 7) * daysInMonth * 10) / 10;
+
+      return {
+        ...item,
+        pCount,
+        sCount,
+        mCount,
+        offCount,
+        totalShiftWk,
+        jamPekanan,
+        hariKerjaBulanan,
+        jamBulanan
+      };
+    });
+  }, [categoryFilter, searchQuery, daysInMonth]);
+
+  const rekapStats = useMemo(() => {
+    const totalStaff = rekapJamData.length;
+    let totalP = 0;
+    let totalS = 0;
+    let totalM = 0;
+    let totalJamBulananAll = 0;
+    let totalHariKerjaBulananAll = 0;
+
+    rekapJamData.forEach(item => {
+      totalP += item.pCount;
+      totalS += item.sCount;
+      totalM += item.mCount;
+      totalJamBulananAll += item.jamBulanan;
+      totalHariKerjaBulananAll += item.hariKerjaBulanan;
+    });
+
+    const avgJamBulanan = totalStaff > 0 ? Math.round((totalJamBulananAll / totalStaff) * 10) / 10 : 0;
+    const avgHariKerjaBulanan = totalStaff > 0 ? Math.round((totalHariKerjaBulananAll / totalStaff) * 10) / 10 : 0;
+
+    return {
+      totalStaff,
+      totalP,
+      totalS,
+      totalM,
+      totalJamBulananAll: Math.round(totalJamBulananAll),
+      totalHariKerjaBulananAll: Math.round(totalHariKerjaBulananAll * 10) / 10,
+      avgJamBulanan,
+      avgHariKerjaBulanan
+    };
+  }, [rekapJamData]);
+
   const handlePrintPDFHarian = async () => {
     try {
       setIsGeneratingPDF(true);
@@ -167,6 +249,28 @@ export default function Jadwal38WaliAsuh({ onBack }: Jadwal38WaliAsuhProps) {
     }
   };
 
+  const handlePrintPDFWaliAsrama = async () => {
+    try {
+      setIsGeneratingPDF(true);
+      await generateJadwalWaliAsramaPDF(WALI_ASUH_38_DATA);
+    } catch (err) {
+      console.error('Failed to generate Wali Asrama PDF', err);
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
+
+  const handlePrintPDFRekapBulanan = async () => {
+    try {
+      setIsGeneratingPDF(true);
+      await generateRekapJamKerjaBulananPDF(WALI_ASUH_38_DATA, daysInMonth);
+    } catch (err) {
+      console.error('Failed to generate rekap jam kerja PDF', err);
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
+
   const handleExportCSV = () => {
     let csvContent = "data:text/csv;charset=utf-8,";
     csvContent += "No,Nama,Kategori,Senin,Selasa,Rabu,Kamis,Jumat,Sabtu,Minggu\n";
@@ -177,6 +281,23 @@ export default function Jadwal38WaliAsuh({ onBack }: Jadwal38WaliAsuhProps) {
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
     link.setAttribute("download", `Jadwal_Gabungan_47_Personel.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExportCSVJamKerja = () => {
+    let csvContent = "data:text/csv;charset=utf-8,";
+    csvContent += `No,Nama,Kategori,Shift Pagi (P),Shift Sore (S),Shift Malam (M),Off/Lepas Piket,Total Shift/Minggu,Jam Kerja/Minggu,Hari Kerja Masuk Bulanan (${daysInMonth} Hari),Total Jam Bulanan (${daysInMonth} Hari)\n`;
+    
+    rekapJamData.forEach(item => {
+      csvContent += `"${item.no}","${item.nama}","${item.isWaliAsrama ? 'Wali Asrama' : 'Wali Asuh'}","${item.pCount}","${item.sCount}","${item.mCount}","${item.offCount}","${item.totalShiftWk}","${item.jamPekanan}","${item.hariKerjaBulanan} Hari","${item.jamBulanan} Jam"\n`;
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `Rekap_Jam_Kerja_Bulanan_47_Personel.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -281,6 +402,38 @@ export default function Jadwal38WaliAsuh({ onBack }: Jadwal38WaliAsuhProps) {
           >
             <Calendar className="w-4 h-4 text-amber-400" />
             <span>Matriks Pekanan (47 Personel)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveView('wali_asrama')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer whitespace-nowrap ${
+              activeView === 'wali_asrama'
+                ? 'bg-purple-900 text-white shadow-md shadow-purple-900/20'
+                : 'text-purple-800 bg-purple-50 hover:bg-purple-100'
+            }`}
+          >
+            <ShieldAlert className="w-4 h-4 text-purple-300" />
+            <span>Khusus 9 Wali Asrama</span>
+            <span className="bg-purple-600 text-white text-[10px] px-2 py-0.5 rounded-full font-extrabold">
+              9 Staff
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveView('rekap_jam')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer whitespace-nowrap ${
+              activeView === 'rekap_jam'
+                ? 'bg-indigo-900 text-white shadow-md shadow-indigo-900/20'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+            }`}
+          >
+            <Clock className="w-4 h-4 text-purple-400" />
+            <span>Rekap Jam Kerja Bulanan</span>
+            <span className="bg-purple-600 text-white text-[10px] px-2 py-0.5 rounded-full font-extrabold">
+              47 Staff
+            </span>
           </button>
         </div>
 
@@ -597,93 +750,581 @@ export default function Jadwal38WaliAsuh({ onBack }: Jadwal38WaliAsuhProps) {
         </div>
       )}
 
-      {/* MATRIX VIEW TABLE */}
-      {activeView === 'matrix' && (
-        <div className="bg-white rounded-3xl border border-slate-200 p-4 shadow-xs space-y-3">
-          <div className="flex items-center justify-between gap-2 flex-wrap px-1">
-            <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-              <Users className="w-4 h-4 text-indigo-600" />
-              <span>Matriks Pekanan Gabungan (47 Personel)</span>
+      {/* KHUSUS 9 WALI ASRAMA VIEW */}
+      {activeView === 'wali_asrama' && (
+        <div className="space-y-6">
+          {/* Header Action Banner */}
+          <div className="bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 p-6 rounded-3xl text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4 border border-purple-800">
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2">
+                <span className="bg-purple-500/30 text-purple-200 text-xs font-black px-3 py-1 rounded-full border border-purple-400/30">
+                  Layanan 24/7 Asrama
+                </span>
+                <span className="bg-amber-400 text-slate-900 text-xs font-black px-3 py-1 rounded-full">
+                  9 Personel Khusus
+                </span>
+              </div>
+              <h2 className="text-xl font-black text-white">
+                Jadwal Kerja Operasional Khusus 9 Wali Asrama
+              </h2>
+              <p className="text-xs text-purple-200 font-medium max-w-2xl">
+                Rincian tugas 9 Wali Asrama (Eko Warasno, Widiastutik, Hartor, Priselia, Nukik/Nuki, Sunarmi, Nursalim, Rio, Sifa) untuk menjaga asrama selama 24 jam nonstop dari Senin hingga Minggu.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={handlePrintPDFWaliAsrama}
+              disabled={isGeneratingPDF}
+              className="px-5 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-2xl text-xs font-black transition-all flex items-center justify-center gap-2 shadow-lg shadow-purple-900/40 cursor-pointer shrink-0 disabled:opacity-50"
+            >
+              {isGeneratingPDF ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Printer className="w-4 h-4" />
+              )}
+              <span>Cetak PDF Jadwal Wali Asrama</span>
+            </button>
+          </div>
+
+          {/* Special Focus Box for Nuki / Nukik Riyan Aswanto */}
+          <div className="bg-amber-50 border-2 border-amber-300 rounded-3xl p-5 text-amber-950 shadow-md space-y-3">
+            <div className="flex items-center gap-2.5">
+              <span className="w-3 h-3 rounded-full bg-amber-500 animate-pulse"></span>
+              <h3 className="font-black text-sm text-amber-900 uppercase tracking-wide">
+                📌 Penjelasan Detail Status Jadwal Nuki (Nukik Riyan Aswanto)
+              </h3>
+            </div>
+            <p className="text-xs text-slate-800 leading-relaxed font-semibold">
+              <span className="font-black text-amber-900">Mengapa Nuki tidak hilang di hari Sabtu?</span> Nuki <span className="underline decoration-amber-500 font-extrabold">(Nukik Riyan Aswanto - No. 43)</span> mematuhi sistem rotasi 7 hari bergilir untuk 9 Wali Asrama sebagai berikut:
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2 pt-1">
+              <div className="p-2.5 rounded-xl bg-white border border-amber-200 text-center space-y-1">
+                <span className="text-[10px] font-black text-slate-500 block uppercase">Senin</span>
+                <span className="bg-indigo-100 text-indigo-900 text-[10px] font-black px-2 py-0.5 rounded-md inline-block">🌙 Malam</span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-white border border-amber-200 text-center space-y-1">
+                <span className="text-[10px] font-black text-slate-500 block uppercase">Selasa</span>
+                <span className="bg-indigo-100 text-indigo-900 text-[10px] font-black px-2 py-0.5 rounded-md inline-block">🌙 Malam</span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-white border border-amber-200 text-center space-y-1">
+                <span className="text-[10px] font-black text-slate-500 block uppercase">Rabu</span>
+                <span className="bg-indigo-100 text-indigo-900 text-[10px] font-black px-2 py-0.5 rounded-md inline-block">🌙 Malam</span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-white border border-amber-200 text-center space-y-1">
+                <span className="text-[10px] font-black text-slate-500 block uppercase">Kamis</span>
+                <span className="bg-indigo-100 text-indigo-900 text-[10px] font-black px-2 py-0.5 rounded-md inline-block">🌙 Malam</span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-white border border-amber-200 text-center space-y-1">
+                <span className="text-[10px] font-black text-slate-500 block uppercase">Jumat</span>
+                <span className="bg-rose-100 text-rose-900 text-[10px] font-black px-2 py-0.5 rounded-md inline-block">🛌 Off</span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-amber-100 border-2 border-amber-400 text-center space-y-1 shadow-xs">
+                <span className="text-[10px] font-black text-amber-900 block uppercase">Sabtu ★</span>
+                <span className="bg-amber-500 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-md inline-block shadow-2xs">🌆 Sore</span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-center space-y-1">
+                <span className="text-[10px] font-black text-emerald-800 block uppercase">Minggu</span>
+                <span className="bg-emerald-600 text-white text-[10px] font-black px-2 py-0.5 rounded-md inline-block">☀️ Pagi</span>
+              </div>
+            </div>
+            <p className="text-[11px] text-amber-900 font-medium italic">
+              *Catatan: Hari Sabtu Nuki bertugas sore jam 15.00 - 23.00 WIB bersama Sifa Nasywa. Hari Minggu Nuki bertugas pagi jam 07.00 - 15.00 WIB.
+            </p>
+          </div>
+
+          {/* 7-Day Schedule Cards specifically for Wali Asrama */}
+          <div className="space-y-3">
+            <h3 className="font-black text-sm text-slate-900 flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-purple-600" />
+              <span>Rincian Penugasan Wali Asrama Per Hari (Senin – Minggu)</span>
             </h3>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handlePrintPDFMatriks}
-                disabled={isGeneratingPDF}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-black transition-all cursor-pointer border border-slate-300 shrink-0"
-              >
-                <Printer className="w-3.5 h-3.5 text-indigo-600" />
-                <span>Cetak PDF Matriks Pekanan</span>
-              </button>
-              <span className="text-xs font-bold text-slate-500">
-                {filteredMatrixData.length} Personel
-              </span>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {DAYS_LIST.map((dayName) => {
+                const waliAsramaToday = WALI_ASUH_38_DATA.filter(i => i.isWaliAsrama);
+                const pagi = waliAsramaToday.filter(i => i.shifts[dayName] === 'P');
+                const sore = waliAsramaToday.filter(i => i.shifts[dayName] === 'S');
+                const malam = waliAsramaToday.filter(i => i.shifts[dayName] === 'M');
+                const off = waliAsramaToday.filter(i => i.shifts[dayName] === 'Off');
+
+                const isSabtu = dayName === 'Sabtu';
+
+                return (
+                  <div
+                    key={dayName}
+                    className={`bg-white rounded-3xl border ${
+                      isSabtu ? 'border-amber-400 ring-2 ring-amber-400/30' : 'border-purple-200'
+                    } shadow-xs overflow-hidden space-y-3 p-4`}
+                  >
+                    <div className={`flex items-center justify-between p-2.5 rounded-2xl ${
+                      isSabtu ? 'bg-amber-400 text-slate-950 font-black' : 'bg-purple-900 text-white font-black'
+                    }`}>
+                      <span className="text-xs">{dayName}</span>
+                      {isSabtu && (
+                        <span className="bg-slate-950 text-amber-300 text-[10px] font-black px-2 py-0.5 rounded-full">
+                          Highlight Nuki Sore
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="space-y-2 text-xs">
+                      {/* Pagi */}
+                      <div className="bg-emerald-50/80 p-2 rounded-xl border border-emerald-100">
+                        <span className="font-extrabold text-[10px] text-emerald-800 uppercase block mb-1">
+                          ☀️ Pagi (07.00 - 15.00):
+                        </span>
+                        {pagi.length === 0 ? (
+                          <span className="text-slate-400 text-[11px] italic">-</span>
+                        ) : (
+                          pagi.map(p => (
+                            <span key={p.no} className="block font-black text-emerald-950 text-[11px]">
+                              • {p.nama}
+                            </span>
+                          ))
+                        )}
+                      </div>
+
+                      {/* Sore */}
+                      <div className={`p-2 rounded-xl border ${
+                        isSabtu ? 'bg-amber-100 border-amber-300 ring-1 ring-amber-400' : 'bg-amber-50/80 border-amber-100'
+                      }`}>
+                        <span className="font-extrabold text-[10px] text-amber-900 uppercase block mb-1">
+                          🌆 Sore (15.00 - 23.00):
+                        </span>
+                        {sore.length === 0 ? (
+                          <span className="text-slate-400 text-[11px] italic">-</span>
+                        ) : (
+                          sore.map(s => (
+                            <span
+                              key={s.no}
+                              className={`block text-[11px] ${
+                                s.nama.includes('Nuki')
+                                  ? 'font-black text-purple-950 bg-amber-300 px-1.5 py-0.5 rounded-md my-0.5 shadow-2xs'
+                                  : 'font-extrabold text-amber-950'
+                              }`}
+                            >
+                              • {s.nama} {s.nama.includes('Nuki') && '★'}
+                            </span>
+                          ))
+                        )}
+                      </div>
+
+                      {/* Malam */}
+                      <div className="bg-indigo-50/80 p-2 rounded-xl border border-indigo-100">
+                        <span className="font-extrabold text-[10px] text-indigo-800 uppercase block mb-1">
+                          🌙 Malam (23.00 - 07.00):
+                        </span>
+                        {malam.length === 0 ? (
+                          <span className="text-slate-400 text-[11px] italic">-</span>
+                        ) : (
+                          malam.map(m => (
+                            <span key={m.no} className="block font-bold text-indigo-950 text-[11px]">
+                              • {m.nama}
+                            </span>
+                          ))
+                        )}
+                      </div>
+
+                      {/* Off */}
+                      <div className="bg-rose-50/80 p-2 rounded-xl border border-rose-100">
+                        <span className="font-extrabold text-[10px] text-rose-800 uppercase block mb-1">
+                          ☕ Off / Lepas Piket:
+                        </span>
+                        {off.length === 0 ? (
+                          <span className="text-slate-400 text-[11px] italic">-</span>
+                        ) : (
+                          off.map(o => (
+                            <span key={o.no} className="block font-semibold text-rose-950 text-[11px]">
+                              • {o.nama}
+                            </span>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
-          <div className="overflow-x-auto rounded-2xl border border-slate-200">
-            <table className="w-full text-xs text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-900 text-white font-black uppercase text-[10px] tracking-wider">
-                  <th className="px-3 py-3 text-center border-r border-slate-800 w-12">No</th>
-                  <th className="px-4 py-3 border-r border-slate-800 min-w-[240px]">Nama Personel</th>
-                  {DAYS_LIST.map(d => (
-                    <th
-                      key={d}
-                      className={`px-3 py-3 text-center border-r border-slate-800 min-w-[75px] ${
-                        d === currentDayName ? 'bg-amber-400 text-slate-950 font-black' : ''
-                      }`}
-                    >
-                      {d}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 bg-white">
-                {filteredMatrixData.map((item) => (
-                  <tr key={item.no} className="hover:bg-indigo-50/40 transition-colors">
-                    <td className="px-3 py-2.5 text-center font-bold text-slate-400 border-r border-slate-200">
-                      {item.no}
-                    </td>
-                    <td className={`px-4 py-2.5 font-extrabold border-r border-slate-200 ${
-                      item.isWaliAsrama ? 'bg-purple-100/90 text-purple-950 font-black' : 'text-slate-900'
-                    }`}>
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 truncate">
-                          <div className={`w-6 h-6 rounded-lg font-black text-[10px] flex items-center justify-center shrink-0 ${
-                            item.isWaliAsrama ? 'bg-purple-700 text-white' : 'bg-indigo-100 text-indigo-800'
-                          }`}>
-                            {item.no}
+          {/* Dedicated Table Matrix for 9 Wali Asrama */}
+          <div className="bg-white rounded-3xl border border-purple-200 shadow-sm overflow-hidden space-y-3 p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-black text-sm text-purple-950 flex items-center gap-2">
+                  <FileSpreadsheet className="w-4 h-4 text-purple-600" />
+                  <span>Matriks Jadwal Kerja Pekanan Khusus 9 Wali Asrama</span>
+                </h3>
+                <p className="text-xs text-slate-500 font-medium">
+                  Siklus kerja 7 hari penuh untuk 9 Wali Asrama SRT 1 Kabupaten Kediri
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handlePrintPDFWaliAsrama}
+                disabled={isGeneratingPDF}
+                className="px-3.5 py-1.5 bg-purple-100 text-purple-900 hover:bg-purple-200 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                <span>Cetak PDF</span>
+              </button>
+            </div>
+
+            <div className="overflow-x-auto no-scrollbar">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-purple-900 text-white font-black text-[11px]">
+                    <th className="py-2.5 px-3 rounded-l-xl text-center">No</th>
+                    <th className="py-2.5 px-3">Nama Wali Asrama</th>
+                    {DAYS_LIST.map(d => (
+                      <th key={d} className={`py-2.5 px-2 text-center ${d === 'Sabtu' ? 'bg-amber-500 text-slate-950 font-black' : ''}`}>
+                        {d}
+                      </th>
+                    ))}
+                    <th className="py-2.5 px-3 rounded-r-xl text-center">Total Jam/Wk</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-purple-100 font-medium text-slate-800">
+                  {WALI_ASUH_38_DATA.filter(i => i.isWaliAsrama).map((item, idx) => {
+                    const isNuki = item.nama.includes('Nuki');
+                    let totalShift = 0;
+
+                    return (
+                      <tr
+                        key={item.no}
+                        className={`transition-all ${
+                          isNuki ? 'bg-amber-100/80 font-black ring-2 ring-amber-400' : idx % 2 === 0 ? 'bg-purple-50/30' : 'bg-white'
+                        }`}
+                      >
+                        <td className="py-2.5 px-3 text-center font-bold text-purple-950">{idx + 1}</td>
+                        <td className="py-2.5 px-3 font-extrabold text-purple-950 flex items-center gap-2">
+                          <span>{item.nama}</span>
+                          {isNuki && (
+                            <span className="bg-amber-400 text-slate-950 text-[9px] font-black px-1.5 py-0.5 rounded-md">
+                              Dipertanyakan User
+                            </span>
+                          )}
+                        </td>
+                        {DAYS_LIST.map(d => {
+                          const code = item.shifts[d];
+                          if (code !== 'Off') totalShift++;
+
+                          return (
+                            <td key={d} className="py-2.5 px-2 text-center">
+                              <span
+                                className={`inline-block px-2 py-0.5 rounded-md text-[10px] font-black ${
+                                  code === 'P'
+                                    ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                                    : code === 'S'
+                                    ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                                    : code === 'M'
+                                    ? 'bg-indigo-100 text-indigo-900 border border-indigo-300'
+                                    : 'bg-rose-100 text-rose-800 border border-rose-300'
+                                }`}
+                              >
+                                {code}
+                              </span>
+                            </td>
+                          );
+                        })}
+                        <td className="py-2.5 px-3 text-center font-black text-purple-950">
+                          {totalShift * 8} Jam ({totalShift} shift)
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* REKAP JAM KERJA BULANAN VIEW */}
+      {activeView === 'rekap_jam' && (
+        <div className="space-y-5">
+          {/* Summary Metric Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-700 shrink-0">
+                <Users className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Personel</p>
+                <p className="text-xl font-black text-slate-900">{rekapStats.totalStaff} <span className="text-xs font-semibold text-slate-500">Orang</span></p>
+                <p className="text-[10px] text-slate-500 font-medium mt-0.5">38 Wali Asuh + 9 Wali Asrama</p>
+              </div>
+            </div>
+
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-700 shrink-0">
+                <Calendar className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Rata-rata Hari Masuk</p>
+                <p className="text-xl font-black text-indigo-900">{rekapStats.avgHariKerjaBulanan} <span className="text-xs font-semibold text-slate-500">Hari/Bln</span></p>
+                <p className="text-[10px] text-slate-500 font-medium mt-0.5">Setara {rekapStats.avgJamBulanan} Jam/Personel</p>
+              </div>
+            </div>
+
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-700 shrink-0">
+                <Clock className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Akumulasi Tim</p>
+                <p className="text-xl font-black text-teal-700">{rekapStats.totalHariKerjaBulananAll.toLocaleString('id-ID')} <span className="text-xs font-semibold text-slate-500">Hari Masuk</span></p>
+                <p className="text-[10px] text-slate-500 font-medium mt-0.5">Total {rekapStats.totalJamBulananAll.toLocaleString('id-ID')} Jam Operasional</p>
+              </div>
+            </div>
+
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-700 shrink-0">
+                <Sun className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Rincian Shift Pekanan</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-xs font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                    {rekapStats.totalP} P
+                  </span>
+                  <span className="text-xs font-black text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                    {rekapStats.totalS} S
+                  </span>
+                  <span className="text-xs font-black text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200">
+                    {rekapStats.totalM} M
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Controls Bar: Category Filter & Month Basis Selector & Export */}
+          <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-xs space-y-4">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              {/* Filter Kategori */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-black text-slate-500 uppercase tracking-wider mr-1">
+                  Filter Kategori:
+                </span>
+                <button
+                  onClick={() => setCategoryFilter('all')}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                    categoryFilter === 'all'
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  Semua Personel (47)
+                </button>
+                <button
+                  onClick={() => setCategoryFilter('wali_asuh')}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                    categoryFilter === 'wali_asuh'
+                      ? 'bg-indigo-900 text-white shadow-xs'
+                      : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                  }`}
+                >
+                  38 Wali Asuh
+                </button>
+                <button
+                  onClick={() => setCategoryFilter('wali_asrama')}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                    categoryFilter === 'wali_asrama'
+                      ? 'bg-purple-900 text-white shadow-xs'
+                      : 'bg-purple-100 text-purple-900 hover:bg-purple-200'
+                  }`}
+                >
+                  9 Wali Asrama
+                </button>
+              </div>
+
+              {/* Basis Hari Dalam Sebulan (Agustus, September, dll) */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-black text-slate-500 uppercase tracking-wider mr-1">
+                  Pilih Bulan / Basis Hari:
+                </span>
+                {[
+                  { days: 31, label: 'Agustus / Bulan 31 Hari' },
+                  { days: 30, label: 'September / Standar 30 Hari' },
+                  { days: 28, label: 'Februari / 28 Hari' }
+                ].map(item => (
+                  <button
+                    key={item.days}
+                    onClick={() => setDaysInMonth(item.days)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                      daysInMonth === item.days
+                        ? 'bg-teal-700 text-white shadow-xs ring-2 ring-teal-500/30'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-600">
+                <Info className="w-4 h-4 text-teal-600 shrink-0" />
+                <span>Menampilkan <strong className="text-slate-900">{rekapJamData.length} personel</strong> dengan ketentuan shift 8 jam/hari (Basis {daysInMonth} Hari)</span>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={handlePrintPDFRekapBulanan}
+                  disabled={isGeneratingPDF}
+                  className="flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-xl text-xs font-black shadow-xs transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {isGeneratingPDF ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Printer className="w-4 h-4" />
+                  )}
+                  <span>Cetak PDF Rekap Bulanan</span>
+                </button>
+
+                <button
+                  onClick={handleExportCSVJamKerja}
+                  className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-black shadow-xs transition-all cursor-pointer"
+                >
+                  <FileSpreadsheet className="w-4 h-4" />
+                  <span>Export CSV Rekap</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Rekap Table */}
+          <div className="bg-white rounded-3xl border border-slate-200 p-4 shadow-xs space-y-3">
+            <div className="overflow-x-auto rounded-2xl border border-slate-200">
+              <table className="w-full text-xs text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-900 text-white font-black uppercase text-[10px] tracking-wider">
+                    <th className="px-3 py-3 text-center border-r border-slate-800 w-12">No</th>
+                    <th className="px-4 py-3 border-r border-slate-800 min-w-[200px]">Nama Personel</th>
+                    <th className="px-3 py-3 text-center border-r border-slate-800 min-w-[100px]">Kategori</th>
+                    <th className="px-3 py-3 text-center border-r border-slate-800 min-w-[65px] bg-emerald-950/80 text-emerald-300">Pagi (8j)</th>
+                    <th className="px-3 py-3 text-center border-r border-slate-800 min-w-[65px] bg-amber-950/80 text-amber-300">Sore (8j)</th>
+                    <th className="px-3 py-3 text-center border-r border-slate-800 min-w-[65px] bg-indigo-950/80 text-indigo-300">Malam (8j)</th>
+                    <th className="px-3 py-3 text-center border-r border-slate-800 min-w-[65px] bg-rose-950/80 text-rose-300">Off</th>
+                    <th className="px-3 py-3 text-center border-r border-slate-800 min-w-[80px] bg-slate-800">Shift/Pekan</th>
+                    <th className="px-3 py-3 text-center border-r border-slate-800 min-w-[90px] bg-slate-800">Jam/Pekan</th>
+                    <th className="px-3 py-3 text-center border-r border-slate-800 min-w-[125px] bg-indigo-950 text-indigo-200">Hari Masuk ({daysInMonth} Hari)</th>
+                    <th className="px-3 py-3 text-center border-r border-slate-800 min-w-[125px] bg-teal-900 text-teal-200">Total Jam ({daysInMonth} Hari)</th>
+                    <th className="px-3 py-3 text-center min-w-[100px]">Status Beban</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 bg-white">
+                  {rekapJamData.length === 0 ? (
+                    <tr>
+                      <td colSpan={12} className="py-12 text-center text-slate-400 font-bold">
+                        Tidak ada personel yang sesuai dengan kriteria pencarian/filter.
+                      </td>
+                    </tr>
+                  ) : (
+                    rekapJamData.map((item, idx) => (
+                      <tr key={item.no} className="hover:bg-indigo-50/40 transition-colors">
+                        <td className="px-3 py-2.5 text-center font-bold text-slate-400 border-r border-slate-200">
+                          {idx + 1}
+                        </td>
+                        <td className={`px-4 py-2.5 font-extrabold border-r border-slate-200 ${
+                          item.isWaliAsrama ? 'bg-purple-100/90 text-purple-950 font-black' : 'text-slate-900'
+                        }`}>
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 truncate">
+                              <div className={`w-6 h-6 rounded-lg font-black text-[10px] flex items-center justify-center shrink-0 ${
+                                item.isWaliAsrama ? 'bg-purple-700 text-white' : 'bg-indigo-100 text-indigo-800'
+                              }`}>
+                                {item.no}
+                              </div>
+                              <span className="truncate">{item.nama}</span>
+                            </div>
+                            {item.isWaliAsrama && (
+                              <span className="bg-purple-700 text-white text-[9px] font-black px-1.5 py-0.5 rounded-md uppercase shrink-0">
+                                Wali Asrama
+                              </span>
+                            )}
                           </div>
-                          <span className="truncate">{item.nama}</span>
-                        </div>
-                        {item.isWaliAsrama && (
-                          <span className="bg-purple-700 text-white text-[9px] font-black px-1.5 py-0.5 rounded-md uppercase shrink-0">
-                            Wali Asrama
-                          </span>
-                        )}
-                      </div>
-                    </td>
-
-                    {DAYS_LIST.map(day => {
-                      const shift = item.shifts[day];
-                      let styleClass = 'bg-slate-100 text-slate-700 border-slate-200';
-                      if (shift === 'P') styleClass = 'bg-emerald-100 text-emerald-900 font-black border-emerald-300';
-                      if (shift === 'S') styleClass = 'bg-amber-100 text-amber-900 font-black border-amber-300';
-                      if (shift === 'M') styleClass = 'bg-indigo-100 text-indigo-900 font-black border-indigo-300';
-                      if (shift === 'Off') styleClass = 'bg-rose-100 text-rose-800 font-black border-rose-300';
-
-                      return (
-                        <td key={day} className="px-2 py-2 text-center border-r border-slate-200">
-                          <span className={`inline-block w-11 py-1 rounded-lg text-xs border ${styleClass}`}>
-                            {shift}
+                        </td>
+                        <td className="px-3 py-2.5 text-center font-bold text-slate-600 border-r border-slate-200">
+                          {item.isWaliAsrama ? (
+                            <span className="text-purple-800 font-extrabold">Wali Asrama</span>
+                          ) : (
+                            <span className="text-slate-700">Wali Asuh</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2.5 text-center font-bold text-emerald-800 bg-emerald-50/40 border-r border-slate-200">
+                          {item.pCount} shift
+                        </td>
+                        <td className="px-3 py-2.5 text-center font-bold text-amber-800 bg-amber-50/40 border-r border-slate-200">
+                          {item.sCount} shift
+                        </td>
+                        <td className="px-3 py-2.5 text-center font-bold text-indigo-800 bg-indigo-50/40 border-r border-slate-200">
+                          {item.mCount} shift
+                        </td>
+                        <td className="px-3 py-2.5 text-center font-bold text-rose-800 bg-rose-50/40 border-r border-slate-200">
+                          {item.offCount} hari
+                        </td>
+                        <td className="px-3 py-2.5 text-center font-black text-slate-900 bg-slate-50 border-r border-slate-200">
+                          {item.totalShiftWk} Shift
+                        </td>
+                        <td className="px-3 py-2.5 text-center font-black text-slate-900 bg-slate-50 border-r border-slate-200">
+                          {item.jamPekanan} Jam
+                        </td>
+                        <td className="px-3 py-2.5 text-center font-black text-indigo-950 bg-indigo-50/80 border-r border-slate-200 text-xs">
+                          {item.hariKerjaBulanan} Hari
+                        </td>
+                        <td className="px-3 py-2.5 text-center font-black text-teal-800 bg-teal-50 border-r border-slate-200 text-xs">
+                          {item.jamBulanan} Jam
+                        </td>
+                        <td className="px-3 py-2.5 text-center font-bold">
+                          <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-full border border-emerald-200">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                            Ideal SE 4749
                           </span>
                         </td>
-                      );
-                    })}
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+                <tfoot>
+                  <tr className="bg-slate-900 text-white font-black">
+                    <td colSpan={3} className="px-4 py-3 text-right uppercase tracking-wider text-[11px] border-r border-slate-800">
+                      TOTAL AKUMULASI ({rekapJamData.length} Personel)
+                    </td>
+                    <td className="px-3 py-3 text-center text-emerald-300 border-r border-slate-800">
+                      {rekapStats.totalP} Shift
+                    </td>
+                    <td className="px-3 py-3 text-center text-amber-300 border-r border-slate-800">
+                      {rekapStats.totalS} Shift
+                    </td>
+                    <td className="px-3 py-3 text-center text-indigo-300 border-r border-slate-800">
+                      {rekapStats.totalM} Shift
+                    </td>
+                    <td className="px-3 py-3 text-center text-rose-300 border-r border-slate-800">
+                      -
+                    </td>
+                    <td className="px-3 py-3 text-center text-white border-r border-slate-800">
+                      {rekapStats.totalP + rekapStats.totalS + rekapStats.totalM} Shift
+                    </td>
+                    <td className="px-3 py-3 text-center text-white border-r border-slate-800">
+                      {(rekapStats.totalP + rekapStats.totalS + rekapStats.totalM) * 8} Jam
+                    </td>
+                    <td className="px-3 py-3 text-center text-indigo-200 bg-indigo-950 text-xs font-black border-r border-slate-800">
+                      {rekapStats.totalHariKerjaBulananAll.toLocaleString('id-ID')} Hari
+                    </td>
+                    <td className="px-3 py-3 text-center text-teal-300 bg-teal-950 text-xs font-black border-r border-slate-800">
+                      {rekapStats.totalJamBulananAll.toLocaleString('id-ID')} Jam
+                    </td>
+                    <td className="px-3 py-3 text-center text-emerald-400 text-[10px] uppercase font-black">
+                      Sesuai SE 4749/2026
+                    </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </tfoot>
+              </table>
+            </div>
           </div>
         </div>
       )}
