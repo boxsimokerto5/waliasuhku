@@ -7,6 +7,7 @@ import { testSupabaseConnection } from '../lib/supabase';
 import { migrateDataToSupabase, MigrationSummary } from '../lib/supabaseMigration';
 import JadwalWaliAsuh from './JadwalWaliAsuh';
 import JadwalTendikWaliAsuhBaru from './JadwalTendikWaliAsuhBaru';
+import Jadwal38WaliAsuh from './Jadwal38WaliAsuh';
 
 interface SuperAdminDashboardProps {
   users: User[];
@@ -32,6 +33,7 @@ export default function SuperAdminDashboard({
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showRawDatabase, setShowRawDatabase] = useState(false);
+  const [showJadwal38WaliAsuh, setShowJadwal38WaliAsuh] = useState(false);
   const [showJadwalPiket, setShowJadwalPiket] = useState(false);
   const [showJadwalTendikBaru, setShowJadwalTendikBaru] = useState(false);
   const [dbDecryptKey, setDbDecryptKey] = useState('waliasuhku-secure-key');
@@ -271,7 +273,21 @@ CREATE TABLE IF NOT EXISTS chat_messages (
             <button
               type="button"
               onClick={() => {
+                setShowJadwal38WaliAsuh(!showJadwal38WaliAsuh);
+                setShowJadwalPiket(false);
+                setShowJadwalTendikBaru(false);
+              }}
+              className="flex items-center gap-2 bg-amber-400 hover:bg-amber-300 text-slate-900 px-4 py-2.5 rounded-2xl text-xs font-black shadow-md transition-all shrink-0 cursor-pointer"
+            >
+              <Calendar className="w-4 h-4 text-slate-900" />
+              <span>{showJadwal38WaliAsuh ? 'Kembali ke Dasbor' : 'Jadwal 38 Wali Asuh & Tandem'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
                 setShowJadwalPiket(!showJadwalPiket);
+                setShowJadwal38WaliAsuh(false);
                 setShowJadwalTendikBaru(false);
               }}
               className="flex items-center gap-2 bg-white text-slate-800 hover:bg-slate-100 px-4 py-2.5 rounded-2xl text-xs font-black shadow-md transition-all shrink-0 cursor-pointer"
@@ -284,6 +300,7 @@ CREATE TABLE IF NOT EXISTS chat_messages (
               type="button"
               onClick={() => {
                 setShowJadwalTendikBaru(!showJadwalTendikBaru);
+                setShowJadwal38WaliAsuh(false);
                 setShowJadwalPiket(false);
               }}
               className="flex items-center gap-2 bg-rose-500 text-white hover:bg-rose-600 px-4 py-2.5 rounded-2xl text-xs font-black shadow-md transition-all shrink-0 cursor-pointer border border-rose-400"
@@ -295,7 +312,9 @@ CREATE TABLE IF NOT EXISTS chat_messages (
         </div>
       </div>
 
-      {showJadwalPiket ? (
+      {showJadwal38WaliAsuh ? (
+        <Jadwal38WaliAsuh onBack={() => setShowJadwal38WaliAsuh(false)} />
+      ) : showJadwalPiket ? (
         <JadwalWaliAsuh onBack={() => setShowJadwalPiket(false)} />
       ) : showJadwalTendikBaru ? (
         <JadwalTendikWaliAsuhBaru onBack={() => setShowJadwalTendikBaru(false)} />

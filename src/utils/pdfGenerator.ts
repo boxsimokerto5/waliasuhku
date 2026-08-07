@@ -2886,6 +2886,197 @@ export const generateRekapHariKerjaTendikBaruPDF = async (
   doc.save(`Rekap_Hari_Kerja_Tendik_Baru_${cleanMonth}.pdf`);
 };
 
+/**
+ * Generate PDF for Jadwal 38 Wali Asuh Dan Tandem
+ */
+export const generateJadwal38WaliAsuhPDF = async (
+  items: any[] = []
+) => {
+  const doc = new jsPDF({
+    orientation: 'landscape',
+    unit: 'mm',
+    format: 'a4'
+  });
+
+  // 1. Header Title
+  doc.setFillColor(15, 23, 42); // Slate 900 Header
+  doc.rect(10, 10, 277, 12, 'F');
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(13);
+  doc.text('JADWAL 38 WALI ASUH DAN TANDEM', 148.5, 18, { align: 'center' });
+
+  // 2. Subtitle
+  doc.setFillColor(241, 245, 249); // Slate 100
+  doc.rect(10, 22, 277, 6, 'F');
+  doc.setTextColor(51, 65, 85);
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(7.5);
+  doc.text('Jadwal kerja individual sesuai SE Nomor 4749/2026 • Pola 1P–4S–1M–1Off • M → Off/Off → Sore • Anita Kurniawati Off Minggu untuk ibadah', 148.5, 26, { align: 'center' });
+
+  // 3. Table Header
+  let tableY = 30;
+  doc.setFillColor(30, 41, 59); // Slate 800
+  doc.rect(10, tableY, 277, 7, 'F');
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(7.5);
+
+  const colX = {
+    no: 10,
+    nama: 18,
+    tandem: 75,
+    days: {
+      Senin: 132,
+      Selasa: 154,
+      Rabu: 176,
+      Kamis: 198,
+      Jumat: 220,
+      Sabtu: 242,
+      Minggu: 264
+    }
+  };
+
+  doc.text('No.', colX.no + 3, tableY + 4.8, { align: 'center' });
+  doc.text('Nama Wali Asuh', colX.nama + 2, tableY + 4.8);
+  doc.text('Tandem Pengasuhan', colX.tandem + 2, tableY + 4.8);
+  doc.text('Senin', colX.days.Senin + 10, tableY + 4.8, { align: 'center' });
+  doc.text('Selasa', colX.days.Selasa + 10, tableY + 4.8, { align: 'center' });
+  doc.text('Rabu', colX.days.Rabu + 10, tableY + 4.8, { align: 'center' });
+  doc.text('Kamis', colX.days.Kamis + 10, tableY + 4.8, { align: 'center' });
+  doc.text('Jumat', colX.days.Jumat + 10, tableY + 4.8, { align: 'center' });
+  doc.text('Sabtu', colX.days.Sabtu + 10, tableY + 4.8, { align: 'center' });
+  doc.text('Minggu', colX.days.Minggu + 10, tableY + 4.8, { align: 'center' });
+
+  tableY += 7;
+
+  // 4. Table Body
+  doc.setFontSize(7);
+  const daysArr = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+
+  items.forEach((row: any, idx: number) => {
+    // If page overflow (38 rows can fit on 1 page with compact spacing, or split if needed)
+    if (tableY > 180) {
+      doc.addPage();
+      tableY = 15;
+      doc.setFillColor(30, 41, 59);
+      doc.rect(10, tableY, 277, 7, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(7.5);
+      doc.text('No.', colX.no + 3, tableY + 4.8, { align: 'center' });
+      doc.text('Nama Wali Asuh', colX.nama + 2, tableY + 4.8);
+      doc.text('Tandem Pengasuhan', colX.tandem + 2, tableY + 4.8);
+      daysArr.forEach(d => {
+        doc.text(d, (colX.days as any)[d] + 10, tableY + 4.8, { align: 'center' });
+      });
+      tableY += 7;
+    }
+
+    const bgCol = idx % 2 === 0 ? [255, 255, 255] : [248, 250, 252];
+    doc.setFillColor(bgCol[0], bgCol[1], bgCol[2]);
+    doc.rect(10, tableY, 277, 4.3, 'F');
+
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.15);
+    doc.line(10, tableY + 4.3, 287, tableY + 4.3);
+
+    // No
+    doc.setFont('Helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.text(String(row.no || idx + 1), colX.no + 3, tableY + 3.2, { align: 'center' });
+
+    // Nama
+    doc.setFont('Helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text(row.nama || '', colX.nama + 2, tableY + 3.2);
+
+    // Tandem
+    doc.setFont('Helvetica', 'normal');
+    doc.setTextColor(71, 85, 105);
+    doc.text(row.tandem || '', colX.tandem + 2, tableY + 3.2);
+
+    // Days
+    daysArr.forEach(d => {
+      const shift = row.shifts ? row.shifts[d] : '';
+      const xPos = (colX.days as any)[d] + 10;
+
+      if (shift === 'P') {
+        doc.setTextColor(6, 95, 70); // Emerald 800
+        doc.setFont('Helvetica', 'bold');
+      } else if (shift === 'S') {
+        doc.setTextColor(180, 83, 9); // Amber 700
+        doc.setFont('Helvetica', 'bold');
+      } else if (shift === 'M') {
+        doc.setTextColor(67, 56, 202); // Indigo 700
+        doc.setFont('Helvetica', 'bold');
+      } else if (shift === 'Off' || shift === 'OFF') {
+        doc.setTextColor(190, 18, 60); // Rose 700
+        doc.setFont('Helvetica', 'bold');
+      } else {
+        doc.setTextColor(100, 116, 139);
+        doc.setFont('Helvetica', 'normal');
+      }
+
+      doc.text(shift, xPos, tableY + 3.2, { align: 'center' });
+    });
+
+    tableY += 4.3;
+  });
+
+  tableY += 4;
+
+  // 5. Footer Notes
+  doc.setFillColor(241, 245, 249);
+  doc.rect(10, tableY, 277, 9, 'F');
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(6.5);
+  doc.setTextColor(30, 41, 59);
+  doc.text('Kode shift: P = Pagi (07.00–15.00) • S = Sore (15.00–23.00) • M = Malam (23.00–07.00) • Off = Lepas Piket/Off', 148.5, tableY + 3.5, { align: 'center' });
+  doc.setFont('Helvetica', 'normal');
+  doc.text('Catatan: Nama tandem menunjukkan pasangan pengasuhan siswa. Jadwal kerja masing-masing tetap individual dan tidak harus berada pada shift yang sama.', 148.5, tableY + 7, { align: 'center' });
+
+  tableY += 13;
+
+  // 6. Signatures
+  if (tableY > 175) {
+    doc.addPage();
+    tableY = 20;
+  }
+
+  const sigX = 220;
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(30, 41, 59);
+  doc.text('Kediri, ' + new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }), sigX, tableY);
+  doc.text('Mengetahui,', sigX, tableY + 4);
+  doc.setFont('Helvetica', 'bold');
+  doc.text('Kepala SRT 1 Kabupaten Kediri', sigX, tableY + 8);
+
+  try {
+    const qrStr = `JADWAL 38 WALI ASUH DAN TANDEM\nSE NOMOR 4749/2026\nSRT 1 KABUPATEN KEDIRI\nKepala Sekolah: Fadeli, S.Pd., M.Pd.`;
+    const qrUrl = await QRCode.toDataURL(qrStr, { margin: 1, width: 100 });
+    doc.addImage(qrUrl, 'PNG', sigX - 22, tableY + 6, 16, 16);
+  } catch (err) {
+    console.warn('QR Code generation error:', err);
+  }
+
+  tableY += 24;
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(15, 23, 42);
+  doc.text('Fadeli, S.Pd., M.Pd.', sigX, tableY);
+
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(71, 85, 105);
+  doc.text('NIP. 196905211992031008', sigX, tableY + 4);
+
+  doc.save('Jadwal_38_Wali_Asuh_dan_Tandem.pdf');
+};
+
 
 
 
