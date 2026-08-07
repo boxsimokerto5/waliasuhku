@@ -248,7 +248,7 @@ export default function Jadwal38WaliAsuh({ onBack }: Jadwal38WaliAsuhProps) {
   const handlePrintPDFHarian = async () => {
     try {
       setIsGeneratingPDF(true);
-      await generateJadwal38WaliAsuhHarianPDF(selectedDay, WALI_ASUH_38_DATA);
+      await generateJadwal38WaliAsuhHarianPDF(selectedDay, filteredMatrixData);
     } catch (err) {
       console.error('Failed to generate daily classified PDF', err);
     } finally {
@@ -259,7 +259,7 @@ export default function Jadwal38WaliAsuh({ onBack }: Jadwal38WaliAsuhProps) {
   const handlePrintPDFSeluruhHari = async () => {
     try {
       setIsGeneratingPDF(true);
-      await generateJadwal38WaliAsuhSeluruhHariClassifiedPDF(WALI_ASUH_38_DATA);
+      await generateJadwal38WaliAsuhSeluruhHariClassifiedPDF(filteredMatrixData);
     } catch (err) {
       console.error('Failed to generate all days classified PDF', err);
     } finally {
@@ -270,7 +270,7 @@ export default function Jadwal38WaliAsuh({ onBack }: Jadwal38WaliAsuhProps) {
   const handlePrintPDFMatriks = async () => {
     try {
       setIsGeneratingPDF(true);
-      await generateJadwal38WaliAsuhPDF(WALI_ASUH_38_DATA);
+      await generateJadwal38WaliAsuhPDF(filteredMatrixData);
     } catch (err) {
       console.error('Failed to generate matrix PDF', err);
     } finally {
@@ -281,7 +281,7 @@ export default function Jadwal38WaliAsuh({ onBack }: Jadwal38WaliAsuhProps) {
   const handlePrintPDFWaliAsrama = async () => {
     try {
       setIsGeneratingPDF(true);
-      await generateJadwalWaliAsramaPDF(WALI_ASUH_38_DATA);
+      await generateJadwalWaliAsramaPDF(filteredMatrixData);
     } catch (err) {
       console.error('Failed to generate Wali Asrama PDF', err);
     } finally {
@@ -293,7 +293,7 @@ export default function Jadwal38WaliAsuh({ onBack }: Jadwal38WaliAsuhProps) {
     try {
       setIsGeneratingPDF(true);
       await generateRekapJamKerjaBulananPDF(
-        WALI_ASUH_38_DATA,
+        rekapJamData,
         curMonthOpt.year,
         curMonthOpt.month,
         curMonthOpt.name

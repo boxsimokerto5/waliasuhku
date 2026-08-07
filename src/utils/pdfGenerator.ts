@@ -3109,7 +3109,7 @@ const renderClassifiedDayPDFPage = async (
   const shiftPagi = items.filter(i => (i.shifts ? i.shifts[dayName] === 'P' : false));
   const shiftSore = items.filter(i => (i.shifts ? i.shifts[dayName] === 'S' : false));
   const shiftMalam = items.filter(i => (i.shifts ? i.shifts[dayName] === 'M' : false));
-  const shiftOff = items.filter(i => (i.shifts ? (i.shifts[dayName] === 'Off' || i.shifts[dayName] === 'OFF') : false));
+  const shiftOff = items.filter(i => i.shifts && i.shifts[dayName] !== 'P' && i.shifts[dayName] !== 'S' && i.shifts[dayName] !== 'M');
 
   // Render 4 Shift Boxes in a 2x2 Grid
   const boxes = [
@@ -3187,10 +3187,14 @@ const renderClassifiedDayPDFPage = async (
     doc.setFontSize(6.5);
     doc.text(box.badgeText, box.x + box.w - 3, box.y + 5, { align: 'right' });
 
-    // Personnel List
-    let listY = box.y + 11.5;
-    doc.setFont('Helvetica', 'bold');
-    doc.setFontSize(7.5);
+    // Personnel List - Dynamic Row Height & Font Size Scaling
+    const totalItems = box.items.length;
+    const availableHeight = box.h - 13; // ~89mm available for list
+    const stepY = totalItems > 0 ? Math.min(4.3, Math.max(2.4, availableHeight / totalItems)) : 4.3;
+    const fontSize = stepY < 3.0 ? 5.5 : stepY < 3.8 ? 6.2 : 7.2;
+    const boxRectH = Math.max(2.0, stepY - 0.3);
+
+    let listY = box.y + 10.5 + (stepY > 3.5 ? 2.0 : 1.0);
 
     if (box.items.length === 0) {
       doc.setFont('Helvetica', 'italic');
@@ -3199,18 +3203,16 @@ const renderClassifiedDayPDFPage = async (
       doc.text('- Tidak ada personel -', box.x + box.w / 2, listY + 5, { align: 'center' });
     } else {
       box.items.forEach((item: any, idx: number) => {
-        if (listY > box.y + box.h - 3) return; // Prevent overflow
-
         // Highlight Wali Asrama with a purple block, else row striping
         if (item.isWaliAsrama) {
           doc.setFillColor(243, 232, 255); // Purple 100
-          doc.rect(box.x + 1, listY - 3.2, box.w - 2, 4.0, 'F');
+          doc.rect(box.x + 1, listY - (boxRectH * 0.75), box.w - 2, boxRectH, 'F');
           doc.setDrawColor(216, 180, 254); // Purple 300
           doc.setLineWidth(0.2);
-          doc.rect(box.x + 1, listY - 3.2, box.w - 2, 4.0, 'D');
+          doc.rect(box.x + 1, listY - (boxRectH * 0.75), box.w - 2, boxRectH, 'D');
         } else if (idx % 2 === 1) {
           doc.setFillColor(255, 255, 255);
-          doc.rect(box.x + 1, listY - 3.2, box.w - 2, 4.2, 'F');
+          doc.rect(box.x + 1, listY - (boxRectH * 0.75), box.w - 2, boxRectH, 'F');
         }
 
         // Bullet number + Full Name
@@ -3220,7 +3222,7 @@ const renderClassifiedDayPDFPage = async (
         } else {
           doc.setTextColor(15, 23, 42);
         }
-        doc.setFontSize(7.2);
+        doc.setFontSize(fontSize);
         const nameStr = `${idx + 1}.  ${item.nama}${item.isWaliAsrama ? ' (Wali Asrama)' : ''}`;
         
         // Truncate if string exceeds box width
@@ -3234,7 +3236,7 @@ const renderClassifiedDayPDFPage = async (
         }
 
         doc.text(finalStr, box.x + 3, listY);
-        listY += 4.3;
+        listY += stepY;
       });
     }
   });
