@@ -3313,12 +3313,48 @@ export const generateJadwal38WaliAsuhSeluruhHariClassifiedPDF = async (
   doc.save(`Jadwal_Klasifikasi_Seluruh_Hari_38_Wali_Asuh.pdf`);
 };
 
+// Helper to calculate exact day occurrences for any given calendar month
+export const getExactMonthDayCounts = (year: number, month: number) => {
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const counts: Record<string, number> = {
+    Senin: 0,
+    Selasa: 0,
+    Rabu: 0,
+    Kamis: 0,
+    Jumat: 0,
+    Sabtu: 0,
+    Minggu: 0,
+  };
+
+  const dayMap: Record<number, string> = {
+    0: 'Minggu',
+    1: 'Senin',
+    2: 'Selasa',
+    3: 'Rabu',
+    4: 'Kamis',
+    5: 'Jumat',
+    6: 'Sabtu',
+  };
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = new Date(year, month - 1, d);
+    const dayName = dayMap[date.getDay()];
+    if (dayName) {
+      counts[dayName]++;
+    }
+  }
+
+  return { daysInMonth, counts };
+};
+
 /**
  * Generate PDF for Rekap Jam Kerja Bulanan (47 Personel)
  */
 export const generateRekapJamKerjaBulananPDF = async (
   items: any[] = [],
-  daysInMonth: number = 30
+  year: number = 2026,
+  month: number = 8,
+  monthName: string = 'Agustus 2026'
 ) => {
   const doc = new jsPDF({
     orientation: 'landscape',
@@ -3326,19 +3362,24 @@ export const generateRekapJamKerjaBulananPDF = async (
     format: 'a4'
   });
 
+  const { daysInMonth, counts } = getExactMonthDayCounts(year, month);
+
+  // Summary string of day occurrences in this month
+  const daySummary = `Kalender ${monthName} (${daysInMonth} Hari): ${counts.Senin}x Sn, ${counts.Selasa}x Sl, ${counts.Rabu}x Rb, ${counts.Kamis}x Km, ${counts.Jumat}x Jm, ${counts.Sabtu}x Sb, ${counts.Minggu}x Mg`;
+
   // Header Banner
   doc.setFillColor(15, 23, 42); // Slate 900
   doc.rect(0, 0, 297, 24, 'F');
 
   doc.setFont('Helvetica', 'bold');
-  doc.setFontSize(14);
+  doc.setFontSize(13);
   doc.setTextColor(255, 255, 255);
-  doc.text('REKAPITULASI JAM KERJA BULANAN PERSONEL (38 WALI ASUH & 9 WALI ASRAMA)', 14, 11);
+  doc.text(`REKAPITULASI HARI & JAM KERJA BULANAN - ${monthName.toUpperCase()}`, 14, 11);
 
   doc.setFont('Helvetica', 'normal');
-  doc.setFontSize(8.5);
+  doc.setFontSize(8);
   doc.setTextColor(226, 232, 240);
-  doc.text(`SRT 1 KABUPATEN KEDIRI | Ketentuan Shift: 8 Jam/Shift | Basis Perhitungan: ${daysInMonth} Hari Dalam Sebulan`, 14, 18);
+  doc.text(`SRT 1 KABUPATEN KEDIRI | Ketentuan Shift: 8 Jam/Shift | ${daySummary}`, 14, 18);
 
   // Table Headers
   const tableYStart = 30;
@@ -3407,24 +3448,37 @@ export const generateRekapJamKerjaBulananPDF = async (
       currentY += 8;
     }
 
-    // Calculate shift counts
+    // Calculate shift counts & exact calendar month days
     let pCount = 0;
     let sCount = 0;
     let mCount = 0;
     let offCount = 0;
 
+    let pDaysMonth = 0;
+    let sDaysMonth = 0;
+    let mDaysMonth = 0;
+
     daysList.forEach(d => {
       const shift = item.shifts[d];
-      if (shift === 'P') pCount++;
-      else if (shift === 'S') sCount++;
-      else if (shift === 'M') mCount++;
-      else offCount++;
+      const dayOcc = counts[d] || 0;
+      if (shift === 'P') {
+        pCount++;
+        pDaysMonth += dayOcc;
+      } else if (shift === 'S') {
+        sCount++;
+        sDaysMonth += dayOcc;
+      } else if (shift === 'M') {
+        mCount++;
+        mDaysMonth += dayOcc;
+      } else {
+        offCount++;
+      }
     });
 
     const totalShiftWk = pCount + sCount + mCount;
     const jamPekanan = totalShiftWk * 8;
-    const hariKerjaBulanan = Math.round((totalShiftWk / 7) * daysInMonth * 10) / 10;
-    const jamBulanan = Math.round((jamPekanan / 7) * daysInMonth * 10) / 10;
+    const hariKerjaBulanan = pDaysMonth + sDaysMonth + mDaysMonth;
+    const jamBulanan = hariKerjaBulanan * 8;
 
     // Row Background
     if (item.isWaliAsrama) {

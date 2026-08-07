@@ -5,7 +5,8 @@ import {
   generateJadwal38WaliAsuhHarianPDF,
   generateJadwal38WaliAsuhSeluruhHariClassifiedPDF,
   generateRekapJamKerjaBulananPDF,
-  generateJadwalWaliAsramaPDF
+  generateJadwalWaliAsramaPDF,
+  getExactMonthDayCounts
 } from '../utils/pdfGenerator';
 
 export interface PersonelJadwalItem {
@@ -79,6 +80,16 @@ export const WALI_ASUH_38_DATA: PersonelJadwalItem[] = [
 export const DAYS_LIST = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'] as const;
 export type DayName = typeof DAYS_LIST[number];
 
+export const MONTH_OPTIONS = [
+  { year: 2026, month: 8, name: 'Agustus 2026', label: 'Agustus 2026' },
+  { year: 2026, month: 9, name: 'September 2026', label: 'September 2026' },
+  { year: 2026, month: 10, name: 'Oktober 2026', label: 'Oktober 2026' },
+  { year: 2026, month: 11, name: 'November 2026', label: 'November 2026' },
+  { year: 2026, month: 12, name: 'Desember 2026', label: 'Desember 2026' },
+  { year: 2027, month: 1, name: 'Januari 2027', label: 'Januari 2027' },
+  { year: 2027, month: 2, name: 'Februari 2027', label: 'Februari 2027' },
+];
+
 interface Jadwal38WaliAsuhProps {
   onBack?: () => void;
 }
@@ -100,10 +111,15 @@ export default function Jadwal38WaliAsuh({ onBack }: Jadwal38WaliAsuhProps) {
 
   const [selectedDay, setSelectedDay] = useState<DayName>(currentDayName);
   const [activeView, setActiveView] = useState<'classified' | 'matrix' | 'wali_asrama' | 'rekap_jam'>('classified');
-  const [daysInMonth, setDaysInMonth] = useState<number>(30);
+  const [selectedMonthIdx, setSelectedMonthIdx] = useState<number>(0); // 0 = Agustus 2026
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'wali_asuh' | 'wali_asrama'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+
+  const curMonthOpt = MONTH_OPTIONS[selectedMonthIdx] || MONTH_OPTIONS[0];
+  const { daysInMonth, counts: monthDayCounts } = useMemo(() => {
+    return getExactMonthDayCounts(curMonthOpt.year, curMonthOpt.month);
+  }, [curMonthOpt]);
 
   // Filtered Matrix Data
   const filteredMatrixData = useMemo(() => {
@@ -158,18 +174,31 @@ export default function Jadwal38WaliAsuh({ onBack }: Jadwal38WaliAsuhProps) {
       let mCount = 0;
       let offCount = 0;
 
+      let pDaysMonth = 0;
+      let sDaysMonth = 0;
+      let mDaysMonth = 0;
+
       DAYS_LIST.forEach(d => {
         const shift = item.shifts[d];
-        if (shift === 'P') pCount++;
-        else if (shift === 'S') sCount++;
-        else if (shift === 'M') mCount++;
-        else offCount++;
+        const dayOcc = monthDayCounts[d] || 0;
+        if (shift === 'P') {
+          pCount++;
+          pDaysMonth += dayOcc;
+        } else if (shift === 'S') {
+          sCount++;
+          sDaysMonth += dayOcc;
+        } else if (shift === 'M') {
+          mCount++;
+          mDaysMonth += dayOcc;
+        } else {
+          offCount++;
+        }
       });
 
       const totalShiftWk = pCount + sCount + mCount;
       const jamPekanan = totalShiftWk * 8;
-      const hariKerjaBulanan = Math.round((totalShiftWk / 7) * daysInMonth * 10) / 10;
-      const jamBulanan = Math.round((jamPekanan / 7) * daysInMonth * 10) / 10;
+      const hariKerjaBulanan = pDaysMonth + sDaysMonth + mDaysMonth;
+      const jamBulanan = hariKerjaBulanan * 8;
 
       return {
         ...item,
@@ -183,7 +212,7 @@ export default function Jadwal38WaliAsuh({ onBack }: Jadwal38WaliAsuhProps) {
         jamBulanan
       };
     });
-  }, [categoryFilter, searchQuery, daysInMonth]);
+  }, [categoryFilter, searchQuery, monthDayCounts]);
 
   const rekapStats = useMemo(() => {
     const totalStaff = rekapJamData.length;
@@ -263,7 +292,12 @@ export default function Jadwal38WaliAsuh({ onBack }: Jadwal38WaliAsuhProps) {
   const handlePrintPDFRekapBulanan = async () => {
     try {
       setIsGeneratingPDF(true);
-      await generateRekapJamKerjaBulananPDF(WALI_ASUH_38_DATA, daysInMonth);
+      await generateRekapJamKerjaBulananPDF(
+        WALI_ASUH_38_DATA,
+        curMonthOpt.year,
+        curMonthOpt.month,
+        curMonthOpt.name
+      );
     } catch (err) {
       console.error('Failed to generate rekap jam kerja PDF', err);
     } finally {
@@ -288,7 +322,7 @@ export default function Jadwal38WaliAsuh({ onBack }: Jadwal38WaliAsuhProps) {
 
   const handleExportCSVJamKerja = () => {
     let csvContent = "data:text/csv;charset=utf-8,";
-    csvContent += `No,Nama,Kategori,Shift Pagi (P),Shift Sore (S),Shift Malam (M),Off/Lepas Piket,Total Shift/Minggu,Jam Kerja/Minggu,Hari Kerja Masuk Bulanan (${daysInMonth} Hari),Total Jam Bulanan (${daysInMonth} Hari)\n`;
+    csvContent += `No,Nama,Kategori,Shift Pagi (P),Shift Sore (S),Shift Malam (M),Off/Lepas Piket,Total Shift/Minggu,Jam Kerja/Minggu,Hari Kerja Masuk Bulanan (${curMonthOpt.name} - ${daysInMonth} Hari),Total Jam Bulanan (${curMonthOpt.name} - ${daysInMonth} Hari)\n`;
     
     rekapJamData.forEach(item => {
       csvContent += `"${item.no}","${item.nama}","${item.isWaliAsrama ? 'Wali Asrama' : 'Wali Asuh'}","${item.pCount}","${item.sCount}","${item.mCount}","${item.offCount}","${item.totalShiftWk}","${item.jamPekanan}","${item.hariKerjaBulanan} Hari","${item.jamBulanan} Jam"\n`;
@@ -297,7 +331,7 @@ export default function Jadwal38WaliAsuh({ onBack }: Jadwal38WaliAsuhProps) {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `Rekap_Jam_Kerja_Bulanan_47_Personel.csv`);
+    link.setAttribute("download", `Rekap_Jam_Kerja_${curMonthOpt.name.replace(/\s+/g, '_')}_47_Personel.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -1140,35 +1174,45 @@ export default function Jadwal38WaliAsuh({ onBack }: Jadwal38WaliAsuhProps) {
                 </button>
               </div>
 
-              {/* Basis Hari Dalam Sebulan (Agustus, September, dll) */}
+              {/* Pilih Bulan / Basis Kalender Real */}
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs font-black text-slate-500 uppercase tracking-wider mr-1">
-                  Pilih Bulan / Basis Hari:
+                  Pilih Bulan Kalender:
                 </span>
-                {[
-                  { days: 31, label: 'Agustus / Bulan 31 Hari' },
-                  { days: 30, label: 'September / Standar 30 Hari' },
-                  { days: 28, label: 'Februari / 28 Hari' }
-                ].map(item => (
+                {MONTH_OPTIONS.map((opt, idx) => (
                   <button
-                    key={item.days}
-                    onClick={() => setDaysInMonth(item.days)}
+                    key={opt.name}
+                    onClick={() => setSelectedMonthIdx(idx)}
                     className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
-                      daysInMonth === item.days
+                      selectedMonthIdx === idx
                         ? 'bg-teal-700 text-white shadow-xs ring-2 ring-teal-500/30'
                         : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                     }`}
                   >
-                    {item.label}
+                    {opt.label}
                   </button>
                 ))}
               </div>
             </div>
 
+            {/* Banner Penjelasan Presisi Kalender */}
+            <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3.5 text-xs text-slate-700 space-y-1.5">
+              <div className="flex items-center gap-2 font-black text-slate-900">
+                <Calendar className="w-4 h-4 text-indigo-600 shrink-0" />
+                <span>Rincian Kalender Presisi Bulan {curMonthOpt.name} ({daysInMonth} Hari)</span>
+              </div>
+              <p className="text-[11px] text-slate-600 leading-relaxed pl-6">
+                Jumlah kemunculan hari: <span className="font-bold text-slate-900">{monthDayCounts.Senin}x Senin</span>, <span className="font-bold text-slate-900">{monthDayCounts.Selasa}x Selasa</span>, <span className="font-bold text-slate-900">{monthDayCounts.Rabu}x Rabu</span>, <span className="font-bold text-slate-900">{monthDayCounts.Kamis}x Kamis</span>, <span className="font-bold text-slate-900">{monthDayCounts.Jumat}x Jumat</span>, <span className="font-bold text-slate-900">{monthDayCounts.Sabtu}x Sabtu</span>, dan <span className="font-bold text-slate-900">{monthDayCounts.Minggu}x Minggu</span>.
+              </p>
+              <p className="text-[11px] text-slate-600 leading-relaxed pl-6">
+                📌 <strong className="text-indigo-900">Perhitungan Hari Masuk Real:</strong> Personel dengan jadwal Lepas Piket (Off) di hari yang muncul <strong className="text-slate-900">5 kali</strong> (misal Minggu/Senin/Sabtu di {curMonthOpt.name}) mendapat 5 hari libur, sehingga bertugas <strong className="text-emerald-700">{daysInMonth - 5} Hari Masuk ({ (daysInMonth - 5) * 8 } Jam)</strong>. Sedangkan personel dengan Off di hari yang muncul <strong className="text-slate-900">4 kali</strong> (misal Selasa/Rabu/Kamis/Jumat) mendapat 4 hari libur, sehingga bertugas <strong className="text-emerald-700">{daysInMonth - 4} Hari Masuk ({ (daysInMonth - 4) * 8 } Jam)</strong>.
+              </p>
+            </div>
+
             <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-3 flex-wrap">
               <div className="flex items-center gap-2 text-xs font-bold text-slate-600">
                 <Info className="w-4 h-4 text-teal-600 shrink-0" />
-                <span>Menampilkan <strong className="text-slate-900">{rekapJamData.length} personel</strong> dengan ketentuan shift 8 jam/hari (Basis {daysInMonth} Hari)</span>
+                <span>Menampilkan <strong className="text-slate-900">{rekapJamData.length} personel</strong> untuk periode <strong className="text-teal-800">{curMonthOpt.name}</strong> ({daysInMonth} Hari)</span>
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
