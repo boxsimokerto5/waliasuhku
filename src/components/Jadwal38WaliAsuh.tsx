@@ -1,14 +1,15 @@
 import React, { useState, useMemo } from 'react';
-import { Calendar, Clock, Search, ChevronLeft, Download, Loader2, Users, FileSpreadsheet, Sun, Sunset, Moon, Coffee, Info, CheckCircle2, Printer, FileText } from 'lucide-react';
+import { Calendar, Clock, Search, ChevronLeft, Loader2, Users, FileSpreadsheet, Sun, Sunset, Moon, Coffee, Info, CheckCircle2, Printer, FileText, ShieldAlert } from 'lucide-react';
 import {
   generateJadwal38WaliAsuhPDF,
   generateJadwal38WaliAsuhHarianPDF,
   generateJadwal38WaliAsuhSeluruhHariClassifiedPDF
 } from '../utils/pdfGenerator';
 
-export interface WaliAsuh38Item {
+export interface PersonelJadwalItem {
   no: number;
   nama: string;
+  isWaliAsrama?: boolean;
   shifts: {
     Senin: string;
     Selasa: string;
@@ -20,7 +21,8 @@ export interface WaliAsuh38Item {
   };
 }
 
-export const WALI_ASUH_38_DATA: WaliAsuh38Item[] = [
+export const WALI_ASUH_38_DATA: PersonelJadwalItem[] = [
+  // 38 Wali Asuh
   { no: 1, nama: "A. Zainudin Sholeh", shifts: { Senin: "S", Selasa: "M", Rabu: "Off", Kamis: "S", Jumat: "S", Sabtu: "P", Minggu: "S" } },
   { no: 2, nama: "Abisarwan Rafif", shifts: { Senin: "Off", Selasa: "S", Rabu: "S", Kamis: "P", Jumat: "S", Sabtu: "S", Minggu: "M" } },
   { no: 3, nama: "Aris Mahmud Syafi’i", shifts: { Senin: "S", Selasa: "S", Rabu: "S", Kamis: "P", Jumat: "M", Sabtu: "Off", Minggu: "S" } },
@@ -58,7 +60,18 @@ export const WALI_ASUH_38_DATA: WaliAsuh38Item[] = [
   { no: 35, nama: "Hiras Mando Rajagukguk", shifts: { Senin: "P", Selasa: "M", Rabu: "Off", Kamis: "S", Jumat: "S", Sabtu: "S", Minggu: "S" } },
   { no: 36, nama: "Rani Novita Asmi", shifts: { Senin: "S", Selasa: "P", Rabu: "M", Kamis: "Off", Jumat: "S", Sabtu: "S", Minggu: "S" } },
   { no: 37, nama: "Ade Kurnia", shifts: { Senin: "M", Selasa: "Off", Rabu: "S", Kamis: "S", Jumat: "P", Sabtu: "S", Minggu: "S" } },
-  { no: 38, nama: "Inung Khuzaimatul Bariyah Y.", shifts: { Senin: "S", Selasa: "P", Rabu: "S", Kamis: "M", Jumat: "Off", Sabtu: "S", Minggu: "S" } }
+  { no: 38, nama: "Inung Khuzaimatul Bariyah Y.", shifts: { Senin: "S", Selasa: "P", Rabu: "S", Kamis: "M", Jumat: "Off", Sabtu: "S", Minggu: "S" } },
+
+  // 9 Wali Asrama (Highlighted with isWaliAsrama: true)
+  { no: 39, nama: "Eko Warasno", isWaliAsrama: true, shifts: { Senin: "Off", Selasa: "S", Rabu: "P", Kamis: "M", Jumat: "M", Sabtu: "M", Minggu: "M" } },
+  { no: 40, nama: "Widiastutik", isWaliAsrama: true, shifts: { Senin: "M", Selasa: "Off", Rabu: "S", Kamis: "P", Jumat: "M", Sabtu: "M", Minggu: "M" } },
+  { no: 41, nama: "Hartor Prasetyo Utomo", isWaliAsrama: true, shifts: { Senin: "M", Selasa: "M", Rabu: "Off", Kamis: "S", Jumat: "P", Sabtu: "M", Minggu: "M" } },
+  { no: 42, nama: "Nukik Riyan Aswanto (Nuki)", isWaliAsrama: true, shifts: { Senin: "M", Selasa: "M", Rabu: "M", Kamis: "Off", Jumat: "S", Sabtu: "P", Minggu: "M" } },
+  { no: 43, nama: "Priselia Dian Anggraini", isWaliAsrama: true, shifts: { Senin: "M", Selasa: "M", Rabu: "M", Kamis: "M", Jumat: "Off", Sabtu: "S", Minggu: "P" } },
+  { no: 44, nama: "Sunarmi", isWaliAsrama: true, shifts: { Senin: "P", Selasa: "M", Rabu: "M", Kamis: "M", Jumat: "M", Sabtu: "Off", Minggu: "S" } },
+  { no: 45, nama: "Moh. Nursalim", isWaliAsrama: true, shifts: { Senin: "S", Selasa: "P", Rabu: "M", Kamis: "M", Jumat: "M", Sabtu: "M", Minggu: "Off" } },
+  { no: 46, nama: "Rio Andriyono", isWaliAsrama: true, shifts: { Senin: "Off", Selasa: "S", Rabu: "M", Kamis: "M", Jumat: "M", Sabtu: "M", Minggu: "M" } },
+  { no: 47, nama: "Sifa Nasywa", isWaliAsrama: true, shifts: { Senin: "M", Selasa: "M", Rabu: "M", Kamis: "M", Jumat: "Off", Sabtu: "S", Minggu: "M" } }
 ];
 
 export const DAYS_LIST = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'] as const;
@@ -102,10 +115,10 @@ export default function Jadwal38WaliAsuh({ onBack }: Jadwal38WaliAsuhProps) {
   const groupedShifts = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     const result = {
-      P: [] as WaliAsuh38Item[],
-      S: [] as WaliAsuh38Item[],
-      M: [] as WaliAsuh38Item[],
-      Off: [] as WaliAsuh38Item[],
+      P: [] as PersonelJadwalItem[],
+      S: [] as PersonelJadwalItem[],
+      M: [] as PersonelJadwalItem[],
+      Off: [] as PersonelJadwalItem[],
     };
 
     WALI_ASUH_38_DATA.forEach(item => {
@@ -148,7 +161,7 @@ export default function Jadwal38WaliAsuh({ onBack }: Jadwal38WaliAsuhProps) {
       setIsGeneratingPDF(true);
       await generateJadwal38WaliAsuhPDF(WALI_ASUH_38_DATA);
     } catch (err) {
-      console.error('Failed to generate 38 Wali Asuh matrix PDF', err);
+      console.error('Failed to generate matrix PDF', err);
     } finally {
       setIsGeneratingPDF(false);
     }
@@ -156,14 +169,14 @@ export default function Jadwal38WaliAsuh({ onBack }: Jadwal38WaliAsuhProps) {
 
   const handleExportCSV = () => {
     let csvContent = "data:text/csv;charset=utf-8,";
-    csvContent += "No,Nama Wali Asuh,Senin,Selasa,Rabu,Kamis,Jumat,Sabtu,Minggu\n";
+    csvContent += "No,Nama,Kategori,Senin,Selasa,Rabu,Kamis,Jumat,Sabtu,Minggu\n";
     WALI_ASUH_38_DATA.forEach(item => {
-      csvContent += `"${item.no}","${item.nama}","${item.shifts.Senin}","${item.shifts.Selasa}","${item.shifts.Rabu}","${item.shifts.Kamis}","${item.shifts.Jumat}","${item.shifts.Sabtu}","${item.shifts.Minggu}"\n`;
+      csvContent += `"${item.no}","${item.nama}","${item.isWaliAsrama ? 'Wali Asrama' : 'Wali Asuh'}","${item.shifts.Senin}","${item.shifts.Selasa}","${item.shifts.Rabu}","${item.shifts.Kamis}","${item.shifts.Jumat}","${item.shifts.Sabtu}","${item.shifts.Minggu}"\n`;
     });
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `Jadwal_38_Wali_Asuh.csv`);
+    link.setAttribute("download", `Jadwal_Gabungan_47_Personel.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -179,17 +192,17 @@ export default function Jadwal38WaliAsuh({ onBack }: Jadwal38WaliAsuhProps) {
             <div className="flex items-center gap-2 flex-wrap">
               <span className="bg-amber-400 text-slate-900 text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1.5 shadow-xs">
                 <Users className="w-3.5 h-3.5" />
-                <span>38 Wali Asuh</span>
+                <span>47 Personel (38 Wali Asuh + 9 Wali Asrama)</span>
               </span>
-              <span className="bg-indigo-800/90 text-indigo-100 text-xs font-bold px-3 py-1 rounded-full border border-indigo-500/30">
-                Pola 1P–4S–1M–1Off
+              <span className="bg-purple-600 text-white text-xs font-bold px-3 py-1 rounded-full border border-purple-400/40">
+                Wali Asrama Diblok Warna Ungu
               </span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-              Jadwal Kerja 38 Wali Asuh
+              Jadwal Kerja Wali Asuh & Wali Asrama
             </h2>
             <p className="text-xs sm:text-sm text-indigo-100/90 max-w-3xl leading-relaxed">
-              Sesuai SE Nomor 4749/2026. Diklasifikasikan secara rapi per shift (Pagi, Sore, Malam, dan Lepas Piket/Off).
+              Sesuai SE Nomor 4749/2026. Diklasifikasikan secara rapi per shift (Pagi, Sore, Malam, dan Lepas Piket/Off). Nama Wali Asrama selalu ditandai dengan blok warna ungu.
             </p>
           </div>
 
@@ -227,7 +240,7 @@ export default function Jadwal38WaliAsuh({ onBack }: Jadwal38WaliAsuhProps) {
               ) : (
                 <FileText className="w-4 h-4" />
               )}
-              <span>Cetak PDF Seluruh Hari</span>
+              <span>Cetak 7 Hari Klasifikasi</span>
             </button>
 
             <button
@@ -267,7 +280,7 @@ export default function Jadwal38WaliAsuh({ onBack }: Jadwal38WaliAsuhProps) {
             }`}
           >
             <Calendar className="w-4 h-4 text-amber-400" />
-            <span>Matriks Pekanan (Tabel)</span>
+            <span>Matriks Pekanan (47 Personel)</span>
           </button>
         </div>
 
@@ -275,7 +288,7 @@ export default function Jadwal38WaliAsuh({ onBack }: Jadwal38WaliAsuhProps) {
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Cari nama Wali Asuh..."
+            placeholder="Cari nama personel..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 font-medium"
@@ -286,7 +299,7 @@ export default function Jadwal38WaliAsuh({ onBack }: Jadwal38WaliAsuhProps) {
       {/* MAIN CLASSIFIED VIEW */}
       {activeView === 'classified' && (
         <div className="space-y-5">
-          {/* Day Selector Buttons & Print Action */}
+          {/* Day Selector Buttons & Quick Actions */}
           <div className="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-xs space-y-2">
             <div className="flex items-center justify-between gap-2 flex-wrap px-1">
               <span className="text-[11px] font-black uppercase text-slate-500 tracking-wider">
@@ -307,7 +320,7 @@ export default function Jadwal38WaliAsuh({ onBack }: Jadwal38WaliAsuhProps) {
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-black transition-all cursor-pointer border border-indigo-200 shrink-0"
                 >
                   <FileText className="w-3.5 h-3.5" />
-                  <span>Cetak 7 Hari</span>
+                  <span>Cetak 7 Hari Klasifikasi</span>
                 </button>
               </div>
             </div>
@@ -338,6 +351,12 @@ export default function Jadwal38WaliAsuh({ onBack }: Jadwal38WaliAsuhProps) {
             </div>
           </div>
 
+          {/* Legend Banner for Wali Asrama */}
+          <div className="flex items-center gap-2 px-3 py-2 bg-purple-50 border border-purple-200 rounded-xl text-xs text-purple-950 font-bold">
+            <span className="w-3.5 h-3.5 rounded-full bg-purple-600 inline-block shrink-0"></span>
+            <span>Wali Asrama selalu disorot dengan warna ungu di seluruh tampilan dan hasil cetak PDF.</span>
+          </div>
+
           {/* 4 Shift Group Columns (Pagi, Sore, Malam, Off) */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
             {/* 1. SHIFT PAGI */}
@@ -358,7 +377,7 @@ export default function Jadwal38WaliAsuh({ onBack }: Jadwal38WaliAsuhProps) {
                 </div>
               </div>
 
-              <div className="p-3 space-y-2 max-h-[520px] overflow-y-auto no-scrollbar bg-emerald-50/20">
+              <div className="p-3 space-y-2 max-h-[560px] overflow-y-auto no-scrollbar bg-emerald-50/20">
                 {groupedShifts.P.length === 0 ? (
                   <div className="p-6 text-center text-xs text-slate-400 font-medium italic">
                     Tidak ada petugas pada Shift Pagi
@@ -367,14 +386,29 @@ export default function Jadwal38WaliAsuh({ onBack }: Jadwal38WaliAsuhProps) {
                   groupedShifts.P.map(item => (
                     <div
                       key={item.no}
-                      className="p-2.5 bg-white rounded-2xl border border-emerald-100 hover:border-emerald-300 shadow-2xs transition-all flex items-center gap-2.5"
+                      className={`p-2.5 rounded-2xl transition-all flex items-center justify-between gap-2 ${
+                        item.isWaliAsrama
+                          ? 'bg-purple-100/90 border-2 border-purple-400 shadow-xs'
+                          : 'bg-white border border-emerald-100 hover:border-emerald-300 shadow-2xs'
+                      }`}
                     >
-                      <div className="w-7 h-7 rounded-xl bg-emerald-100 text-emerald-900 font-black text-xs flex items-center justify-center shrink-0">
-                        {item.no}
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className={`w-7 h-7 rounded-xl font-black text-xs flex items-center justify-center shrink-0 ${
+                          item.isWaliAsrama ? 'bg-purple-700 text-white' : 'bg-emerald-100 text-emerald-900'
+                        }`}>
+                          {item.no}
+                        </div>
+                        <span className={`font-extrabold text-xs leading-tight truncate ${
+                          item.isWaliAsrama ? 'text-purple-950 font-black' : 'text-slate-900'
+                        }`}>
+                          {item.nama}
+                        </span>
                       </div>
-                      <span className="font-extrabold text-xs text-slate-900 leading-tight">
-                        {item.nama}
-                      </span>
+                      {item.isWaliAsrama && (
+                        <span className="bg-purple-700 text-white text-[9px] font-black px-2 py-0.5 rounded-md uppercase shrink-0">
+                          Wali Asrama
+                        </span>
+                      )}
                     </div>
                   ))
                 )}
@@ -399,7 +433,7 @@ export default function Jadwal38WaliAsuh({ onBack }: Jadwal38WaliAsuhProps) {
                 </div>
               </div>
 
-              <div className="p-3 space-y-2 max-h-[520px] overflow-y-auto no-scrollbar bg-amber-50/20">
+              <div className="p-3 space-y-2 max-h-[560px] overflow-y-auto no-scrollbar bg-amber-50/20">
                 {groupedShifts.S.length === 0 ? (
                   <div className="p-6 text-center text-xs text-slate-400 font-medium italic">
                     Tidak ada petugas pada Shift Sore
@@ -408,14 +442,29 @@ export default function Jadwal38WaliAsuh({ onBack }: Jadwal38WaliAsuhProps) {
                   groupedShifts.S.map(item => (
                     <div
                       key={item.no}
-                      className="p-2.5 bg-white rounded-2xl border border-amber-100 hover:border-amber-300 shadow-2xs transition-all flex items-center gap-2.5"
+                      className={`p-2.5 rounded-2xl transition-all flex items-center justify-between gap-2 ${
+                        item.isWaliAsrama
+                          ? 'bg-purple-100/90 border-2 border-purple-400 shadow-xs'
+                          : 'bg-white border border-amber-100 hover:border-amber-300 shadow-2xs'
+                      }`}
                     >
-                      <div className="w-7 h-7 rounded-xl bg-amber-100 text-amber-900 font-black text-xs flex items-center justify-center shrink-0">
-                        {item.no}
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className={`w-7 h-7 rounded-xl font-black text-xs flex items-center justify-center shrink-0 ${
+                          item.isWaliAsrama ? 'bg-purple-700 text-white' : 'bg-amber-100 text-amber-900'
+                        }`}>
+                          {item.no}
+                        </div>
+                        <span className={`font-extrabold text-xs leading-tight truncate ${
+                          item.isWaliAsrama ? 'text-purple-950 font-black' : 'text-slate-900'
+                        }`}>
+                          {item.nama}
+                        </span>
                       </div>
-                      <span className="font-extrabold text-xs text-slate-900 leading-tight">
-                        {item.nama}
-                      </span>
+                      {item.isWaliAsrama && (
+                        <span className="bg-purple-700 text-white text-[9px] font-black px-2 py-0.5 rounded-md uppercase shrink-0">
+                          Wali Asrama
+                        </span>
+                      )}
                     </div>
                   ))
                 )}
@@ -440,7 +489,7 @@ export default function Jadwal38WaliAsuh({ onBack }: Jadwal38WaliAsuhProps) {
                 </div>
               </div>
 
-              <div className="p-3 space-y-2 max-h-[520px] overflow-y-auto no-scrollbar bg-indigo-50/20">
+              <div className="p-3 space-y-2 max-h-[560px] overflow-y-auto no-scrollbar bg-indigo-50/20">
                 {groupedShifts.M.length === 0 ? (
                   <div className="p-6 text-center text-xs text-slate-400 font-medium italic">
                     Tidak ada petugas pada Shift Malam
@@ -449,14 +498,29 @@ export default function Jadwal38WaliAsuh({ onBack }: Jadwal38WaliAsuhProps) {
                   groupedShifts.M.map(item => (
                     <div
                       key={item.no}
-                      className="p-2.5 bg-white rounded-2xl border border-indigo-100 hover:border-indigo-300 shadow-2xs transition-all flex items-center gap-2.5"
+                      className={`p-2.5 rounded-2xl transition-all flex items-center justify-between gap-2 ${
+                        item.isWaliAsrama
+                          ? 'bg-purple-100/90 border-2 border-purple-400 shadow-xs'
+                          : 'bg-white border border-indigo-100 hover:border-indigo-300 shadow-2xs'
+                      }`}
                     >
-                      <div className="w-7 h-7 rounded-xl bg-indigo-100 text-indigo-900 font-black text-xs flex items-center justify-center shrink-0">
-                        {item.no}
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className={`w-7 h-7 rounded-xl font-black text-xs flex items-center justify-center shrink-0 ${
+                          item.isWaliAsrama ? 'bg-purple-700 text-white' : 'bg-indigo-100 text-indigo-900'
+                        }`}>
+                          {item.no}
+                        </div>
+                        <span className={`font-extrabold text-xs leading-tight truncate ${
+                          item.isWaliAsrama ? 'text-purple-950 font-black' : 'text-slate-900'
+                        }`}>
+                          {item.nama}
+                        </span>
                       </div>
-                      <span className="font-extrabold text-xs text-slate-900 leading-tight">
-                        {item.nama}
-                      </span>
+                      {item.isWaliAsrama && (
+                        <span className="bg-purple-700 text-white text-[9px] font-black px-2 py-0.5 rounded-md uppercase shrink-0">
+                          Wali Asrama
+                        </span>
+                      )}
                     </div>
                   ))
                 )}
@@ -481,7 +545,7 @@ export default function Jadwal38WaliAsuh({ onBack }: Jadwal38WaliAsuhProps) {
                 </div>
               </div>
 
-              <div className="p-3 space-y-2 max-h-[520px] overflow-y-auto no-scrollbar bg-rose-50/20">
+              <div className="p-3 space-y-2 max-h-[560px] overflow-y-auto no-scrollbar bg-rose-50/20">
                 {groupedShifts.Off.length === 0 ? (
                   <div className="p-6 text-center text-xs text-slate-400 font-medium italic">
                     Tidak ada yang Off pada hari ini
@@ -490,14 +554,29 @@ export default function Jadwal38WaliAsuh({ onBack }: Jadwal38WaliAsuhProps) {
                   groupedShifts.Off.map(item => (
                     <div
                       key={item.no}
-                      className="p-2.5 bg-white rounded-2xl border border-rose-100 hover:border-rose-300 shadow-2xs transition-all flex items-center gap-2.5"
+                      className={`p-2.5 rounded-2xl transition-all flex items-center justify-between gap-2 ${
+                        item.isWaliAsrama
+                          ? 'bg-purple-100/90 border-2 border-purple-400 shadow-xs'
+                          : 'bg-white border border-rose-100 hover:border-rose-300 shadow-2xs'
+                      }`}
                     >
-                      <div className="w-7 h-7 rounded-xl bg-rose-100 text-rose-900 font-black text-xs flex items-center justify-center shrink-0">
-                        {item.no}
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className={`w-7 h-7 rounded-xl font-black text-xs flex items-center justify-center shrink-0 ${
+                          item.isWaliAsrama ? 'bg-purple-700 text-white' : 'bg-rose-100 text-rose-900'
+                        }`}>
+                          {item.no}
+                        </div>
+                        <span className={`font-extrabold text-xs leading-tight truncate ${
+                          item.isWaliAsrama ? 'text-purple-950 font-black' : 'text-slate-900'
+                        }`}>
+                          {item.nama}
+                        </span>
                       </div>
-                      <span className="font-extrabold text-xs text-slate-900 leading-tight">
-                        {item.nama}
-                      </span>
+                      {item.isWaliAsrama && (
+                        <span className="bg-purple-700 text-white text-[9px] font-black px-2 py-0.5 rounded-md uppercase shrink-0">
+                          Wali Asrama
+                        </span>
+                      )}
                     </div>
                   ))
                 )}
@@ -511,7 +590,7 @@ export default function Jadwal38WaliAsuh({ onBack }: Jadwal38WaliAsuhProps) {
             <div className="space-y-0.5">
               <span className="font-bold">Ketentuan Pola Shift:</span>
               <p className="text-slate-700 leading-relaxed">
-                Anita Kurniawati ditetapkan Off pada hari Minggu untuk ibadah rutin. Seluruh 38 Wali Asuh mematuhi siklus giliran kerja 1P–4S–1M–1Off secara konsisten.
+                Anita Kurniawati ditetapkan Off pada hari Minggu untuk ibadah rutin. Seluruh 38 Wali Asuh dan 9 Wali Asrama mematuhi siklus giliran kerja SE Nomor 4749/2026.
               </p>
             </div>
           </div>
@@ -524,7 +603,7 @@ export default function Jadwal38WaliAsuh({ onBack }: Jadwal38WaliAsuhProps) {
           <div className="flex items-center justify-between gap-2 flex-wrap px-1">
             <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
               <Users className="w-4 h-4 text-indigo-600" />
-              <span>Matriks Pekanan 38 Wali Asuh</span>
+              <span>Matriks Pekanan Gabungan (47 Personel)</span>
             </h3>
             <div className="flex items-center gap-2">
               <button
@@ -546,7 +625,7 @@ export default function Jadwal38WaliAsuh({ onBack }: Jadwal38WaliAsuhProps) {
               <thead>
                 <tr className="bg-slate-900 text-white font-black uppercase text-[10px] tracking-wider">
                   <th className="px-3 py-3 text-center border-r border-slate-800 w-12">No</th>
-                  <th className="px-4 py-3 border-r border-slate-800 min-w-[220px]">Nama Wali Asuh</th>
+                  <th className="px-4 py-3 border-r border-slate-800 min-w-[240px]">Nama Personel</th>
                   {DAYS_LIST.map(d => (
                     <th
                       key={d}
@@ -560,17 +639,28 @@ export default function Jadwal38WaliAsuh({ onBack }: Jadwal38WaliAsuhProps) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 bg-white">
-                {filteredMatrixData.map((item, idx) => (
+                {filteredMatrixData.map((item) => (
                   <tr key={item.no} className="hover:bg-indigo-50/40 transition-colors">
                     <td className="px-3 py-2.5 text-center font-bold text-slate-400 border-r border-slate-200">
                       {item.no}
                     </td>
-                    <td className="px-4 py-2.5 font-extrabold text-slate-900 border-r border-slate-200">
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-800 font-black text-[10px] flex items-center justify-center shrink-0">
-                          {item.no}
+                    <td className={`px-4 py-2.5 font-extrabold border-r border-slate-200 ${
+                      item.isWaliAsrama ? 'bg-purple-100/90 text-purple-950 font-black' : 'text-slate-900'
+                    }`}>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 truncate">
+                          <div className={`w-6 h-6 rounded-lg font-black text-[10px] flex items-center justify-center shrink-0 ${
+                            item.isWaliAsrama ? 'bg-purple-700 text-white' : 'bg-indigo-100 text-indigo-800'
+                          }`}>
+                            {item.no}
+                          </div>
+                          <span className="truncate">{item.nama}</span>
                         </div>
-                        <span>{item.nama}</span>
+                        {item.isWaliAsrama && (
+                          <span className="bg-purple-700 text-white text-[9px] font-black px-1.5 py-0.5 rounded-md uppercase shrink-0">
+                            Wali Asrama
+                          </span>
+                        )}
                       </div>
                     </td>
 

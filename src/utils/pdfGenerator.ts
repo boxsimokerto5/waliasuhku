@@ -2986,8 +2986,15 @@ export const generateJadwal38WaliAsuhPDF = async (
 
     // Nama
     doc.setFont('Helvetica', 'bold');
-    doc.setTextColor(15, 23, 42);
-    doc.text(row.nama || '', colX.nama + 2, tableY + 3.2);
+    if (row.isWaliAsrama) {
+      doc.setFillColor(243, 232, 255); // Purple 100
+      doc.rect(colX.nama - 1, tableY - 0.8, 110, 4.3, 'F');
+      doc.setTextColor(107, 33, 168); // Purple 800
+      doc.text(`${row.nama} (Wali Asrama)`, colX.nama + 2, tableY + 3.2);
+    } else {
+      doc.setTextColor(15, 23, 42);
+      doc.text(row.nama || '', colX.nama + 2, tableY + 3.2);
+    }
 
     // Days
     daysArr.forEach(d => {
@@ -3194,17 +3201,27 @@ const renderClassifiedDayPDFPage = async (
       box.items.forEach((item: any, idx: number) => {
         if (listY > box.y + box.h - 3) return; // Prevent overflow
 
-        // Subtle row striping
-        if (idx % 2 === 1) {
+        // Highlight Wali Asrama with a purple block, else row striping
+        if (item.isWaliAsrama) {
+          doc.setFillColor(243, 232, 255); // Purple 100
+          doc.rect(box.x + 1, listY - 3.2, box.w - 2, 4.0, 'F');
+          doc.setDrawColor(216, 180, 254); // Purple 300
+          doc.setLineWidth(0.2);
+          doc.rect(box.x + 1, listY - 3.2, box.w - 2, 4.0, 'D');
+        } else if (idx % 2 === 1) {
           doc.setFillColor(255, 255, 255);
           doc.rect(box.x + 1, listY - 3.2, box.w - 2, 4.2, 'F');
         }
 
         // Bullet number + Full Name
         doc.setFont('Helvetica', 'bold');
-        doc.setTextColor(15, 23, 42);
+        if (item.isWaliAsrama) {
+          doc.setTextColor(107, 33, 168); // Purple 800
+        } else {
+          doc.setTextColor(15, 23, 42);
+        }
         doc.setFontSize(7.2);
-        const nameStr = `${idx + 1}.  ${item.nama}`;
+        const nameStr = `${idx + 1}.  ${item.nama}${item.isWaliAsrama ? ' (Wali Asrama)' : ''}`;
         
         // Truncate if string exceeds box width
         const maxStrWidth = box.w - 6;
