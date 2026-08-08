@@ -9,7 +9,11 @@ interface Jadwal28WaliAsuhProps {
 
 export default function Jadwal28WaliAsuh({ onBack }: Jadwal28WaliAsuhProps) {
   const [activeTab, setActiveTab] = useState<'harian' | 'matriks' | 'statistik'>('harian');
-  const [selectedDay, setSelectedDay] = useState<number>(1); // 1-31
+  const [selectedDay, setSelectedDay] = useState<number>(() => {
+    const today = new Date();
+    const d = today.getDate();
+    return d >= 1 && d <= 31 ? d : 1;
+  }); // Automatically defaults to today's date
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAnakAsuh, setSelectedAnakAsuh] = useState<string>('ALL');
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
@@ -59,6 +63,17 @@ export default function Jadwal28WaliAsuh({ onBack }: Jadwal28WaliAsuhProps) {
   }, [selectedDay]);
 
   // Handlers for PDF generation
+  const handlePrintKlasifikasiHarianPDF = async () => {
+    try {
+      setIsGeneratingPDF(true);
+      await generateKlasifikasiShiftHarian28PDF(selectedDay, WALI_ASUH_28_DATA);
+    } catch (err) {
+      console.error('Gagal mencetak Klasifikasi Shift Harian PDF:', err);
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
+
   const handlePrintRekapHarianPDF = async () => {
     try {
       setIsGeneratingPDF(true);
