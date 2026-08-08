@@ -3773,6 +3773,444 @@ export const generateJadwalWaliAsramaPDF = async (
   doc.save(`Jadwal_Khusus_9_Wali_Asrama.pdf`);
 };
 
+/**
+ * PDF Generator: Rekap Absen Harian untuk 28 Wali Asuh
+ * Mencetak lembar presensi resmi per tanggal (1-31 Agustus 2026)
+ */
+export const generateRekapAbsenHarian28PDF = async (
+  selectedDay: number,
+  items: any[],
+  docInstance?: jsPDF,
+  isMultiPageMode: boolean = false
+) => {
+  const doc = docInstance || new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+  // 1 Aug 2026 = Saturday (Sabtu)
+  const namaHariList = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+  const dateObj = new Date(2026, 7, selectedDay);
+  const dayName = namaHariList[dateObj.getDay()];
+
+  // Kop Surat Header
+  const startX = 14;
+  let currentY = 12;
+
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(30, 41, 59);
+  doc.text('KEMENTERIAN SOSIAL REPUBLIK INDONESIA', 105, currentY, { align: 'center' });
+  currentY += 4.5;
+
+  doc.setFontSize(9);
+  doc.text('PUSAT PENDIDIKAN PELATIHAN DAN PENGEMBANGAN PROFESI', 105, currentY, { align: 'center' });
+  currentY += 4.5;
+
+  doc.setFontSize(11);
+  doc.setTextColor(15, 23, 42);
+  doc.text('SEKOLAH RAKYAT MENENGAH ATAS 24 KEDIRI', 105, currentY, { align: 'center' });
+  currentY += 4;
+
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(71, 85, 105);
+  doc.text('Gedung Balai Pengembangan Kompetensi Aparatur Sipil Negara', 105, currentY, { align: 'center' });
+  currentY += 3.5;
+  doc.text('Gg. 2 Bulusari Utara, Bulusari, Kec. Tarokan, Kab. Kediri, Jawa Timur', 105, currentY, { align: 'center' });
+  currentY += 3.5;
+  doc.text('Pos-el: srma24kediri@gmail.com Kode Pos: 64152', 105, currentY, { align: 'center' });
+  currentY += 4;
+
+  // Double Line Separator
+  doc.setDrawColor(15, 23, 42);
+  doc.setLineWidth(0.8);
+  doc.line(startX, currentY, 196, currentY);
+  currentY += 1.2;
+  doc.setLineWidth(0.2);
+  doc.line(startX, currentY, 196, currentY);
+  currentY += 6;
+
+  // Title Document
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.setTextColor(15, 23, 42);
+  doc.text('REKAPITULASI PRESENSI & KEHADIRAN SHIFT HARIAN WALI ASUH', 105, currentY, { align: 'center' });
+  currentY += 5;
+
+  doc.setFontSize(9.5);
+  doc.setTextColor(13, 148, 136); // Teal 600
+  doc.text(`TANGGAL: ${dayName.toUpperCase()}, ${selectedDay} AGUSTUS 2026`, 105, currentY, { align: 'center' });
+  currentY += 7;
+
+  // Shift Statistics Box on top
+  const countP = items.filter(i => i.shifts && i.shifts[selectedDay] === 'P').length;
+  const countS = items.filter(i => i.shifts && i.shifts[selectedDay] === 'S').length;
+  const countM = items.filter(i => i.shifts && i.shifts[selectedDay] === 'M').length;
+  const countC = items.filter(i => i.shifts && i.shifts[selectedDay] === 'C').length;
+  const countSkt = items.filter(i => i.shifts && i.shifts[selectedDay] === 'SKT').length;
+  const countOff = items.filter(i => i.shifts && (i.shifts[selectedDay] === 'O' || i.shifts[selectedDay] === 'LP' || i.shifts[selectedDay] === 'OFF')).length;
+
+  doc.setFillColor(241, 245, 249);
+  doc.setDrawColor(203, 213, 225);
+  doc.setLineWidth(0.2);
+  doc.roundedRect(startX, currentY, 182, 11, 2, 2, 'FD');
+
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(7.5);
+  doc.setTextColor(15, 23, 42);
+  doc.text(`Total Wali Asuh: ${items.length} Personel`, startX + 4, currentY + 7);
+
+  doc.setFont('Helvetica', 'bold');
+  doc.setTextColor(16, 185, 129); // Emerald
+  doc.text(`• Shift Pagi: ${countP}`, startX + 48, currentY + 7);
+
+  doc.setTextColor(217, 119, 6); // Amber
+  doc.text(`• Shift Sore: ${countS}`, startX + 78, currentY + 7);
+
+  doc.setTextColor(79, 70, 229); // Indigo
+  doc.text(`• Shift Malam: ${countM}`, startX + 108, currentY + 7);
+
+  doc.setTextColor(100, 116, 139); // Slate
+  doc.text(`• Off/Lepas: ${countOff}`, startX + 138, currentY + 7);
+
+  if (countC > 0 || countSkt > 0) {
+    doc.setTextColor(225, 29, 72); // Rose
+    doc.text(`• Cuti/Skt: ${countC + countSkt}`, startX + 165, currentY + 7);
+  }
+
+  currentY += 15;
+
+  // Table Column Definitions
+  const cols = {
+    no: { x: startX, w: 8, label: 'No' },
+    nama: { x: startX + 8, w: 48, label: 'Nama Wali Asuh' },
+    anakAsuh: { x: startX + 56, w: 25, label: 'Anak Asuh' },
+    shift: { x: startX + 81, w: 24, label: 'Jadwal Shift' },
+    jam: { x: startX + 105, w: 28, label: 'Jam Dinas' },
+    presensi: { x: startX + 133, w: 26, label: 'Status Kehadiran' },
+    paraf: { x: startX + 159, w: 23, label: 'Paraf / TTD' }
+  };
+
+  // Header Table
+  doc.setFillColor(15, 23, 42); // Dark slate
+  doc.rect(startX, currentY, 182, 6, 'F');
+
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(7);
+  doc.setTextColor(255, 255, 255);
+
+  doc.text(cols.no.label, cols.no.x + 4, currentY + 4, { align: 'center' });
+  doc.text(cols.nama.label, cols.nama.x + 2, currentY + 4);
+  doc.text(cols.anakAsuh.label, cols.anakAsuh.x + 2, currentY + 4);
+  doc.text(cols.shift.label, cols.shift.x + cols.shift.w / 2, currentY + 4, { align: 'center' });
+  doc.text(cols.jam.label, cols.jam.x + cols.jam.w / 2, currentY + 4, { align: 'center' });
+  doc.text(cols.presensi.label, cols.presensi.x + cols.presensi.w / 2, currentY + 4, { align: 'center' });
+  doc.text(cols.paraf.label, cols.paraf.x + cols.paraf.w / 2, currentY + 4, { align: 'center' });
+
+  currentY += 6;
+
+  // Render Rows
+  const rowHeight = 6.2;
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(7);
+
+  items.forEach((item, idx) => {
+    const isEven = idx % 2 === 1;
+    if (isEven) {
+      doc.setFillColor(248, 250, 252);
+      doc.rect(startX, currentY, 182, rowHeight, 'F');
+    }
+
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.1);
+    doc.rect(startX, currentY, 182, rowHeight, 'S');
+
+    // Dividers
+    doc.line(cols.nama.x, currentY, cols.nama.x, currentY + rowHeight);
+    doc.line(cols.anakAsuh.x, currentY, cols.anakAsuh.x, currentY + rowHeight);
+    doc.line(cols.shift.x, currentY, cols.shift.x, currentY + rowHeight);
+    doc.line(cols.jam.x, currentY, cols.jam.x, currentY + rowHeight);
+    doc.line(cols.presensi.x, currentY, cols.presensi.x, currentY + rowHeight);
+    doc.line(cols.paraf.x, currentY, cols.paraf.x, currentY + rowHeight);
+
+    // Data
+    const shiftVal = item.shifts ? item.shifts[selectedDay] || '-' : '-';
+
+    let shiftLabel = 'OFF';
+    let jamLabel = '-';
+    let badgeColor = [100, 116, 139]; // slate
+
+    if (shiftVal === 'P') {
+      shiftLabel = 'PAGI (P)';
+      jamLabel = '07:00 - 15:00';
+      badgeColor = [16, 185, 129]; // emerald
+    } else if (shiftVal === 'S') {
+      shiftLabel = 'SORE (S)';
+      jamLabel = '15:00 - 23:00';
+      badgeColor = [217, 119, 6]; // amber
+    } else if (shiftVal === 'M') {
+      shiftLabel = 'MALAM (M)';
+      jamLabel = '23:00 - 08:00';
+      badgeColor = [79, 70, 229]; // indigo
+    } else if (shiftVal === 'LP') {
+      shiftLabel = 'LEPAS (LP)';
+      jamLabel = 'Izin Istirahat';
+      badgeColor = [100, 116, 139];
+    } else if (shiftVal === 'C') {
+      shiftLabel = 'CUTI (C)';
+      jamLabel = 'Izin Cuti';
+      badgeColor = [147, 51, 234]; // purple
+    } else if (shiftVal === 'SKT') {
+      shiftLabel = 'SAKIT';
+      jamLabel = 'Izin Sakit';
+      badgeColor = [225, 29, 72]; // rose
+    }
+
+    doc.setTextColor(15, 23, 42);
+    doc.setFont('Helvetica', 'normal');
+    doc.text(`${idx + 1}`, cols.no.x + 4, currentY + 4.2, { align: 'center' });
+
+    // Truncate name if long
+    let nameText = item.nama;
+    if (nameText.length > 25) nameText = nameText.substring(0, 24) + '..';
+    doc.text(nameText, cols.nama.x + 2, currentY + 4.2);
+
+    doc.setFont('Helvetica', 'bold');
+    doc.setTextColor(51, 65, 85);
+    doc.text(item.anakAsuh || '-', cols.anakAsuh.x + 2, currentY + 4.2);
+
+    // Shift Tag Badge
+    doc.setFont('Helvetica', 'bold');
+    doc.setTextColor(badgeColor[0], badgeColor[1], badgeColor[2]);
+    doc.text(shiftLabel, cols.shift.x + cols.shift.w / 2, currentY + 4.2, { align: 'center' });
+
+    doc.setFont('Helvetica', 'normal');
+    doc.setTextColor(71, 85, 105);
+    doc.text(jamLabel, cols.jam.x + cols.jam.w / 2, currentY + 4.2, { align: 'center' });
+
+    // Presensi Checkbox
+    doc.setFontSize(6.5);
+    doc.setTextColor(100, 116, 139);
+    doc.text('[  ] Hadir  [  ] Izin', cols.presensi.x + cols.presensi.w / 2, currentY + 4.2, { align: 'center' });
+
+    currentY += rowHeight;
+  });
+
+  // Footer Signature Block
+  currentY += 8;
+  const sigXLeft = startX + 10;
+  const sigXRight = startX + 125;
+
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(30, 41, 59);
+
+  doc.text(`Kediri, ${selectedDay} Agustus 2026`, sigXRight, currentY);
+  currentY += 4;
+
+  doc.text('Mengetahui,', sigXLeft, currentY);
+  doc.text('Mengetahui,', sigXRight, currentY);
+  currentY += 4;
+
+  doc.setFont('Helvetica', 'bold');
+  doc.text('Koordinator Wali Asuh SRMA 24', sigXLeft, currentY);
+  doc.text('Kepala SRMA 24 Kediri', sigXRight, currentY);
+
+  // QR verification
+  try {
+    const qrText = `REKAP PRESENSI HARIAN WALI ASUH\nTanggal: ${dayName}, ${selectedDay} Agustus 2026\nSRMA 24 KEDIRI\nValidasi Resmi`;
+    const qrDataUrl = await QRCode.toDataURL(qrText, { margin: 1, width: 80 });
+    doc.addImage(qrDataUrl, 'PNG', sigXRight - 20, currentY + 2, 16, 16);
+  } catch (err) {
+    console.warn('QR Code generation failed:', err);
+  }
+
+  currentY += 22;
+
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(8.5);
+  doc.setTextColor(15, 23, 42);
+  doc.text('Suhariyono, S.Pd.', sigXLeft, currentY);
+  doc.text('Fadeli, S.Pd., M.Pd.', sigXRight, currentY);
+
+  currentY += 3.5;
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(71, 85, 105);
+  doc.text('NIP. 198204122008011005', sigXLeft, currentY);
+  doc.text('NIP. 196905211992031008', sigXRight, currentY);
+
+  if (!isMultiPageMode) {
+    doc.save(`Rekap_Absen_Harian_WaliAsuh_${selectedDay}_Agt_2026.pdf`);
+  }
+};
+
+/**
+ * Cetak Seluruh Rekap Absen Harian 31 Hari sekaligus (Multi-page PDF)
+ */
+export const generateSeluruhHariRekapAbsen28PDF = async (items: any[]) => {
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+  for (let day = 1; day <= 31; day++) {
+    if (day > 1) doc.addPage();
+    await generateRekapAbsenHarian28PDF(day, items, doc, true);
+  }
+
+  doc.save(`Rekap_Absen_Harian_Lengkap_31_Hari_Agustus_2026.pdf`);
+};
+
+/**
+ * PDF Generator: Matriks Jadwal 28 Wali Asuh Agustus 2026 (Landscape A4)
+ */
+export const generateMatriksJadwal28PDF = async (items: any[]) => {
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+  // Kop Surat Landscape
+  let currentY = 10;
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(30, 41, 59);
+  doc.text('KEMENTERIAN SOSIAL REPUBLIK INDONESIA', 148.5, currentY, { align: 'center' });
+  currentY += 4;
+
+  doc.setFontSize(9);
+  doc.text('PUSAT PENDIDIKAN PELATIHAN DAN PENGEMBANGAN PROFESI — SEKOLAH RAKYAT MENENGAH ATAS 24 KEDIRI', 148.5, currentY, { align: 'center' });
+  currentY += 4;
+
+  doc.setFontSize(7.5);
+  doc.setFont('Helvetica', 'normal');
+  doc.setTextColor(71, 85, 105);
+  doc.text('Gedung Balai Pengembangan Kompetensi ASN, Gg. 2 Bulusari Utara, Bulusari, Kec. Tarokan, Kab. Kediri, Jawa Timur', 148.5, currentY, { align: 'center' });
+  currentY += 4;
+
+  doc.setDrawColor(15, 23, 42);
+  doc.setLineWidth(0.6);
+  doc.line(10, currentY, 287, currentY);
+  currentY += 5;
+
+  // Title
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(15, 23, 42);
+  doc.text('JADWAL PEMBAGIAN SHIFT 28 WALI ASUH — AGUSTUS 2026', 148.5, currentY, { align: 'center' });
+  currentY += 6;
+
+  // Table Setup
+  const startX = 10;
+  const colNoW = 7;
+  const colNamaW = 38;
+  const colAnakW = 16;
+  const colDayW = 5.8; // 31 * 5.8 = 179.8 mm
+  const colTotalW = 6.2; // 6 * 6.2 = 37.2 mm
+
+  // Header row
+  doc.setFillColor(15, 23, 42);
+  doc.rect(startX, currentY, 277, 6, 'F');
+
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(6);
+  doc.setTextColor(255, 255, 255);
+
+  doc.text('No', startX + colNoW / 2, currentY + 4, { align: 'center' });
+  doc.text('Nama Wali Asuh', startX + colNoW + 2, currentY + 4);
+  doc.text('Anak Asuh', startX + colNoW + colNamaW + 1, currentY + 4);
+
+  // Day Headers 1..31
+  let dayX = startX + colNoW + colNamaW + colAnakW;
+  for (let d = 1; d <= 31; d++) {
+    doc.text(`${d}`, dayX + colDayW / 2, currentY + 4, { align: 'center' });
+    dayX += colDayW;
+  }
+
+  // Totals Headers
+  doc.text('P', dayX + colTotalW / 2, currentY + 4, { align: 'center' });
+  doc.text('S', dayX + colTotalW * 1.5, currentY + 4, { align: 'center' });
+  doc.text('M', dayX + colTotalW * 2.5, currentY + 4, { align: 'center' });
+  doc.text('LP', dayX + colTotalW * 3.5, currentY + 4, { align: 'center' });
+  doc.text('O', dayX + colTotalW * 4.5, currentY + 4, { align: 'center' });
+  doc.text('JK', dayX + colTotalW * 5.5, currentY + 4, { align: 'center' });
+
+  currentY += 6;
+
+  // Render Table Rows
+  const rowH = 4.2;
+  doc.setFontSize(5.5);
+
+  items.forEach((item, idx) => {
+    if (idx % 2 === 1) {
+      doc.setFillColor(248, 250, 252);
+      doc.rect(startX, currentY, 277, rowH, 'F');
+    }
+
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.1);
+    doc.rect(startX, currentY, 277, rowH, 'S');
+
+    doc.setFont('Helvetica', 'normal');
+    doc.setTextColor(15, 23, 42);
+
+    doc.text(`${idx + 1}`, startX + colNoW / 2, currentY + 3, { align: 'center' });
+
+    let nameStr = item.nama;
+    if (nameStr.length > 22) nameStr = nameStr.substring(0, 21) + '..';
+    doc.text(nameStr, startX + colNoW + 1, currentY + 3);
+
+    doc.setFont('Helvetica', 'bold');
+    doc.text(item.anakAsuh || '-', startX + colNoW + colNamaW + 1, currentY + 3);
+
+    // Days 1..31
+    let dX = startX + colNoW + colNamaW + colAnakW;
+    for (let d = 1; d <= 31; d++) {
+      const shift = item.shifts ? item.shifts[d] || '' : '';
+      if (shift === 'P') doc.setTextColor(16, 185, 129);
+      else if (shift === 'S') doc.setTextColor(217, 119, 6);
+      else if (shift === 'M') doc.setTextColor(79, 70, 229);
+      else if (shift === 'C') doc.setTextColor(147, 51, 234);
+      else if (shift === 'SKT') doc.setTextColor(225, 29, 72);
+      else doc.setTextColor(148, 163, 184);
+
+      doc.setFont('Helvetica', shift === 'P' || shift === 'S' || shift === 'M' ? 'bold' : 'normal');
+      doc.text(shift, dX + colDayW / 2, currentY + 3, { align: 'center' });
+      dX += colDayW;
+    }
+
+    // Totals
+    doc.setFont('Helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text(`${item.pFul ?? item.p ?? 0}`, dX + colTotalW / 2, currentY + 3, { align: 'center' });
+    doc.text(`${item.s ?? 0}`, dX + colTotalW * 1.5, currentY + 3, { align: 'center' });
+    doc.text(`${item.m ?? 0}`, dX + colTotalW * 2.5, currentY + 3, { align: 'center' });
+    doc.text(`${item.lp ?? 0}`, dX + colTotalW * 3.5, currentY + 3, { align: 'center' });
+    doc.text(`${item.off ?? 0}`, dX + colTotalW * 4.5, currentY + 3, { align: 'center' });
+    doc.text(`${item.jk ?? 0}`, dX + colTotalW * 5.5, currentY + 3, { align: 'center' });
+
+    currentY += rowH;
+  });
+
+  // Footer Signature Block
+  currentY += 6;
+  const sigX = 220;
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(30, 41, 59);
+  doc.text('Kediri, 1 Agustus 2026', sigX, currentY);
+  currentY += 3.5;
+  doc.text('Mengetahui,', sigX, currentY);
+  currentY += 3.5;
+  doc.setFont('Helvetica', 'bold');
+  doc.text('Kepala SRMA 24 Kediri', sigX, currentY);
+
+  currentY += 16;
+  doc.setFontSize(8);
+  doc.text('Fadeli, S.Pd., M.Pd.', sigX, currentY);
+  currentY += 3.5;
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(7);
+  doc.setTextColor(71, 85, 105);
+  doc.text('NIP. 196905211992031008', sigX, currentY);
+
+  doc.save(`Matriks_Jadwal_28_WaliAsuh_Agustus_2026.pdf`);
+};
+
+
 
 
 

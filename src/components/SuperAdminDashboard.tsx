@@ -8,6 +8,7 @@ import { migrateDataToSupabase, MigrationSummary } from '../lib/supabaseMigratio
 import JadwalWaliAsuh from './JadwalWaliAsuh';
 import JadwalTendikWaliAsuhBaru from './JadwalTendikWaliAsuhBaru';
 import Jadwal38WaliAsuh from './Jadwal38WaliAsuh';
+import Jadwal28WaliAsuh from './Jadwal28WaliAsuh';
 
 interface SuperAdminDashboardProps {
   users: User[];
@@ -33,6 +34,7 @@ export default function SuperAdminDashboard({
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showRawDatabase, setShowRawDatabase] = useState(false);
+  const [showJadwal28WaliAsuh, setShowJadwal28WaliAsuh] = useState(false);
   const [showJadwal38WaliAsuh, setShowJadwal38WaliAsuh] = useState(false);
   const [showJadwalPiket, setShowJadwalPiket] = useState(false);
   const [showJadwalTendikBaru, setShowJadwalTendikBaru] = useState(false);
@@ -273,7 +275,22 @@ CREATE TABLE IF NOT EXISTS chat_messages (
             <button
               type="button"
               onClick={() => {
+                setShowJadwal28WaliAsuh(!showJadwal28WaliAsuh);
+                setShowJadwal38WaliAsuh(false);
+                setShowJadwalPiket(false);
+                setShowJadwalTendikBaru(false);
+              }}
+              className="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-4 py-2.5 rounded-2xl text-xs font-black shadow-md transition-all shrink-0 cursor-pointer"
+            >
+              <Calendar className="w-4 h-4 text-white" />
+              <span>{showJadwal28WaliAsuh ? 'Kembali ke Dasbor' : 'Jadwal 28 Wali Asuh'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
                 setShowJadwal38WaliAsuh(!showJadwal38WaliAsuh);
+                setShowJadwal28WaliAsuh(false);
                 setShowJadwalPiket(false);
                 setShowJadwalTendikBaru(false);
               }}
@@ -287,6 +304,7 @@ CREATE TABLE IF NOT EXISTS chat_messages (
               type="button"
               onClick={() => {
                 setShowJadwalPiket(!showJadwalPiket);
+                setShowJadwal28WaliAsuh(false);
                 setShowJadwal38WaliAsuh(false);
                 setShowJadwalTendikBaru(false);
               }}
@@ -300,6 +318,7 @@ CREATE TABLE IF NOT EXISTS chat_messages (
               type="button"
               onClick={() => {
                 setShowJadwalTendikBaru(!showJadwalTendikBaru);
+                setShowJadwal28WaliAsuh(false);
                 setShowJadwal38WaliAsuh(false);
                 setShowJadwalPiket(false);
               }}
@@ -312,7 +331,9 @@ CREATE TABLE IF NOT EXISTS chat_messages (
         </div>
       </div>
 
-      {showJadwal38WaliAsuh ? (
+      {showJadwal28WaliAsuh ? (
+        <Jadwal28WaliAsuh onBack={() => setShowJadwal28WaliAsuh(false)} />
+      ) : showJadwal38WaliAsuh ? (
         <Jadwal38WaliAsuh onBack={() => setShowJadwal38WaliAsuh(false)} />
       ) : showJadwalPiket ? (
         <JadwalWaliAsuh onBack={() => setShowJadwalPiket(false)} />

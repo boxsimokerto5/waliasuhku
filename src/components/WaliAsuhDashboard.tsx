@@ -15,6 +15,7 @@ import BiodataDetailModal from './BiodataDetailModal';
 import DailyQuoteBanner from './DailyQuoteBanner';
 import MonthlyReportManagement from './MonthlyReportManagement';
 import CounselingManagement from './CounselingManagement';
+import Jadwal28WaliAsuh from './Jadwal28WaliAsuh';
 
 interface WaliAsuhDashboardProps {
   currentUser: User;
@@ -511,6 +512,20 @@ export default function WaliAsuhDashboard({
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-10 gap-3 pt-1">
+            {/* 0. Jadwal 28 Wali Asuh (Prominent Teal) */}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveSubPage('jadwal_28');
+              }}
+              className="flex flex-col items-center justify-center p-3 rounded-2xl bg-teal-600 text-white hover:bg-teal-700 transition-all text-center cursor-pointer gap-1.5 shadow-md shadow-teal-600/20 col-span-2 sm:col-span-1 border border-teal-500"
+            >
+              <div className="p-2 bg-white/20 rounded-xl backdrop-blur-md">
+                <Calendar className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-[11px] font-black leading-tight">Jadwal 28 Wali</span>
+            </button>
+
             {/* 0. Konseling & Bimbingan (Prominent) */}
             <button
               type="button"
@@ -752,6 +767,11 @@ export default function WaliAsuhDashboard({
         </div>
       )}
 
+
+      {/* 0. Jadwal 28 Wali Asuh Sub-Page */}
+      {activeSubPage === 'jadwal_28' && (
+        <Jadwal28WaliAsuh onBack={() => setActiveSubPage(null)} />
+      )}
 
       {/* 1. Register Anak Asuh Sub-Page */}
       {activeSubPage === 'register_anak_asuh' && (
