@@ -3774,8 +3774,211 @@ export const generateJadwalWaliAsramaPDF = async (
 };
 
 /**
- * PDF Generator: Rekap Absen Harian untuk 28 Wali Asuh
- * Mencetak lembar presensi resmi per tanggal (1-31 Agustus 2026)
+ * PDF Generator: Klasifikasi Shift Harian (Layout 4-Box Grid sesuai Screenshot)
+ * 28 Wali Asuh per Tanggal (1-31 Agustus 2026)
+ */
+export const generateKlasifikasiShiftHarian28PDF = async (
+  selectedDay: number,
+  items: any[],
+  docInstance?: jsPDF,
+  isMultiPageMode: boolean = false
+) => {
+  const doc = docInstance || new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+  // 1 Aug 2026 = Saturday (Sabtu)
+  const namaHariList = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+  const dateObj = new Date(2026, 7, selectedDay);
+  const dayName = namaHariList[dateObj.getDay()];
+
+  // 1. Header Bar
+  doc.setFillColor(15, 23, 42); // Slate 900
+  doc.rect(10, 10, 190, 13, 'F');
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.text(`KLASIFIKASI SHIFT PIKET WALI ASUH - HARI ${dayName.toUpperCase()}`, 105, 18, { align: 'center' });
+
+  // 2. Subtitle Bar
+  doc.setFillColor(241, 245, 249); // Slate 100
+  doc.rect(10, 23, 190, 6, 'F');
+  doc.setTextColor(51, 65, 85);
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(7.5);
+  doc.text(`SEKOLAH RAKYAT MENENGAH ATAS 24 KEDIRI • TANGGAL ${selectedDay} AGUSTUS 2026 • POLA SHIFT HARIAN`, 105, 27, { align: 'center' });
+
+  // Filter items for selectedDay
+  const shiftPagi = items.filter(i => (i.shifts ? i.shifts[selectedDay] === 'P' : false));
+  const shiftSore = items.filter(i => (i.shifts ? i.shifts[selectedDay] === 'S' : false));
+  const shiftMalam = items.filter(i => (i.shifts ? i.shifts[selectedDay] === 'M' : false));
+  const shiftOff = items.filter(i => i.shifts && i.shifts[selectedDay] !== 'P' && i.shifts[selectedDay] !== 'S' && i.shifts[selectedDay] !== 'M');
+
+  // Render 4 Shift Boxes in a 2x2 Grid
+  const boxes = [
+    {
+      title: 'SHIFT PAGI (07.00 – 15.00 WIB)',
+      items: shiftPagi,
+      x: 10,
+      y: 32,
+      w: 92,
+      h: 102,
+      headerBg: [5, 150, 105], // Emerald 600
+      bodyBg: [240, 253, 244], // Emerald 50
+      borderColor: [167, 243, 208], // Emerald 200
+      badgeText: `${shiftPagi.length} Personel`
+    },
+    {
+      title: 'SHIFT SORE (15.00 – 23.00 WIB)',
+      items: shiftSore,
+      x: 108,
+      y: 32,
+      w: 92,
+      h: 102,
+      headerBg: [217, 119, 6], // Amber 600
+      bodyBg: [254, 252, 232], // Amber 50
+      borderColor: [253, 230, 138], // Amber 200
+      badgeText: `${shiftSore.length} Personel`
+    },
+    {
+      title: 'SHIFT MALAM (23.00 – 07.00 WIB)',
+      items: shiftMalam,
+      x: 10,
+      y: 137,
+      w: 92,
+      h: 102,
+      headerBg: [67, 56, 202], // Indigo 700
+      bodyBg: [238, 242, 255], // Indigo 50
+      borderColor: [199, 210, 254], // Indigo 200
+      badgeText: `${shiftMalam.length} Personel`
+    },
+    {
+      title: 'LEPAS PIKET / OFF (Bebas Tugas)',
+      items: shiftOff,
+      x: 108,
+      y: 137,
+      w: 92,
+      h: 102,
+      headerBg: [225, 29, 72], // Rose 600
+      bodyBg: [255, 241, 242], // Rose 50
+      borderColor: [254, 205, 211], // Rose 200
+      badgeText: `${shiftOff.length} Personel`
+    }
+  ];
+
+  boxes.forEach(box => {
+    // Body Background
+    doc.setFillColor(box.bodyBg[0], box.bodyBg[1], box.bodyBg[2]);
+    doc.rect(box.x, box.y, box.w, box.h, 'F');
+
+    // Body Border
+    doc.setDrawColor(box.borderColor[0], box.borderColor[1], box.borderColor[2]);
+    doc.setLineWidth(0.3);
+    doc.rect(box.x, box.y, box.w, box.h, 'D');
+
+    // Header Background
+    doc.setFillColor(box.headerBg[0], box.headerBg[1], box.headerBg[2]);
+    doc.rect(box.x, box.y, box.w, 7.5, 'F');
+
+    // Header Title
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(7.5);
+    doc.text(box.title, box.x + 3, box.y + 5);
+
+    // Badge
+    doc.setFontSize(6.5);
+    doc.text(box.badgeText, box.x + box.w - 3, box.y + 5, { align: 'right' });
+
+    // Personnel List - Dynamic Row Height & Font Size Scaling
+    const totalItems = box.items.length;
+    const availableHeight = box.h - 13; // ~89mm available for list
+    const stepY = totalItems > 0 ? Math.min(4.3, Math.max(2.4, availableHeight / totalItems)) : 4.3;
+    const fontSize = stepY < 3.0 ? 5.5 : stepY < 3.8 ? 6.2 : 7.2;
+    const boxRectH = Math.max(2.0, stepY - 0.3);
+
+    let listY = box.y + 10.5 + (stepY > 3.5 ? 2.0 : 1.0);
+
+    if (box.items.length === 0) {
+      doc.setFont('Helvetica', 'italic');
+      doc.setFontSize(7);
+      doc.setTextColor(148, 163, 184);
+      doc.text('- Tidak ada personel -', box.x + box.w / 2, listY + 5, { align: 'center' });
+    } else {
+      box.items.forEach((item: any, idx: number) => {
+        if (idx % 2 === 1) {
+          doc.setFillColor(255, 255, 255);
+          doc.rect(box.x + 1, listY - (boxRectH * 0.75), box.w - 2, boxRectH, 'F');
+        }
+
+        doc.setFont('Helvetica', 'bold');
+        doc.setTextColor(15, 23, 42);
+        doc.setFontSize(fontSize);
+
+        const statusTag = item.shifts[selectedDay] === 'C' ? ' (Cuti)' : item.shifts[selectedDay] === 'SKT' ? ' (Sakit)' : '';
+        const nameStr = `${idx + 1}.  ${item.nama}${item.anakAsuh ? ` (${item.anakAsuh})` : ''}${statusTag}`;
+        
+        // Truncate if string exceeds box width
+        const maxStrWidth = box.w - 6;
+        let finalStr = nameStr;
+        if (doc.getTextWidth(finalStr) > maxStrWidth) {
+          while (doc.getTextWidth(finalStr + '...') > maxStrWidth && finalStr.length > 5) {
+            finalStr = finalStr.slice(0, -1);
+          }
+          finalStr += '...';
+        }
+
+        doc.text(finalStr, box.x + 3, listY);
+        listY += stepY;
+      });
+    }
+  });
+
+  // Footer Info Note
+  const footerY = 242;
+  doc.setFillColor(241, 245, 249);
+  doc.rect(10, footerY, 190, 7, 'F');
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(6.5);
+  doc.setTextColor(30, 41, 59);
+  doc.text(`Catatan: Seluruh 28 Wali Asuh mematuhi giliran kerja dan pembagian shift harian SRMA 24 Kediri.`, 105, footerY + 4.5, { align: 'center' });
+
+  // Signature Block
+  const sigY = 252;
+  const sigX = 145;
+
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(30, 41, 59);
+  doc.text(`Kediri, ${selectedDay} Agustus 2026`, sigX, sigY);
+  doc.text('Mengetahui,', sigX, sigY + 4);
+  doc.setFont('Helvetica', 'bold');
+  doc.text('Kepala SRMA 24 Kediri', sigX, sigY + 8);
+
+  try {
+    const qrStr = `KLASIFIKASI SHIFT HARIAN WALI ASUH\nTanggal: ${dayName}, ${selectedDay} Agustus 2026\nSRMA 24 KEDIRI\nKepala Sekolah: Fadeli, S.Pd., M.Pd.`;
+    const qrUrl = await QRCode.toDataURL(qrStr, { margin: 1, width: 100 });
+    doc.addImage(qrUrl, 'PNG', sigX - 22, sigY + 6, 16, 16);
+  } catch (err) {
+    console.warn('QR Code generation error:', err);
+  }
+
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(15, 23, 42);
+  doc.text('Fadeli, S.Pd., M.Pd.', sigX, sigY + 28);
+
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(71, 85, 105);
+  doc.text('NIP. 196905211992031008', sigX, sigY + 32);
+
+  if (!isMultiPageMode) {
+    doc.save(`Klasifikasi_Shift_Harian_WaliAsuh_${selectedDay}_Agt_2026.pdf`);
+  }
+};
+
+/**
+ * PDF Generator: Rekap Absen Harian untuk 28 Wali Asuh (Presensi Tabel)
  */
 export const generateRekapAbsenHarian28PDF = async (
   selectedDay: number,

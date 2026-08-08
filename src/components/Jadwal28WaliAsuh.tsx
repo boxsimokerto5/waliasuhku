@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Calendar, Clock, Search, ChevronLeft, Loader2, Users, FileSpreadsheet, Sun, Sunset, Moon, Coffee, Info, CheckCircle2, Printer, FileText, ShieldAlert, Sparkles, Filter } from 'lucide-react';
 import { WALI_ASUH_28_DATA, SUMMARY_SHIFTS_AGUSTUS_2026, HEADER_INFO, getNamaHariAgustus2026, WaliAsuh28Item } from '../data/jadwal28Data';
-import { generateRekapAbsenHarian28PDF, generateMatriksJadwal28PDF, generateSeluruhHariRekapAbsen28PDF } from '../utils/pdfGenerator';
+import { generateRekapAbsenHarian28PDF, generateKlasifikasiShiftHarian28PDF, generateMatriksJadwal28PDF, generateSeluruhHariRekapAbsen28PDF } from '../utils/pdfGenerator';
 
 interface Jadwal28WaliAsuhProps {
   onBack?: () => void;
