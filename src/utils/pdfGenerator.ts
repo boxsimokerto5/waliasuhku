@@ -3796,8 +3796,8 @@ export const generateKlasifikasiShiftHarian28PDF = async (
 
   doc.setTextColor(255, 255, 255);
   doc.setFont('Helvetica', 'bold');
-  doc.setFontSize(11);
-  doc.text(`KLASIFIKASI SHIFT PIKET WALI ASUH - HARI ${dayName.toUpperCase()}`, 105, 18, { align: 'center' });
+  doc.setFontSize(10.5);
+  doc.text(`KLASIFIKASI SHIFT PIKET WALI ASUH - HARI ${dayName.toUpperCase()}, ${selectedDay} AGUSTUS 2026`, 105, 18, { align: 'center' });
 
   // 2. Subtitle Bar
   doc.setFillColor(241, 245, 249); // Slate 100
@@ -4249,16 +4249,18 @@ export const generateRekapAbsenHarian28PDF = async (
 /**
  * Cetak Seluruh Rekap Absen Harian 31 Hari sekaligus (Multi-page PDF)
  */
-export const generateSeluruhHariRekapAbsen28PDF = async (items: any[]) => {
+export const generateSeluruhHariKlasifikasiShift28PDF = async (items: any[]) => {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
   for (let day = 1; day <= 31; day++) {
     if (day > 1) doc.addPage();
-    await generateRekapAbsenHarian28PDF(day, items, doc, true);
+    await generateKlasifikasiShiftHarian28PDF(day, items, doc, true);
   }
 
-  doc.save(`Rekap_Absen_Harian_Lengkap_31_Hari_Agustus_2026.pdf`);
+  doc.save(`Klasifikasi_Shift_Harian_Lengkap_31_Hari_Agustus_2026.pdf`);
 };
+
+export const generateSeluruhHariRekapAbsen28PDF = generateSeluruhHariKlasifikasiShift28PDF;
 
 /**
  * PDF Generator: Matriks Jadwal 28 Wali Asuh Agustus 2026 (Landscape A4)

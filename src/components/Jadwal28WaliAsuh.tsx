@@ -229,7 +229,7 @@ export default function Jadwal28WaliAsuh({ onBack }: Jadwal28WaliAsuhProps) {
                 {/* Print Actions */}
                 <div className="flex items-center gap-3 flex-wrap">
                   <button
-                    onClick={handlePrintRekapHarianPDF}
+                    onClick={handlePrintKlasifikasiHarianPDF}
                     disabled={isGeneratingPDF}
                     className="flex items-center gap-2 bg-amber-400 hover:bg-amber-300 text-slate-900 px-5 py-3 rounded-2xl text-xs font-black shadow-md transition-all cursor-pointer disabled:opacity-50"
                   >
@@ -238,7 +238,7 @@ export default function Jadwal28WaliAsuh({ onBack }: Jadwal28WaliAsuhProps) {
                     ) : (
                       <Printer className="w-4.5 h-4.5" />
                     )}
-                    <span>Cetak Presensi Tanggal {selectedDay} (PDF)</span>
+                    <span>Cetak Klasifikasi Tanggal {selectedDay} (PDF)</span>
                   </button>
 
                   <button
@@ -247,7 +247,7 @@ export default function Jadwal28WaliAsuh({ onBack }: Jadwal28WaliAsuhProps) {
                     className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white border border-white/20 px-4 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer disabled:opacity-50"
                   >
                     <FileText className="w-4 h-4 text-teal-200" />
-                    <span>Cetak Lengkap 31 Hari (PDF)</span>
+                    <span>Cetak Klasifikasi 31 Hari (PDF)</span>
                   </button>
                 </div>
               </div>
