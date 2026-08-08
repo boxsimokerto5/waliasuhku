@@ -1,4 +1,5 @@
 import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import QRCode from 'qrcode';
 import { User, ActivityChecklist, EventChecklist, EventChecklistOption } from '../types';
 
@@ -4413,6 +4414,118 @@ export const generateMatriksJadwal28PDF = async (items: any[]) => {
   doc.text('NIP. 196905211992031008', sigX, currentY);
 
   doc.save(`Matriks_Jadwal_28_WaliAsuh_Agustus_2026.pdf`);
+};
+
+/**
+ * PDF Generator: Uraian Tugas & SOP Pendampingan Harian Wali Asuh (Portrait A4)
+ */
+export const generateUraianTugasHarianPDF = async (activities: any[]) => {
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+  // Kop Surat Official
+  let currentY = 10;
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(30, 41, 59);
+  doc.text('KEMENTERIAN SOSIAL REPUBLIK INDONESIA', 105, currentY, { align: 'center' });
+  currentY += 4;
+
+  doc.setFontSize(8.5);
+  doc.text('PUSAT PENDIDIKAN PELATIHAN DAN PENGEMBANGAN PROFESI', 105, currentY, { align: 'center' });
+  currentY += 4;
+
+  doc.setFontSize(10);
+  doc.text('SEKOLAH RAKYAT MENENGAH ATAS 24 KEDIRI', 105, currentY, { align: 'center' });
+  currentY += 4;
+
+  doc.setFontSize(7.5);
+  doc.setFont('Helvetica', 'normal');
+  doc.setTextColor(71, 85, 105);
+  doc.text('Gedung Balai Pengembangan Kompetensi ASN, Gg. 2 Bulusari Utara, Bulusari, Kec. Tarokan, Kab. Kediri', 105, currentY, { align: 'center' });
+  currentY += 4;
+
+  doc.setDrawColor(15, 23, 42);
+  doc.setLineWidth(0.6);
+  doc.line(10, currentY, 200, currentY);
+  currentY += 5;
+
+  // Title Banner
+  doc.setFillColor(15, 23, 42); // Slate 900
+  doc.rect(10, currentY, 190, 8, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(9.5);
+  doc.text('STANDAR OPERASIONAL PROSEDUR (SOP) & URAIAN TUGAS HARIAN WALI ASUH', 105, currentY + 5.5, { align: 'center' });
+  currentY += 11;
+
+  // Legend Box
+  doc.setFillColor(241, 245, 249);
+  doc.rect(10, currentY, 190, 10, 'F');
+  doc.setDrawColor(203, 213, 225);
+  doc.setLineWidth(0.2);
+  doc.rect(10, currentY, 190, 10, 'S');
+
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(7);
+  doc.setTextColor(15, 23, 42);
+  doc.text('KODE PETUGAS:', 13, currentY + 3.5);
+
+  doc.setFont('Helvetica', 'normal');
+  doc.setTextColor(51, 65, 85);
+  doc.text('M1-M4: Shift Malam (03.30-07.00 WIB)  |  P1-P4: Shift Pagi (07.00-15.00 WIB)  |  S1-S12: Shift Sore (15.00-23.00 WIB)', 35, currentY + 3.5);
+  doc.text('Catatan: Wali Asuh mengacu pada kode urut petugas piket yang bertugas pada hari berkenaan.', 13, currentY + 7.5);
+  currentY += 13;
+
+  // Table Columns
+  const colX = { no: 10, pukul: 18, kelas: 42, kegiatan: 68, tempat: 135, kode: 168 };
+  const colW = { no: 8, pukul: 24, kelas: 26, kegiatan: 67, tempat: 33, kode: 32 };
+  const headerH = 7;
+
+  autoTable(doc, {
+    startY: currentY,
+    head: [[
+      'NO', 'PUKUL (WIB)', 'PESERTA', 'URAIAN KEGIATAN & TUGAS PENDAMPINGAN', 'TEMPAT', 'PETUGAS / KODE'
+    ]],
+    body: activities.map((act, index) => [
+      index + 1,
+      act.pukul,
+      act.kelas,
+      `${act.kegiatan}\n${act.uraian}`,
+      act.tempat,
+      act.waliAsuhKode
+    ]),
+    margin: { left: 10, right: 10, bottom: 20 },
+    styles: {
+      fontSize: 7,
+      cellPadding: 2,
+      valign: 'top',
+      overflow: 'linebreak',
+    },
+    headStyles: {
+      fillColor: [15, 23, 42],
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      halign: 'center',
+    },
+    columnStyles: {
+      0: { halign: 'center', cellWidth: 8 },
+      1: { halign: 'center', cellWidth: 24, fontStyle: 'bold' },
+      2: { halign: 'center', cellWidth: 22 },
+      3: { cellWidth: 70 },
+      4: { cellWidth: 34 },
+      5: { halign: 'center', cellWidth: 32, fontStyle: 'bold' }
+    },
+    didDrawPage: (data) => {
+      // Footer page number
+      const str = 'Halaman ' + doc.getNumberOfPages();
+      doc.setFontSize(7);
+      doc.setTextColor(100);
+      doc.text(str, 105, 287, { align: 'center' });
+      doc.text('Dokumen Resmi SRMA 24 Kediri — SOP Pendampingan Keasramaan', 10, 287);
+    }
+  });
+
+  doc.save(`SOP_Uraian_Tugas_Harian_WaliAsuh_SRMA24.pdf`);
 };
 
 

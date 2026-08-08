@@ -1,14 +1,15 @@
 import React, { useState, useMemo } from 'react';
-import { Calendar, Clock, Search, ChevronLeft, Loader2, Users, FileSpreadsheet, Sun, Sunset, Moon, Coffee, Info, CheckCircle2, Printer, FileText, ShieldAlert, Sparkles, Filter } from 'lucide-react';
+import { Calendar, Clock, Search, ChevronLeft, Loader2, Users, FileSpreadsheet, Sun, Sunset, Moon, Coffee, Info, CheckCircle2, Printer, FileText, ShieldAlert, Sparkles, Filter, ListOrdered, MapPin } from 'lucide-react';
 import { WALI_ASUH_28_DATA, SUMMARY_SHIFTS_AGUSTUS_2026, HEADER_INFO, getNamaHariAgustus2026, WaliAsuh28Item } from '../data/jadwal28Data';
-import { generateRekapAbsenHarian28PDF, generateKlasifikasiShiftHarian28PDF, generateMatriksJadwal28PDF, generateSeluruhHariRekapAbsen28PDF } from '../utils/pdfGenerator';
+import { URAIAN_KEGIATAN_HARIAN, LEGEND_KODE_WALI, ActivityItem } from '../data/jadwalHarianRinci';
+import { generateRekapAbsenHarian28PDF, generateKlasifikasiShiftHarian28PDF, generateMatriksJadwal28PDF, generateSeluruhHariRekapAbsen28PDF, generateUraianTugasHarianPDF } from '../utils/pdfGenerator';
 
 interface Jadwal28WaliAsuhProps {
   onBack?: () => void;
 }
 
 export default function Jadwal28WaliAsuh({ onBack }: Jadwal28WaliAsuhProps) {
-  const [activeTab, setActiveTab] = useState<'harian' | 'matriks' | 'statistik'>('harian');
+  const [activeTab, setActiveTab] = useState<'harian' | 'uraian' | 'matriks' | 'statistik'>('harian');
   const [selectedDay, setSelectedDay] = useState<number>(() => {
     const today = new Date();
     const d = today.getDate();
@@ -16,6 +17,8 @@ export default function Jadwal28WaliAsuh({ onBack }: Jadwal28WaliAsuhProps) {
   }); // Automatically defaults to today's date
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAnakAsuh, setSelectedAnakAsuh] = useState<string>('ALL');
+  const [selectedShiftFilter, setSelectedShiftFilter] = useState<string>('ALL');
+  const [searchUraianQuery, setSearchUraianQuery] = useState('');
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   // Unique Anak Asuh classes for filtering
@@ -27,7 +30,7 @@ export default function Jadwal28WaliAsuh({ onBack }: Jadwal28WaliAsuhProps) {
     return Array.from(setClasses).sort();
   }, []);
 
-  // Filtered dataset
+  // Filtered dataset for matriks/rekap
   const filteredData = useMemo(() => {
     return WALI_ASUH_28_DATA.filter(item => {
       const matchSearch = item.nama.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -36,6 +39,20 @@ export default function Jadwal28WaliAsuh({ onBack }: Jadwal28WaliAsuhProps) {
       return matchSearch && matchClass;
     });
   }, [searchQuery, selectedAnakAsuh]);
+
+  // Filtered dataset for Uraian Kegiatan Harian
+  const filteredUraianData = useMemo(() => {
+    return URAIAN_KEGIATAN_HARIAN.filter(item => {
+      const matchShift = selectedShiftFilter === 'ALL' || item.shiftType === selectedShiftFilter;
+      const matchQuery = searchUraianQuery === '' ||
+        item.kegiatan.toLowerCase().includes(searchUraianQuery.toLowerCase()) ||
+        item.uraian.toLowerCase().includes(searchUraianQuery.toLowerCase()) ||
+        item.tempat.toLowerCase().includes(searchUraianQuery.toLowerCase()) ||
+        item.waliAsuhKode.toLowerCase().includes(searchUraianQuery.toLowerCase()) ||
+        item.kelas.toLowerCase().includes(searchUraianQuery.toLowerCase());
+      return matchShift && matchQuery;
+    });
+  }, [selectedShiftFilter, searchUraianQuery]);
 
   // Daily classification for the selected date
   const dailyClassification = useMemo(() => {
@@ -107,6 +124,17 @@ export default function Jadwal28WaliAsuh({ onBack }: Jadwal28WaliAsuhProps) {
     }
   };
 
+  const handlePrintUraianPDF = async () => {
+    try {
+      setIsGeneratingPDF(true);
+      await generateUraianTugasHarianPDF(filteredUraianData);
+    } catch (err) {
+      console.error('Gagal mencetak PDF Uraian Tugas:', err);
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
+
   return (
     <div className="bg-slate-50 min-h-screen pb-16 pt-4 text-slate-800">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 space-y-6">
@@ -168,22 +196,34 @@ export default function Jadwal28WaliAsuh({ onBack }: Jadwal28WaliAsuhProps) {
         </div>
 
         {/* Tab View Selector */}
-        <div className="flex items-center gap-2 bg-slate-200/80 p-1.5 rounded-2xl max-w-md">
+        <div className="flex items-center gap-2 bg-slate-200/80 p-1.5 rounded-2xl max-w-2xl flex-wrap">
           <button
             onClick={() => setActiveTab('harian')}
-            className={`flex-1 py-2 px-3 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex items-center justify-center gap-2 ${
+            className={`flex-1 py-2 px-3 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
               activeTab === 'harian'
                 ? 'bg-white text-teal-800 shadow-sm'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <Printer className="w-4 h-4 text-teal-600" />
-            <span>Rekap Absen Harian</span>
+            <span>Klasifikasi Shift</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('uraian')}
+            className={`flex-1 py-2 px-3 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+              activeTab === 'uraian'
+                ? 'bg-white text-amber-900 shadow-sm'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <ListOrdered className="w-4 h-4 text-amber-600" />
+            <span>Uraian Tugas SOP</span>
           </button>
 
           <button
             onClick={() => setActiveTab('matriks')}
-            className={`flex-1 py-2 px-3 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex items-center justify-center gap-2 ${
+            className={`flex-1 py-2 px-3 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
               activeTab === 'matriks'
                 ? 'bg-white text-indigo-800 shadow-sm'
                 : 'text-slate-600 hover:text-slate-900'
@@ -195,7 +235,7 @@ export default function Jadwal28WaliAsuh({ onBack }: Jadwal28WaliAsuhProps) {
 
           <button
             onClick={() => setActiveTab('statistik')}
-            className={`flex-1 py-2 px-3 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex items-center justify-center gap-2 ${
+            className={`flex-1 py-2 px-3 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
               activeTab === 'statistik'
                 ? 'bg-white text-purple-800 shadow-sm'
                 : 'text-slate-600 hover:text-slate-900'
@@ -474,7 +514,202 @@ export default function Jadwal28WaliAsuh({ onBack }: Jadwal28WaliAsuhProps) {
           </div>
         )}
 
-        {/* TAB 2: MATRIKS BULANAN 31 HARI */}
+        {/* TAB 2: URAIAN TUGAS & SOP KEGIATAN HARIAN WALI ASUH */}
+        {activeTab === 'uraian' && (
+          <div className="space-y-6">
+
+            {/* SOP Header Banner */}
+            <div className="bg-gradient-to-r from-amber-800 via-amber-900 to-slate-900 text-white rounded-3xl p-6 shadow-lg border border-amber-700/30">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                <div>
+                  <div className="flex items-center gap-2 text-amber-300 text-xs font-bold">
+                    <Sparkles className="w-4 h-4 text-amber-300" />
+                    <span>Standar Operasional Prosedur (SOP) Keasramaan SRMA 24 Kediri</span>
+                  </div>
+                  <h2 className="text-2xl font-black mt-1">
+                    Uraian Tugas & Pembagian Aktivitas Harian Wali Asuh
+                  </h2>
+                  <p className="text-amber-100/80 text-xs mt-1 max-w-3xl">
+                    Rincian urutan tugas pendampingan siswa (SD, SMP, SMA) 24 jam penuh. Mengatur koordinasi lokasi, waktu, dan penugasan kode Wali Asuh Piket (M1-M4, P1-P4, S1-S12).
+                  </p>
+                </div>
+
+                <button
+                  onClick={handlePrintUraianPDF}
+                  disabled={isGeneratingPDF}
+                  className="flex items-center gap-2 bg-amber-400 hover:bg-amber-300 text-slate-950 px-5 py-3 rounded-2xl text-xs font-black shadow-lg transition-all cursor-pointer shrink-0 disabled:opacity-50"
+                >
+                  {isGeneratingPDF ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Printer className="w-4 h-4" />
+                  )}
+                  <span>Cetak SOP Uraian Tugas (PDF)</span>
+                </button>
+              </div>
+
+              {/* Legend Badges */}
+              <div className="mt-6 pt-5 border-t border-amber-700/40 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {LEGEND_KODE_WALI.map((leg, i) => (
+                  <div key={i} className="bg-white/10 backdrop-blur-xs p-3 rounded-2xl border border-white/10 text-xs">
+                    <div className="flex items-center justify-between font-black text-amber-300">
+                      <span>{leg.kode}</span>
+                      <span className="text-[10px] bg-amber-400/20 px-2 py-0.5 rounded-full text-amber-200">{leg.shift}</span>
+                    </div>
+                    <p className="text-[11px] text-amber-100/90 mt-1 leading-snug">{leg.deskripsi}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Filters Bar */}
+            <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+              {/* Shift Tabs */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-thin">
+                <button
+                  onClick={() => setSelectedShiftFilter('ALL')}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all cursor-pointer whitespace-nowrap ${
+                    selectedShiftFilter === 'ALL'
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  Semua Shift (27 Aktivitas)
+                </button>
+                <button
+                  onClick={() => setSelectedShiftFilter('MALAM')}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
+                    selectedShiftFilter === 'MALAM'
+                      ? 'bg-indigo-700 text-white shadow-xs'
+                      : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                  }`}
+                >
+                  <Moon className="w-3.5 h-3.5" />
+                  <span>Shift Malam (M1-M4)</span>
+                </button>
+                <button
+                  onClick={() => setSelectedShiftFilter('PAGI')}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
+                    selectedShiftFilter === 'PAGI'
+                      ? 'bg-emerald-700 text-white shadow-xs'
+                      : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                  }`}
+                >
+                  <Sun className="w-3.5 h-3.5" />
+                  <span>Shift Pagi (P1-P4)</span>
+                </button>
+                <button
+                  onClick={() => setSelectedShiftFilter('SORE')}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
+                    selectedShiftFilter === 'SORE'
+                      ? 'bg-amber-600 text-white shadow-xs'
+                      : 'bg-amber-50 text-amber-800 hover:bg-amber-100'
+                  }`}
+                >
+                  <Sunset className="w-3.5 h-3.5" />
+                  <span>Shift Sore (S1-S12)</span>
+                </button>
+              </div>
+
+              {/* Search Box */}
+              <div className="relative w-full md:w-72 shrink-0">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Cari kegiatan, tempat, kode..."
+                  value={searchUraianQuery}
+                  onChange={e => setSearchUraianQuery(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-amber-500"
+                />
+              </div>
+            </div>
+
+            {/* Activities Timeline / Cards List */}
+            <div className="space-y-3">
+              {filteredUraianData.length === 0 ? (
+                <div className="bg-white p-12 text-center rounded-3xl border border-slate-200">
+                  <Info className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+                  <p className="text-sm font-bold text-slate-600">Tidak ada uraian tugas yang sesuai dengan pencarian/filter.</p>
+                </div>
+              ) : (
+                filteredUraianData.map((act, index) => {
+                  let badgeShiftColor = 'bg-slate-100 text-slate-800 border-slate-200';
+                  let borderCardColor = 'border-slate-200 hover:border-slate-300';
+                  let timeBadgeColor = 'bg-slate-900 text-white';
+
+                  if (act.shiftType === 'MALAM') {
+                    badgeShiftColor = 'bg-indigo-100 text-indigo-800 border-indigo-200';
+                    borderCardColor = 'border-indigo-100 hover:border-indigo-300 bg-indigo-50/20';
+                    timeBadgeColor = 'bg-indigo-900 text-indigo-100';
+                  } else if (act.shiftType === 'PAGI') {
+                    badgeShiftColor = 'bg-emerald-100 text-emerald-800 border-emerald-200';
+                    borderCardColor = 'border-emerald-100 hover:border-emerald-300 bg-emerald-50/20';
+                    timeBadgeColor = 'bg-emerald-800 text-emerald-100';
+                  } else if (act.shiftType === 'SORE') {
+                    badgeShiftColor = 'bg-amber-100 text-amber-900 border-amber-200';
+                    borderCardColor = 'border-amber-100 hover:border-amber-300 bg-amber-50/20';
+                    timeBadgeColor = 'bg-amber-800 text-amber-100';
+                  }
+
+                  return (
+                    <div
+                      key={act.id}
+                      className={`bg-white rounded-2xl p-4 sm:p-5 border ${borderCardColor} shadow-2xs transition-all flex flex-col md:flex-row md:items-center justify-between gap-4`}
+                    >
+                      <div className="flex items-start gap-4 flex-1">
+                        <div className="shrink-0 space-y-1 text-center">
+                          <span className={`inline-block px-3 py-1 rounded-xl text-xs font-black font-mono shadow-xs ${timeBadgeColor}`}>
+                            {act.pukul} WIB
+                          </span>
+                          <span className="block text-[10px] font-extrabold text-slate-400">
+                            Poin #{index + 1}
+                          </span>
+                        </div>
+
+                        <div className="space-y-1.5 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-200">
+                              Peserta: {act.kelas}
+                            </span>
+                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${badgeShiftColor}`}>
+                              Shift {act.shiftType}
+                            </span>
+                          </div>
+
+                          <h3 className="text-sm font-black text-slate-900 leading-snug">
+                            {act.kegiatan}
+                          </h3>
+
+                          <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                            {act.uraian}
+                          </p>
+
+                          <div className="flex items-center gap-1.5 text-xs text-slate-500 font-bold pt-1">
+                            <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                            <span>Lokasi: {act.tempat}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Code Tag */}
+                      <div className="shrink-0 bg-slate-900 text-white p-3.5 rounded-2xl text-center min-w-[150px] border border-slate-800 shadow-xs">
+                        <span className="text-[10px] font-bold text-amber-400 block uppercase tracking-wider mb-0.5">
+                          Penanggung Jawab
+                        </span>
+                        <span className="text-xs font-black text-white font-mono leading-tight">
+                          {act.waliAsuhKode}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+          </div>
+        )}
+
+        {/* TAB 3: MATRIKS BULANAN 31 HARI */}
         {activeTab === 'matriks' && (
           <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs space-y-4">
 
