@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { Calendar, Clock, Search, ChevronLeft, Loader2, Users, FileSpreadsheet, Sun, Sunset, Moon, Coffee, Info, CheckCircle2, Printer, FileText, ShieldAlert, Sparkles, Filter, ListOrdered, MapPin } from 'lucide-react';
+import { Calendar, Clock, Search, ChevronLeft, Loader2, Users, FileSpreadsheet, Sun, Sunset, Moon, Coffee, Info, CheckCircle2, Printer, FileText, ShieldAlert, Sparkles, Filter, ListOrdered, MapPin, X, ExternalLink, ShieldCheck } from 'lucide-react';
 import { WALI_ASUH_28_DATA, SUMMARY_SHIFTS_AGUSTUS_2026, HEADER_INFO, getNamaHariAgustus2026, WaliAsuh28Item } from '../data/jadwal28Data';
-import { URAIAN_KEGIATAN_HARIAN, LEGEND_KODE_WALI, ActivityItem } from '../data/jadwalHarianRinci';
+import { URAIAN_KEGIATAN_HARIAN, LEGEND_KODE_WALI, ActivityItem, getKodeSlotSOP, getDeskripsiSlotSOP, getDetailTugasForKode } from '../data/jadwalHarianRinci';
 import { generateRekapAbsenHarian28PDF, generateKlasifikasiShiftHarian28PDF, generateMatriksJadwal28PDF, generateSeluruhHariRekapAbsen28PDF, generateUraianTugasHarianPDF } from '../utils/pdfGenerator';
 
 interface Jadwal28WaliAsuhProps {
@@ -20,6 +20,15 @@ export default function Jadwal28WaliAsuh({ onBack }: Jadwal28WaliAsuhProps) {
   const [selectedShiftFilter, setSelectedShiftFilter] = useState<string>('ALL');
   const [searchUraianQuery, setSearchUraianQuery] = useState('');
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+
+  // Selected Personnel Modal State for SOP assignment
+  const [selectedPersonnelModal, setSelectedPersonnelModal] = useState<{
+    nama: string;
+    anakAsuh: string;
+    shiftType: string;
+    kodeSlot: string;
+    deskripsi: { label: string; unit: string; deskripsi: string };
+  } | null>(null);
 
   // Unique Anak Asuh classes for filtering
   const anakAsuhList = useMemo(() => {
@@ -390,19 +399,38 @@ export default function Jadwal28WaliAsuh({ onBack }: Jadwal28WaliAsuhProps) {
                 </div>
 
                 <div className="space-y-2">
-                  {dailyClassification.pagi.map(item => (
-                    <div key={item.no} className="p-3 bg-emerald-50/60 border border-emerald-100 rounded-2xl flex items-center justify-between">
-                      <div>
-                        <h4 className="text-xs font-bold text-slate-900">{item.nama}</h4>
-                        <span className="text-[10px] text-emerald-700 font-extrabold block mt-0.5">
-                          Bimbingan: {item.anakAsuh}
+                  {dailyClassification.pagi.map((item, idx) => {
+                    const slot = getKodeSlotSOP('P', idx);
+                    const desc = getDeskripsiSlotSOP(slot);
+                    return (
+                      <div
+                        key={item.no}
+                        onClick={() => setSelectedPersonnelModal({
+                          nama: item.nama,
+                          anakAsuh: item.anakAsuh,
+                          shiftType: 'PAGI',
+                          kodeSlot: slot,
+                          deskripsi: desc,
+                        })}
+                        className="p-3 bg-emerald-50/60 hover:bg-emerald-100/80 border border-emerald-100 rounded-2xl flex items-center justify-between transition-all cursor-pointer group"
+                      >
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-1.5">
+                            <span className="px-2 py-0.5 rounded-md bg-emerald-600 text-white text-[10px] font-black font-mono">
+                              {slot}
+                            </span>
+                            <h4 className="text-xs font-bold text-slate-900 group-hover:text-emerald-900">{item.nama}</h4>
+                          </div>
+                          <span className="text-[10px] text-emerald-800 font-extrabold block">
+                            SOP: {desc.label}
+                          </span>
+                        </div>
+                        <span className="w-7 h-7 rounded-xl bg-emerald-500 text-white font-black text-[10px] flex items-center justify-center shrink-0 shadow-xs group-hover:scale-110 transition-transform">
+                          P
                         </span>
                       </div>
-                      <span className="w-6 h-6 rounded-full bg-emerald-500 text-white font-black text-[10px] flex items-center justify-center shrink-0">
-                        P
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
                   {dailyClassification.pagi.length === 0 && (
                     <p className="text-xs text-slate-400 py-4 text-center italic">Tidak ada personel bertugas</p>
                   )}
@@ -427,19 +455,38 @@ export default function Jadwal28WaliAsuh({ onBack }: Jadwal28WaliAsuhProps) {
                 </div>
 
                 <div className="space-y-2">
-                  {dailyClassification.sore.map(item => (
-                    <div key={item.no} className="p-3 bg-amber-50/60 border border-amber-100 rounded-2xl flex items-center justify-between">
-                      <div>
-                        <h4 className="text-xs font-bold text-slate-900">{item.nama}</h4>
-                        <span className="text-[10px] text-amber-700 font-extrabold block mt-0.5">
-                          Bimbingan: {item.anakAsuh}
+                  {dailyClassification.sore.map((item, idx) => {
+                    const slot = getKodeSlotSOP('S', idx);
+                    const desc = getDeskripsiSlotSOP(slot);
+                    return (
+                      <div
+                        key={item.no}
+                        onClick={() => setSelectedPersonnelModal({
+                          nama: item.nama,
+                          anakAsuh: item.anakAsuh,
+                          shiftType: 'SORE',
+                          kodeSlot: slot,
+                          deskripsi: desc,
+                        })}
+                        className="p-3 bg-amber-50/60 hover:bg-amber-100/80 border border-amber-100 rounded-2xl flex items-center justify-between transition-all cursor-pointer group"
+                      >
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-1.5">
+                            <span className="px-2 py-0.5 rounded-md bg-amber-600 text-white text-[10px] font-black font-mono">
+                              {slot}
+                            </span>
+                            <h4 className="text-xs font-bold text-slate-900 group-hover:text-amber-900">{item.nama}</h4>
+                          </div>
+                          <span className="text-[10px] text-amber-800 font-extrabold block">
+                            SOP: {desc.label}
+                          </span>
+                        </div>
+                        <span className="w-7 h-7 rounded-xl bg-amber-500 text-white font-black text-[10px] flex items-center justify-center shrink-0 shadow-xs group-hover:scale-110 transition-transform">
+                          S
                         </span>
                       </div>
-                      <span className="w-6 h-6 rounded-full bg-amber-500 text-white font-black text-[10px] flex items-center justify-center shrink-0">
-                        S
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
                   {dailyClassification.sore.length === 0 && (
                     <p className="text-xs text-slate-400 py-4 text-center italic">Tidak ada personel bertugas</p>
                   )}
@@ -465,19 +512,38 @@ export default function Jadwal28WaliAsuh({ onBack }: Jadwal28WaliAsuhProps) {
 
                 <div className="space-y-2">
                   <p className="text-[11px] font-black text-indigo-900 uppercase tracking-wider">Malam:</p>
-                  {dailyClassification.malam.map(item => (
-                    <div key={item.no} className="p-2.5 bg-indigo-50/60 border border-indigo-100 rounded-2xl flex items-center justify-between">
-                      <div>
-                        <h4 className="text-xs font-bold text-slate-900">{item.nama}</h4>
-                        <span className="text-[10px] text-indigo-700 font-extrabold block mt-0.5">
-                          Bimbingan: {item.anakAsuh}
+                  {dailyClassification.malam.map((item, idx) => {
+                    const slot = getKodeSlotSOP('M', idx);
+                    const desc = getDeskripsiSlotSOP(slot);
+                    return (
+                      <div
+                        key={item.no}
+                        onClick={() => setSelectedPersonnelModal({
+                          nama: item.nama,
+                          anakAsuh: item.anakAsuh,
+                          shiftType: 'MALAM',
+                          kodeSlot: slot,
+                          deskripsi: desc,
+                        })}
+                        className="p-2.5 bg-indigo-50/60 hover:bg-indigo-100/80 border border-indigo-100 rounded-2xl flex items-center justify-between transition-all cursor-pointer group"
+                      >
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-1.5">
+                            <span className="px-2 py-0.5 rounded-md bg-indigo-700 text-white text-[10px] font-black font-mono">
+                              {slot}
+                            </span>
+                            <h4 className="text-xs font-bold text-slate-900 group-hover:text-indigo-950">{item.nama}</h4>
+                          </div>
+                          <span className="text-[10px] text-indigo-800 font-extrabold block">
+                            SOP: {desc.label}
+                          </span>
+                        </div>
+                        <span className="w-7 h-7 rounded-xl bg-indigo-600 text-white font-black text-[10px] flex items-center justify-center shrink-0 shadow-xs group-hover:scale-110 transition-transform">
+                          M
                         </span>
                       </div>
-                      <span className="w-6 h-6 rounded-full bg-indigo-600 text-white font-black text-[10px] flex items-center justify-center shrink-0">
-                        M
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
 
                   {dailyClassification.cutiSakit.length > 0 && (
                     <>
@@ -844,6 +910,114 @@ export default function Jadwal28WaliAsuh({ onBack }: Jadwal28WaliAsuhProps) {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Personnel SOP Assignment Modal */}
+        {selectedPersonnelModal && (
+          <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 space-y-5 animate-in fade-in zoom-in-95 duration-200">
+              
+              {/* Modal Header */}
+              <div className="flex items-start justify-between pb-4 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-slate-900 text-amber-400 rounded-2xl shadow-xs">
+                    <ShieldCheck className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-0.5 rounded-full bg-slate-900 text-amber-300 text-[10px] font-black font-mono">
+                        KODE KELOMPOK SOP: {selectedPersonnelModal.kodeSlot}
+                      </span>
+                      <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold">
+                        Tanggal {selectedDay} Agustus 2026
+                      </span>
+                    </div>
+                    <h3 className="text-xl font-black text-slate-900 mt-1">
+                      {selectedPersonnelModal.nama}
+                    </h3>
+                    <p className="text-xs text-slate-500 font-bold">
+                      Wali Asuh Binaan Utama: {selectedPersonnelModal.anakAsuh || 'Umum'} • Shift {selectedPersonnelModal.shiftType}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setSelectedPersonnelModal(null)}
+                  className="p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Duty Overview Banner */}
+              <div className="bg-amber-50/90 border border-amber-200 p-4 rounded-2xl space-y-1">
+                <div className="flex items-center justify-between text-xs font-black text-amber-950">
+                  <span>{selectedPersonnelModal.deskripsi.label}</span>
+                  <span className="bg-amber-200/80 text-amber-950 px-2.5 py-0.5 rounded-md text-[10px] font-mono">
+                    Unit Binaan: {selectedPersonnelModal.deskripsi.unit}
+                  </span>
+                </div>
+                <p className="text-xs text-amber-900 font-medium leading-relaxed">
+                  {selectedPersonnelModal.deskripsi.deskripsi}
+                </p>
+              </div>
+
+              {/* Rincian SOP Timeline */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                  <ListOrdered className="w-4 h-4 text-amber-600" />
+                  <span>Rincian Urutan Tugas Pendampingan Anak Asuh (SOP)</span>
+                </h4>
+
+                <div className="space-y-2 max-h-72 overflow-y-auto pr-1 scrollbar-thin">
+                  {getDetailTugasForKode(selectedPersonnelModal.kodeSlot).length === 0 ? (
+                    <p className="text-xs text-slate-400 py-4 text-center italic">Tidak ada tugas khusus SOP tambahan untuk kode slot ini.</p>
+                  ) : (
+                    getDetailTugasForKode(selectedPersonnelModal.kodeSlot).map((act) => (
+                      <div key={act.id} className="p-3 bg-slate-50 hover:bg-slate-100/80 transition-colors rounded-2xl border border-slate-200/80 flex items-start gap-3">
+                        <span className="px-2 py-1 bg-slate-900 text-amber-300 rounded-lg text-[10px] font-black font-mono shrink-0">
+                          {act.pukul}
+                        </span>
+                        <div className="space-y-0.5 flex-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <h5 className="text-xs font-black text-slate-900">{act.kegiatan}</h5>
+                            <span className="text-[10px] text-slate-500 font-bold bg-slate-200/70 px-2 py-0.5 rounded-md shrink-0">{act.kelas}</span>
+                          </div>
+                          <p className="text-[11px] text-slate-600 font-medium leading-relaxed">{act.uraian}</p>
+                          <div className="flex items-center gap-1 text-[10px] text-rose-600 font-bold pt-0.5">
+                            <MapPin className="w-3 h-3 shrink-0" />
+                            <span>Lokasi: {act.tempat}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Footer Modal */}
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
+                <button
+                  onClick={() => setSelectedPersonnelModal(null)}
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                >
+                  Tutup Lembar SOP
+                </button>
+
+                <button
+                  onClick={() => {
+                    setSelectedPersonnelModal(null);
+                    handlePrintKlasifikasiHarianPDF();
+                  }}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-950 rounded-xl text-xs font-black shadow-md transition-all cursor-pointer"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>Cetak PDF Lembar Tugas Tanggal Ini</span>
+                </button>
+              </div>
+
             </div>
           </div>
         )}

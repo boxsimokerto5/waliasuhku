@@ -316,3 +316,127 @@ export const URAIAN_KEGIATAN_HARIAN: ActivityItem[] = [
     shiftType: 'MALAM',
   },
 ];
+
+/**
+ * Mendapatkan Kode Slot SOP berdasarkan Jenis Shift dan Urutan Personel
+ */
+export function getKodeSlotSOP(shiftType: 'P' | 'S' | 'M' | string, index: number): string {
+  if (shiftType === 'P') {
+    const slotNum = (index % 4) + 1;
+    return `P${slotNum}`;
+  }
+  if (shiftType === 'S') {
+    const slotNum = (index % 12) + 1;
+    return `S${slotNum}`;
+  }
+  if (shiftType === 'M') {
+    const slotNum = (index % 4) + 1;
+    return `M${slotNum}`;
+  }
+  return 'OFF';
+}
+
+/**
+ * Ringkasan Unit Pendampingan / Fokus Tugas Berdasarkan Kode Slot
+ */
+export function getDeskripsiSlotSOP(kodeSlot: string): { label: string; unit: string; deskripsi: string } {
+  switch (kodeSlot) {
+    case 'P1':
+    case 'P2':
+      return {
+        label: 'Makan & Istirahat SD (Putri)',
+        unit: 'SD / SMP Putri',
+        deskripsi: 'Pendampingan KBM Pagi, Makan Siang SD, Istirahat / Tidur Siang Siswa SD di Asrama Putri.'
+      };
+    case 'P3':
+    case 'P4':
+      return {
+        label: 'Sholat Dzuhur & Istirahat SD (Putra)',
+        unit: 'SD / SMP Putra',
+        deskripsi: 'Pendampingan Sholat Dzuhur Masjid, Makan Siang Non-SD, Istirahat Siang SD di Asrama Putra.'
+      };
+    case 'S1':
+    case 'S2':
+      return {
+        label: 'Pendampingan Asrama SMP Putri',
+        unit: 'SMP Putri & SD',
+        deskripsi: 'Pendampingan Mencuci Baju, Sholat Asar & Magrib SD, Belajar & Makan Malam SD di Asrama Putri.'
+      };
+    case 'S3':
+    case 'S4':
+      return {
+        label: 'Pendampingan Asrama SMP Putra',
+        unit: 'SMP Putra & SD',
+        deskripsi: 'Pendampingan Mencuci Baju, Sholat Asar & Magrib SD, Belajar & Makan Malam SD di Asrama Putra.'
+      };
+    case 'S5':
+    case 'S6':
+      return {
+        label: 'Pendampingan Asrama SMA Putri',
+        unit: 'SMA Putri',
+        deskripsi: 'Pengondisian Masjid, Sholat Magrib/Isya Jamaah, & Pendampingan Belajar Mandiri SMA Putri.'
+      };
+    case 'S7':
+    case 'S8':
+      return {
+        label: 'Pendampingan Asrama SMA Putra',
+        unit: 'SMA Putra',
+        deskripsi: 'Pengondisian Masjid, Sholat Magrib/Isya Jamaah, & Pendampingan Belajar Mandiri SMA Putra.'
+      };
+    case 'S9':
+    case 'S10':
+      return {
+        label: 'Pendampingan Ruang Makan SMP & Masjid',
+        unit: 'SMP & Masjid',
+        deskripsi: 'Pendampingan Sholat Asar/Magrib/Isya di Masjid, Pengawasan Aula, & Kebersihan Ruang Makan SMP.'
+      };
+    case 'S11':
+    case 'S12':
+      return {
+        label: 'Pendampingan Ruang Makan SMA & Mengaji',
+        unit: 'SMA & Mengaji',
+        deskripsi: 'Pendampingan Mengaji Al-Quran di Masjid, Kebersihan Ruang Makan SMA, & Barisan Makan Malam.'
+      };
+    case 'M1':
+    case 'M2':
+      return {
+        label: 'Bangun Pagi & Subuh (Putri)',
+        unit: 'Putri & SD',
+        deskripsi: 'Pendampingan Bangun Subuh (03.30), Sholat Subuh Masjid, Senam Pagi, Bersih Kamar & Makan SD.'
+      };
+    case 'M3':
+    case 'M4':
+      return {
+        label: 'Bangun Pagi & Pengecekan Asrama (Putra)',
+        unit: 'Putra & SMP/SMA',
+        deskripsi: 'Pendampingan Pengecekan Siswa Sakit, Bersih Kamar SMP/SMA, Makan Pagi & Ronda Istirahat Malam.'
+      };
+    default:
+      return {
+        label: 'Pendampingan Gabungan / Lepas Piket',
+        unit: 'Umum',
+        deskripsi: 'Pendampingan Tim Gabungan / Bebas Tugas Piket Harian.'
+      };
+  }
+}
+
+/**
+ * Ambil daftar kegiatan rinci dari SOP yang relevan untuk Kode Slot
+ */
+export function getDetailTugasForKode(kodeSlot: string): ActivityItem[] {
+  if (kodeSlot === 'OFF') return [];
+
+  return URAIAN_KEGIATAN_HARIAN.filter(act => {
+    if (act.waliAsuhKode.includes(kodeSlot)) return true;
+    if (kodeSlot.startsWith('P') && act.shiftType === 'PAGI' && act.waliAsuhKode.includes('P1')) return true;
+    if (kodeSlot.startsWith('S') && act.shiftType === 'SORE') {
+      const num = parseInt(kodeSlot.replace('S', ''), 10);
+      if (num >= 1 && num <= 4 && (act.waliAsuhKode.includes('S1') || act.waliAsuhKode.includes('S3'))) return true;
+      if (num >= 5 && num <= 8 && (act.waliAsuhKode.includes('S5') || act.waliAsuhKode.includes('S7'))) return true;
+      if (num >= 9 && num <= 12 && (act.waliAsuhKode.includes('S9') || act.waliAsuhKode.includes('S11') || act.waliAsuhKode.includes('3 WalSuh') || act.waliAsuhKode.includes('6 WalSuh'))) return true;
+    }
+    if (kodeSlot.startsWith('M') && act.shiftType === 'MALAM') return true;
+    return false;
+  });
+}
+

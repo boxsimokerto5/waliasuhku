@@ -2,6 +2,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import QRCode from 'qrcode';
 import { User, ActivityChecklist, EventChecklist, EventChecklistOption } from '../types';
+import { getKodeSlotSOP, getDeskripsiSlotSOP } from '../data/jadwalHarianRinci';
 
 /**
  * Preload an image URL and convert it to a canvas-compatible base64 format
@@ -3915,8 +3916,10 @@ export const generateKlasifikasiShiftHarian28PDF = async (
         doc.setTextColor(15, 23, 42);
         doc.setFontSize(fontSize);
 
+        const shiftCode = box.title.includes('PAGI') ? 'P' : box.title.includes('SORE') ? 'S' : box.title.includes('MALAM') ? 'M' : 'OFF';
+        const slotCode = shiftCode !== 'OFF' ? getKodeSlotSOP(shiftCode, idx) : '';
         const statusTag = item.shifts[selectedDay] === 'C' ? ' (Cuti)' : item.shifts[selectedDay] === 'SKT' ? ' (Sakit)' : '';
-        const nameStr = `${idx + 1}.  ${item.nama}${item.anakAsuh ? ` (${item.anakAsuh})` : ''}${statusTag}`;
+        const nameStr = `${idx + 1}. ${slotCode ? `[${slotCode}] ` : ''}${item.nama}${item.anakAsuh ? ` (${item.anakAsuh})` : ''}${statusTag}`;
         
         // Truncate if string exceeds box width
         const maxStrWidth = box.w - 6;
@@ -3941,7 +3944,7 @@ export const generateKlasifikasiShiftHarian28PDF = async (
   doc.setFont('Helvetica', 'bold');
   doc.setFontSize(6.5);
   doc.setTextColor(30, 41, 59);
-  doc.text(`Catatan: Seluruh 28 Wali Asuh mematuhi giliran kerja dan pembagian shift harian SRMA 24 Kediri.`, 105, footerY + 4.5, { align: 'center' });
+  doc.text(`Catatan: Kode [P1-P4, S1-S12, M1-M4] merujuk pada penugasan SOP spesifik pendampingan anak asuh.`, 105, footerY + 4.5, { align: 'center' });
 
   // Signature Block
   const sigY = 252;
@@ -3973,8 +3976,96 @@ export const generateKlasifikasiShiftHarian28PDF = async (
   doc.setTextColor(71, 85, 105);
   doc.text('NIP. 196905211992031008', sigX, sigY + 32);
 
+  // PAGE 2: Lembar Rincian Penugasan SOP Personel Piket (Only for Single Day Print)
   if (!isMultiPageMode) {
-    doc.save(`Klasifikasi_Shift_Harian_WaliAsuh_${selectedDay}_Agt_2026.pdf`);
+    doc.addPage();
+
+    // Header Page 2
+    let p2Y = 10;
+    doc.setFillColor(15, 23, 42); // Slate 900
+    doc.rect(10, p2Y, 190, 12, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.text(`LEMBAR INTEGRASI TUGAS SOP PER PERSONEL PIKET - ${dayName.toUpperCase()}, ${selectedDay} AGUSTUS 2026`, 105, p2Y + 7.5, { align: 'center' });
+    p2Y += 15;
+
+    // Build Rows
+    const sopRows: any[] = [];
+    let rowNo = 1;
+
+    // Shift Pagi
+    shiftPagi.forEach((item: any, idx: number) => {
+      const slot = getKodeSlotSOP('P', idx);
+      const desc = getDeskripsiSlotSOP(slot);
+      sopRows.push([
+        rowNo++,
+        item.nama,
+        `PAGI\n[${slot}]`,
+        `${desc.label}\nUnit: ${desc.unit}`,
+        desc.deskripsi
+      ]);
+    });
+
+    // Shift Sore
+    shiftSore.forEach((item: any, idx: number) => {
+      const slot = getKodeSlotSOP('S', idx);
+      const desc = getDeskripsiSlotSOP(slot);
+      sopRows.push([
+        rowNo++,
+        item.nama,
+        `SORE\n[${slot}]`,
+        `${desc.label}\nUnit: ${desc.unit}`,
+        desc.deskripsi
+      ]);
+    });
+
+    // Shift Malam
+    shiftMalam.forEach((item: any, idx: number) => {
+      const slot = getKodeSlotSOP('M', idx);
+      const desc = getDeskripsiSlotSOP(slot);
+      sopRows.push([
+        rowNo++,
+        item.nama,
+        `MALAM\n[${slot}]`,
+        `${desc.label}\nUnit: ${desc.unit}`,
+        desc.deskripsi
+      ]);
+    });
+
+    autoTable(doc, {
+      startY: p2Y,
+      head: [['NO', 'NAMA WALI ASUH', 'SHIFT & KODE', 'FOKUS & UNIT PENDAMPINGAN', 'RINCIAN SOP TUGAS & TANGGUNG JAWAB HARIAN']],
+      body: sopRows,
+      margin: { left: 10, right: 10, bottom: 20 },
+      styles: {
+        fontSize: 7.5,
+        cellPadding: 2.5,
+        valign: 'middle',
+        overflow: 'linebreak',
+      },
+      headStyles: {
+        fillColor: [15, 23, 42],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        halign: 'center',
+      },
+      columnStyles: {
+        0: { halign: 'center', cellWidth: 10 },
+        1: { fontStyle: 'bold', cellWidth: 42 },
+        2: { halign: 'center', fontStyle: 'bold', cellWidth: 25 },
+        3: { fontStyle: 'bold', cellWidth: 45 },
+        4: { cellWidth: 68 }
+      },
+      didDrawPage: (data) => {
+        doc.setFontSize(7);
+        doc.setTextColor(100);
+        doc.text('SRMA 24 Kediri — Lembar Penugasan SOP Harian Wali Asuh', 10, 287);
+        doc.text('Halaman ' + doc.getNumberOfPages(), 105, 287, { align: 'center' });
+      }
+    });
+
+    doc.save(`Klasifikasi_Shift_dan_SOP_Tugas_${selectedDay}_Agt_2026.pdf`);
   }
 };
 
